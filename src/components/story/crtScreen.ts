@@ -32,8 +32,9 @@ const CELL_MIN_PX = 5
  *  small ring rather than a dot or a block; ordered light to dark. */
 const GLYPHS = '@#W$98&60'
 /** How much of a glyph a cell shows: >1 crops to its centre, which is what
- *  makes neighbours nearly touch. */
-const GLYPH_SCALE = 1.7
+ *  makes neighbours nearly touch. Eased off 1.7 so a little more of each
+ *  glyph's own margin comes with it and the ground shows between marks. */
+const GLYPH_SCALE = 1.55
 
 /** The tube: how much of the canvas the flat rectangle takes, and how far
  *  its edges bow, in half-canvas units. Sides barely; top and bottom more. */

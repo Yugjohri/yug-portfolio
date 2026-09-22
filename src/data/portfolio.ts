@@ -8,8 +8,8 @@
 // the app) rather than copied in. Vite serves them in development and bundles
 // them for a build.
 import inventoryClip from '../../../project mockup vids/Employeeinventorymanagementsystemvid.mp4'
-import ragClip from '../../../project mockup vids/ragaiknowledgevid2.mp4'
-import qloraClip from '../../../project mockup vids/pricepredictopensourceqloravid.mp4'
+import ragClip from '../../../project mockup vids/RAG AI mockup vid.mp4'
+import qloraClip from '../../../project mockup vids/frontier price predict mockup vid.mp4'
 import portClip from '../../../project mockup vids/pythonrust.mp4'
 
 /** A picture or clip in a project's case-study stream. */
@@ -125,23 +125,6 @@ export const SLEEVES: Sleeve[] = [
     repo: 'https://github.com/Yugjohri',
     jx: 2,
     jr: -0.5,
-  },
-  {
-    code: 'B3',
-    org: 'Independent',
-    kicker: 'B3 · Independent build',
-    title: 'GPT-Ind — a transformer from scratch',
-    capLines: ['GPT-Ind —', 'from scratch'],
-    body:
-      'A decoder-only GPT built in PyTorch end to end: custom tokenizer, positional encoding, multi-head self-attention, trained and evaluated from first principles rather than a library wrapper.',
-    summary:
-      'A decoder-only GPT written in PyTorch from first principles: tokenizer, positional encoding and multi-head attention, trained and evaluated end to end.',
-    emoji: '⚙️',
-    metrics: ['Custom tokenizer', 'Multi-head attention', 'Built from scratch'],
-    tags: ['PyTorch', 'Transformers', 'Tokenization'],
-    repo: 'https://github.com/Yugjohri',
-    jx: -3,
-    jr: 0.6,
   },
   {
     code: 'B4',

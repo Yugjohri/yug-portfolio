@@ -701,6 +701,8 @@ type Card = {
   hover: number
   hoverTarget: number
   video?: HTMLVideoElement
+  /** in the drawn set this frame: the ribbon's own idea of "on screen" */
+  onScreen: boolean
   live: boolean
   /** last time (ms) a stuck "live" video was kicked with another play() */
   kickedAt: number
@@ -821,6 +823,7 @@ export class RibbonScene {
       size: [TEX_W, TEX_H],
       hover: 0,
       hoverTarget: 0,
+      onScreen: false,
       live: false,
       kickedAt: 0,
       ball: { tx: 0.5, ty: 0.5, x: 0.5, y: 0.5, amp: 0, since: 0, trail: new Float32Array(BALL_TAPS * 3) },
@@ -886,7 +889,10 @@ export class RibbonScene {
       video.muted = true
       video.loop = true
       video.playsInline = true
-      video.preload = 'metadata'
+      video.autoplay = true
+      // buffered before the card reaches the edge of the view, so it is
+      // already running by the time it is on screen rather than starting there
+      video.preload = 'auto'
       video.crossOrigin = 'anonymous'
       card.video = video
       // until the first frame arrives the poster (or the card) shows
@@ -1335,7 +1341,11 @@ export class RibbonScene {
   // ---------------------------------------------------------------- video
 
   /**
-   * Play the clip on the card nearest the centre, pause the rest.
+   * Play the clip on every card in the drawn set, pause the rest.
+   *
+   * The drawn set reaches a card's width past each edge of the view, so a
+   * clip is already looping before its card is visible: scrolling uncovers a
+   * video that is running, never one that starts because it arrived.
    *
    * A play() call can fail two ways: its promise rejects (our own pause() a
    * frame later, or the browser refusing outright), or it neither resolves
@@ -1350,9 +1360,9 @@ export class RibbonScene {
    * rather than hammered every frame.
    */
   private syncVideo(now = 0) {
-    this.cards.forEach((card, i) => {
+    this.cards.forEach((card) => {
       if (!card.video) return
-      const want = i === this.nearest
+      const want = card.onScreen
       if (want && (!card.live || (card.video.paused && now - card.kickedAt > 400))) {
         const video = card.video
         card.live = true
@@ -1361,7 +1371,7 @@ export class RibbonScene {
           .play()
           .then(() => {
             // a card that changed its mind (scrolled away) before this landed
-            if (i !== this.nearest) video.pause()
+            if (!card.onScreen) video.pause()
           })
           .catch(() => {
             if (card.video === video) card.live = false
@@ -1459,13 +1469,21 @@ export class RibbonScene {
     let nearest = 0
     let nearestX = Infinity
     const order: { i: number; x: number }[] = []
+    // whether any card with a clip crossed into or out of the drawn set
+    let castChanged = false
     for (let i = 0; i < this.cards.length; i++) {
       const x = this.cardX(i, l)
       if (Math.abs(x) < nearestX) {
         nearestX = Math.abs(x)
         nearest = i
       }
-      if (Math.abs(x) < W + l.cw) order.push({ i, x })
+      const onScreen = Math.abs(x) < W + l.cw
+      if (onScreen) order.push({ i, x })
+      const card = this.cards[i]
+      if (card.onScreen !== onScreen) {
+        card.onScreen = onScreen
+        if (card.video) castChanged = true
+      }
     }
     // the S puts the right half far and the left half near: draw right first
     order.sort((a, b) => b.x - a.x)
@@ -1491,12 +1509,11 @@ export class RibbonScene {
       gl.drawElements(gl.TRIANGLES, this.cardGeo.count, gl.UNSIGNED_SHORT, 0)
     }
 
-    if (nearest !== this.nearest) {
-      this.nearest = nearest
+    // the caption still follows the middle card; the clips follow the set
+    this.nearest = nearest
+    if (castChanged) this.syncVideo(performance.now())
+    else if (this.cards.some((c) => c.video && c.onScreen && (!c.live || c.video.paused))) {
       this.syncVideo(performance.now())
-    } else {
-      const c = this.cards[nearest]
-      if (c.video && (!c.live || c.video.paused)) this.syncVideo(performance.now())
     }
 
     if (this.surfaceOn) this.stepSurface(dt)

@@ -298,10 +298,13 @@
 .shero__screen {
   position: absolute;
   left: 50%;
-  top: 6dvh;
+  /* a little more room above it than the reference leaves */
+  top: 7.5dvh;
   translate: -50% 0;
-  width: min(72vw, 66dvh * 1.6);
-  aspect-ratio: 16 / 10;
+  /* the glass is a touch longer than 16:10, and no deeper for it: the height
+     cap comes down by as much as the extra top margin takes */
+  width: min(81.3vw, 71dvh * 1.68);
+  aspect-ratio: 16 / 9.52;
   /* The height is the ratio's and nothing else's. An aspect-ratio box takes
      its content as an automatic minimum height, so a canvas inside it that
      came out a fraction taller (browser zoom, device-pixel snapping) would
@@ -417,8 +420,8 @@
 @media (max-width: 899px) {
   /* one column of type below it, so the glass sits higher and smaller */
   .shero__screen {
-    top: 9dvh;
-    width: min(96vw, 52dvh * 1.6);
+    top: 10.5dvh;
+    width: min(96vw, 57.2dvh * 1.68);
   }
   .shero__lockup { width: 88vw; }
   .shero__def { width: 38%; }

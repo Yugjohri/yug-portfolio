@@ -1,14 +1,21 @@
-/* ---------- The black-and-red pass ----------
+/* ---------- The cream-and-red pass ----------
 
-   Black first, red second. Active while <html data-theme="noir"> (set from
-   theme.ts). The dark stylesheets stay as they are; this overrides the
-   tokens they read, and the few places where the original's orange, blue
-   and navy are written out. */
+   A muted, warm off-white ground, red second. Active while
+   <html data-theme="noir"> (set from theme.ts). The dark stylesheets stay as
+   they are; this overrides the tokens they read, and the few places where
+   the original's orange, blue and navy are written out.
+
+   The ground was black (--bg: #050405, --text: #f1ebe8, --muted: #8b8287)
+   until the page was turned over to cream; only these three tokens and the
+   two hairlines below changed. The card plates (--hero-elevated), the CRT's
+   ember grade and the ribbon's own colours are deliberately left as they
+   were -- they are surfaces sitting on the ground, not the ground. */
 
 :root[data-theme='noir'] {
-  --bg: #050405;
-  --text: #f1ebe8;
-  --muted: #8b8287;
+  /* warm, low-saturation off-white: hsl(38 20% 89%) -- not white, not yellow */
+  --bg: #e9e5de;
+  --text: #1a1618;
+  --muted: #6b6369;
 
   --red: #c8102e;
   --red-hot: #e0122f;
@@ -57,7 +64,8 @@
 /* ---------- projects: the stage ---------- */
 
 [data-theme='noir'] .work {
-  --work-line: rgb(255 255 255 / 0.06);
+  /* was rgb(255 255 255 / 0.06) on the black ground */
+  --work-line: rgb(26 22 24 / 0.1);
 }
 [data-theme='noir'] .work__corner--tr b {
   color: var(--red-hot);
@@ -78,7 +86,8 @@
 /* ---------- story ---------- */
 
 [data-theme='noir'] .story {
-  --st-line: rgb(255 255 255 / 0.08);
+  /* was rgb(255 255 255 / 0.08) on the black ground */
+  --st-line: rgb(26 22 24 / 0.14);
 }
 [data-theme='noir'] .proof__thesis em,
 [data-theme='noir'] .about__statement em,
@@ -87,11 +96,44 @@
 [data-theme='noir'] .proof__value {
   color: var(--red-hot);
 }
+/* The first screen is the old black, and the gesture wipes it away.
+
+   The header's mask is a clip-path on .shero__frame: as it closes from both
+   sides the page's cream ground is what sweeps in behind it. So the black
+   goes *inside* that frame, as its backing -- it fills the first viewport,
+   and the same clip-path already takes it away from both edges. Nothing in
+   the timeline changes; the sweep is the one that was always there. The
+   title rides on this black, so it keeps the ink the black ground gave it. */
+[data-theme='noir'] .shero__frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #050405;
+}
+[data-theme='noir'] .shero__title {
+  color: #f1ebe8;
+}
+/* the corner labels were showing through the frame while it had no backing;
+   the black gives it one, so they step over it and read as they did before */
+[data-theme='noir'] .shero > .st-corner {
+  z-index: 4;
+}
+
 [data-theme='noir'] .shero__rule {
   background: var(--red-hot);
 }
 [data-theme='noir'] .st-corner--tr {
   color: var(--red-hot);
+}
+
+/* The tech-stack cards stayed dark plates when the page went cream, so their
+   own text keeps the ink the dark ground gave it -- the page tokens would
+   now paint near-black on near-black. */
+[data-theme='noir'] .stack__card {
+  color: #f1ebe8;
+}
+[data-theme='noir'] .stack__cat {
+  color: #8b8287;
 }
 
 /* ---------- brief ---------- */
