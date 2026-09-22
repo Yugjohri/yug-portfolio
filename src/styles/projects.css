@@ -1,0 +1,289 @@
+/* ---------- Projects: the stage ----------
+
+   Two layouts share one markup. Below 900px, or whenever motion is reduced,
+   it is a plain column of screens. Above, with motion allowed, the section
+   pins and becomes a stage: ribbonScene.ts draws the floor and the screens as
+   one bending sheet on a canvas, and the card elements become the titles laid
+   over it. The media query that flips between the two is repeated verbatim in
+   ProjectsStrip.tsx -- they must agree or the stage would run on a layout that
+   cannot use it. Without WebGL the column stays, at any width. */
+
+.work {
+  --work-pad: clamp(1.5rem, 3.2vw, 3.25rem);
+  --work-line: rgb(255 255 255 / 0.075);
+  --work-ease: var(--hero-ease);
+  --work-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --work-grotesk: 'Bricolage Grotesque', Inter, system-ui, sans-serif;
+
+  position: relative;
+  color: var(--text);
+  background: var(--bg);
+  font-family: Inter, system-ui, sans-serif;
+  isolation: isolate;
+}
+
+.work .mono {
+  font-family: var(--hero-display);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.work__pin {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  /* the stage is dragged sideways; the page still scrolls under a finger */
+  touch-action: pan-y;
+  user-select: none;
+}
+
+/* ---------- corners ---------- */
+
+.work__corner {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  transition: opacity 0.4s var(--work-ease);
+}
+.work__corner--tl { top: var(--work-pad); left: var(--work-pad); }
+.work__corner--tr { top: var(--work-pad); right: var(--work-pad); }
+/* the caption stands clear of the music player in the same corner */
+.work__corner--bl { bottom: var(--work-pad); left: calc(var(--work-pad) + 250px); }
+.work__corner--br { bottom: var(--work-pad); right: var(--work-pad); }
+
+.work__corner--tr b {
+  color: var(--text);
+  font-weight: 500;
+}
+.work__corner--tr i {
+  font-style: normal;
+  opacity: 0.45;
+}
+
+/* stacked: nothing is "current", so the counter shows only the total and the
+   live caption and hint have no meaning */
+.work__corner--tr b,
+.work__corner--tr i,
+.work__corner--bl,
+.work__corner--br {
+  display: none;
+}
+
+/* ---------- screens ---------- */
+
+.work__ribbon {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  padding: 5rem var(--work-pad) 5rem;
+}
+
+.work__card {
+  position: relative;
+  width: 100%;
+  max-width: 64rem;
+  aspect-ratio: 16 / 10;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--hero-elevated);
+  container-type: inline-size;
+  /* screens face the viewer; nothing should ever show their back */
+  backface-visibility: hidden;
+}
+
+.work__screen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.work__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* the title card: the project's own numbers standing in for a picture */
+.work__stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  /* the bottom band is the title's; a two-line title on a phone needs more */
+  padding: 5.5% 6% 20%;
+  background:
+    radial-gradient(110% 80% at 100% 0%, rgb(255 170 65 / 0.1), transparent 58%),
+    radial-gradient(70% 55% at 0% 100%, rgb(121 164 255 / 0.09), transparent 62%),
+    linear-gradient(#181b28, #0f111a 65%, #0a0b12);
+}
+.work__stat::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1px);
+  background-size: 6px 6px;
+  opacity: 0.55;
+  mask-image: linear-gradient(to bottom, #000, transparent 70%);
+}
+.work__stat::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/grain.png') repeat;
+  background-size: 180px;
+  opacity: 0.14;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+.work__stat-bar {
+  position: absolute;
+  top: 5.5%;
+  left: 6%;
+  right: 6%;
+  display: flex;
+  justify-content: space-between;
+  color: var(--text);
+  opacity: 0.55;
+}
+.work__stat-lead {
+  position: relative;
+  font-family: var(--work-serif);
+  font-style: italic;
+  font-size: 8.6cqw;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  text-wrap: balance;
+}
+.work__stat-sub {
+  position: relative;
+  margin-top: 1em;
+  white-space: pre;
+  letter-spacing: 0.14em;
+}
+
+/* the reference's two pieces of chrome: the name at the bottom-left of the
+   screen, a small button at the bottom-right */
+.work__title {
+  position: absolute;
+  left: 4.2%;
+  bottom: 5.5%;
+  z-index: 2;
+  margin: 0;
+  max-width: 70%;
+  font-family: var(--work-grotesk);
+  font-size: clamp(1.05rem, 1.35vw, 1.4rem);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: #fff;
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.5);
+  text-wrap: balance;
+}
+
+/* the name is the button that opens the project */
+.work__open {
+  all: unset;
+  cursor: pointer;
+  text-wrap: inherit;
+}
+.work__open:focus-visible {
+  outline: 2px solid var(--hero-accent);
+  outline-offset: 4px;
+}
+
+.work__go {
+  position: absolute;
+  right: 4.2%;
+  bottom: 5.5%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(0 0 0 / 0.55);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  text-decoration: none;
+  font-size: 15px;
+  line-height: 1;
+  backdrop-filter: blur(6px);
+  transition:
+    background-color 0.3s var(--work-ease),
+    color 0.3s var(--work-ease),
+    border-color 0.3s var(--work-ease);
+}
+.work__go span {
+  display: block;
+  transition: transform 0.3s var(--work-ease);
+}
+.work__go:hover,
+.work__go:focus-visible {
+  color: #000;
+  background: #fff;
+  border-color: #fff;
+}
+.work__go:hover span {
+  transform: translateX(2px);
+}
+
+/* =====================================================================
+   The stage. Same query as STAGE_MEDIA in ProjectsStrip.tsx; the attribute
+   is set by the script once the scene is up, so a machine without WebGL
+   keeps the column.
+   ===================================================================== */
+
+@media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+  .work[data-stage] .work__pin {
+    height: 100dvh;
+  }
+
+  .work[data-stage] .work__corner--tr b,
+  .work[data-stage] .work__corner--tr i {
+    display: inline;
+  }
+  .work[data-stage] .work__corner--bl,
+  .work[data-stage] .work__corner--br {
+    display: block;
+  }
+  .work[data-stage] .work__corner--bl {
+    max-width: 44vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .work__gl {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: block;
+  }
+
+  /* the scene draws the screens and their titles; the column stays in the
+     tree for readers and keyboards, out of sight */
+  .work[data-stage] .work__ribbon {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    padding: 0;
+  }
+}

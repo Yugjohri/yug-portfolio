@@ -1,0 +1,892 @@
+/* ---------- Brief Read ---------- */
+
+.brief {
+  --bf-ink: #e9eaec;
+  --bf-dim: #8b9199;
+  --bf-label: #7c93ad;
+  --bf-line: rgb(255 255 255 / 0.09);
+  /* the cards sit on a solid ground of their own: the halftone pool behind
+     the page is fixed, and a near-transparent card lands on it unreadable */
+  --bf-card: rgb(10 10 13 / 0.82);
+  --bf-col: 1220px;
+  --bf-dot: 7px;        /* halftone pitch; the ground tone is drawn for this */
+  --bf-pad: clamp(20px, 5vw, 40px);
+  --bf-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  position: relative;
+  min-height: 100dvh;
+  color: var(--bf-ink);
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  isolation: isolate;
+  overflow-x: clip;
+}
+
+/* The ground: the wallpaper clip, fixed, so the page scrolls over it rather
+   than dragging it along; a div rather than background-attachment so iOS
+   honours it. The clip covers the viewport at its own aspect (cropped, never
+   stretched), and the gradients below keep the copy column readable over it.
+
+   (The earlier halftone ground -- /brief-bg.webp with a dot screen multiplied
+   over it -- is kept in the file below, commented, should it be wanted back.) */
+.brief__bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  isolation: isolate;
+  background: #000;
+  overflow: hidden;
+}
+.brief__bg-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+}
+
+/* .brief__bg { background: #000 url('/brief-bg.webp') center / cover no-repeat; }
+.brief__bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: multiply;
+  background-image: radial-gradient(closest-side circle, #fff 0 46%, #000 64%);
+  background-size: var(--bf-dot) var(--bf-dot);
+} */
+
+.brief__bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    /* The screen is only let through in a pool behind the portrait -- offset from
+       the centre in px, not %, so it stays with the content column instead of
+       drifting to the far edge as the window widens. The copy column keeps its
+       clean dark ground. */
+    radial-gradient(760px 660px at calc(50% + 330px) 30%,
+      rgb(6 6 7 / 0.04) 0%, rgb(6 6 7 / 0.5) 58%, rgb(6 6 7 / 0.93) 100%),
+    linear-gradient(rgb(6 6 7 / 0.05), rgb(6 6 7 / 0.4));
+}
+
+/* One column: the copy runs the full width, so there is no side of the screen
+   to keep clear. The pool retreats into the top corner and the ground drops
+   back to a whisper. */
+@media (max-width: 899px) {
+  .brief__bg::after {
+    background:
+      radial-gradient(620px 560px at 88% 8%,
+        rgb(6 6 7 / 0.4) 0%, rgb(6 6 7 / 0.78) 55%, rgb(6 6 7 / 0.95) 100%),
+      linear-gradient(rgb(6 6 7 / 0.2), rgb(6 6 7 / 0.6));
+  }
+}
+
+/* The moving grain. A small noise tile is redrawn a few times a second and
+   laid over the page as a repeating pattern, so the ground never sits still --
+   film, rather than a static overlay. Drawn by the page, see BriefRead.tsx. */
+.brief__grain {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  opacity: 0.15;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+/* the fine matrix the reference lays over everything -- pitched to the screen
+   below and anchored to the same origin, so the two reinforce instead of moire */
+.brief__grid {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.45;
+  background-image: radial-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px);
+  background-size: var(--bf-dot) var(--bf-dot);
+}
+
+.brief .mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.bf-wrap {
+  position: relative;
+  width: 100%;
+  max-width: var(--bf-col);
+  margin-inline: auto;
+  padding-inline: var(--bf-pad);
+}
+
+/* ---------- fixed icon rail ---------- */
+
+.bf-rail {
+  position: fixed;
+  left: 14px;
+  top: 50%;
+  z-index: 20;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  transform: translateY(-50%);
+  border: 1px solid var(--bf-line);
+  border-radius: 10px;
+  background: rgb(14 14 16 / 0.72);
+  backdrop-filter: blur(8px);
+}
+.bf-rail a {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  color: var(--bf-dim);
+  transition: color 0.25s, background-color 0.25s;
+}
+.bf-rail a:hover {
+  color: var(--bf-ink);
+  background: rgb(255 255 255 / 0.06);
+}
+.bf-rail svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 0.6;
+}
+@media (min-width: 1180px) {
+  .bf-rail { display: flex; }
+}
+
+/* ---------- first screen ---------- */
+
+/* Reserve the viewport for the hero block so the About label is left peeking at
+   the fold at any window height -- a fixed gap only lands on one screen size.
+   The section's own top padding is subtracted so it still spaces correctly once
+   the page is scrolled. */
+.bf-fold {
+  min-height: calc(100dvh - 34px - 58px - clamp(72px, 12vh, 112px));
+}
+
+/* the top row: the page's sections in mono, the other route on the right */
+.bf-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 58px;
+  color: var(--bf-dim);
+}
+.bf-top__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+}
+.bf-top a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.25s;
+}
+.bf-top a:hover { color: var(--bf-ink); }
+.bf-top__story {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bf-ink) !important;
+}
+.bf-top__story span { transition: transform 0.3s var(--bf-ease); }
+.bf-top__story:hover span { transform: translateX(4px); }
+@media (max-width: 899px) {
+  .bf-top__links { display: none; }
+}
+
+/* ---------- hero ---------- */
+
+.bf-hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(28px, 5vw, 54px);
+  padding-block: clamp(40px, 11vh, 150px) clamp(16px, 2.4vh, 26px);
+}
+@media (min-width: 900px) {
+  .bf-hero {
+    grid-template-columns: 1fr 344px;
+    gap: 56px;
+    align-items: start;
+  }
+}
+
+.bf-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--bf-label);
+}
+.bf-eyebrow i { margin-right: 8px; font-style: normal; opacity: 0.5; }
+
+.bf-name {
+  margin: 22px 0 0;
+  font-family: Anton, 'Arial Narrow', Impact, sans-serif;
+  font-size: clamp(3.1rem, 9.4vw, 6.2rem);
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: 0.004em;
+  text-transform: uppercase;
+}
+.bf-name em {
+  font-style: normal;
+  color: var(--bf-label);
+}
+
+.bf-meta {
+  display: flex;
+  gap: 14px;
+  margin-top: 20px;
+  color: var(--bf-dim);
+}
+.bf-meta i { font-style: normal; opacity: 0.45; }
+
+.bf-intro {
+  max-width: 36em;
+  margin-top: 24px;
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--bf-dim);
+  text-wrap: pretty;
+}
+.bf-intro b { color: var(--bf-ink); font-weight: 600; }
+
+/* ---------- actions ---------- */
+
+.bf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 36px;
+  margin-top: 37px;
+}
+
+.bf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 22px;
+  border: 1px solid var(--bf-line);
+  border-radius: 3px;
+  color: var(--bf-ink);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: border-color 0.3s, background-color 0.3s;
+}
+.bf-btn:hover { border-color: rgb(255 255 255 / 0.3); background: rgb(255 255 255 / 0.04); }
+.bf-btn span {
+  font-size: 1.35em;
+  line-height: 0;
+  transition: transform 0.3s var(--bf-ease);
+}
+.bf-btn:hover span { transform: translateX(4px); }
+
+.bf-link {
+  color: var(--bf-dim);
+  text-decoration: none;
+  transition: color 0.25s;
+}
+.bf-link:hover { color: var(--bf-ink); }
+.bf-link { display: inline-flex; align-items: center; gap: 8px; }
+.bf-link span { opacity: 0.6; }
+
+.bf-glyph {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+  opacity: 0.75;
+}
+
+.brief .bf-eyebrow,
+.brief .bf-meta {
+  font-size: 11.5px;
+}
+
+.brief .bf-btn,
+.brief .bf-actions .bf-link {
+  font-size: 12.5px;
+}
+
+/* ---------- portrait ---------- */
+
+.bf-portrait {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: #0c0d0f;
+  border: 1px solid var(--bf-line);
+}
+.bf-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* the top third of the source is shopfront; push the frame down onto the
+     subject and zoom past the clutter, without distorting the aspect */
+  object-position: 50% 92%;
+  transform: scale(1.26);
+  transform-origin: 50% 50%;
+}
+.bf-portrait::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+  background-image: radial-gradient(rgb(255 255 255 / 0.5) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+.bf-portrait__tick {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 62px;
+  height: 62px;
+  border-right: 1px dashed rgb(255 255 255 / 0.45);
+  border-bottom: 1px dashed rgb(255 255 255 / 0.45);
+}
+
+/* ---------- pillars ---------- */
+
+.bf-pillars {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1px;
+  margin-top: clamp(24px, 4vh, 40px);
+  background: var(--bf-line);
+  border: 1px solid var(--bf-line);
+}
+.bf-pillar {
+  padding: 25px 28px 29px;
+  background: rgb(11 11 13 / 0.86);
+  backdrop-filter: blur(3px);
+}
+.bf-pillar span { color: var(--bf-label); }
+.bf-pillar p { margin: 13px 0 0; font-size: 15px; line-height: 1.5; }
+
+.bf-inline {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 55px;
+  color: var(--bf-dim);
+}
+.bf-inline a { color: inherit; text-decoration: none; transition: color 0.25s; }
+.bf-inline a:hover { color: var(--bf-ink); }
+.bf-inline i { width: 34px; height: 1px; background: var(--bf-line); }
+
+/* ---------- sections ---------- */
+
+.bf-section { padding-block: clamp(72px, 12vh, 112px) 0; }
+.bf-section--last { padding-bottom: clamp(64px, 12vh, 120px); }
+
+.bf-seclabel {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: clamp(28px, 5vh, 48px);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--bf-ink);
+  scroll-margin-top: 90px;
+}
+.bf-seclabel i { flex: 1; height: 1px; background: var(--bf-line); }
+
+.bf-lede {
+  max-width: 56ch;
+  margin: 0 0 clamp(28px, 5vh, 44px);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--bf-dim);
+  text-wrap: pretty;
+}
+
+/* the dithered band between sections: type, faint, drifting slowly */
+.bf-divider {
+  margin-top: clamp(48px, 8vh, 80px);
+  height: 22px;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 22px;
+  letter-spacing: 0.02em;
+  color: rgb(255 255 255 / 0.11);
+  white-space: nowrap;
+  user-select: none;
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+}
+.bf-divider span { display: inline-block; will-change: transform; }
+
+/* ---------- about ---------- */
+
+.bf-about {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(28px, 5vw, 56px);
+}
+@media (min-width: 900px) {
+  .bf-about { grid-template-columns: 1fr 360px; align-items: start; }
+}
+.bf-about__copy h2 {
+  margin: 0 0 28px;
+  max-width: 28ch;
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+  font-weight: 500;
+  line-height: 1.34;
+  letter-spacing: -0.012em;
+}
+.bf-about__copy p {
+  margin: 0 0 18px;
+  max-width: 62ch;
+  font-size: 15.5px;
+  line-height: 1.8;
+  color: var(--bf-dim);
+  text-wrap: pretty;
+}
+.bf-closer { color: var(--bf-ink) !important; }
+
+.bf-card {
+  border: 1px solid var(--bf-line);
+  background: var(--bf-card);
+  backdrop-filter: blur(3px);
+}
+.bf-card__head {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--bf-line);
+  color: var(--bf-label);
+}
+.bf-highlight { padding: 17px 20px; border-bottom: 1px solid var(--bf-line); }
+.bf-highlight:last-child { border-bottom: 0; }
+.bf-highlight span { color: var(--bf-label); }
+.bf-highlight p { margin: 9px 0 0; font-size: 14px; line-height: 1.5; }
+
+/* ---------- projects: the tiles ---------- */
+
+.bf-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+.bf-tiles--more { margin-top: 14px; }
+.bf-tiles + .bf-actions { margin-top: clamp(26px, 4vh, 36px); }
+
+.bf-tile {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--bf-line);
+  border-radius: 3px;
+  background: #0b0b0d;
+  isolation: isolate;
+  transition: border-color 0.3s;
+}
+.bf-tile:hover { border-color: rgb(255 255 255 / 0.22); }
+
+/* the plate: the ribbon's own title card, in CSS */
+.bf-tile__plate {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 6% 6% 24%;
+  background:
+    radial-gradient(110% 80% at 100% 0%, rgb(255 170 65 / 0.1), transparent 58%),
+    radial-gradient(70% 55% at 0% 100%, rgb(121 164 255 / 0.09), transparent 62%),
+    linear-gradient(#181b28, #0f111a 65%, #0a0b12);
+  transition: transform 0.6s var(--bf-ease), filter 0.6s var(--bf-ease);
+}
+.bf-tile__plate::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1px);
+  background-size: 6px 6px;
+  opacity: 0.55;
+  mask-image: linear-gradient(to bottom, #000, transparent 70%);
+}
+.bf-tile__bar {
+  position: absolute;
+  top: 6%;
+  left: 6%;
+  right: 6%;
+  display: flex;
+  justify-content: space-between;
+  color: var(--bf-ink);
+  opacity: 0.55;
+}
+.bf-tile__lead {
+  position: relative;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  font-size: clamp(1.7rem, 2.6vw, 2.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: var(--bf-ink);
+}
+.bf-tile__sub {
+  position: relative;
+  margin-top: 0.9em;
+  white-space: pre;
+  letter-spacing: 0.12em;
+}
+
+/* the name along the bottom, in the page's poster face */
+.bf-tile__name {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 6%;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: opacity 0.35s var(--bf-ease), transform 0.5s var(--bf-ease);
+}
+.bf-tile__name h3 {
+  margin: 0;
+  font-family: Anton, 'Arial Narrow', Impact, sans-serif;
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bf-ink);
+}
+.bf-tile__name .mono { color: var(--bf-dim); font-size: 9.5px; }
+
+/* the brief itself, on hover: rises over the plate */
+.bf-tile__read {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 7% 7% 6%;
+  background: rgb(10 10 13 / 0.94);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.35s var(--bf-ease), transform 0.5s var(--bf-ease);
+}
+.bf-tile__read h3 {
+  margin: 0;
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  color: var(--bf-ink);
+}
+.bf-tile__read p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--bf-dim);
+}
+.bf-tile__metrics {
+  font-size: 10px !important;
+  letter-spacing: 0.12em !important;
+  color: var(--bf-label) !important;
+}
+.bf-tile__links {
+  display: flex;
+  gap: 18px;
+  margin-top: auto;
+}
+.bf-tile__links a {
+  color: var(--bf-dim);
+  text-decoration: none;
+  transition: color 0.25s;
+}
+.bf-tile__links a:hover { color: var(--bf-ink); }
+
+.bf-tile:hover .bf-tile__read,
+.bf-tile:focus-within .bf-tile__read { opacity: 1; transform: translateY(0); }
+.bf-tile:hover .bf-tile__name { opacity: 0; transform: translateY(8px); }
+.bf-tile:hover .bf-tile__plate { transform: scale(1.03); filter: brightness(0.7); }
+
+/* No hover to give -- a touch device, or a screen narrow enough that it is
+   almost certainly one: the brief is laid out under its plate instead, so a
+   touch reader gets everything a pointer reader does. */
+@media (hover: none), (max-width: 700px) {
+  .bf-tile { aspect-ratio: auto; }
+  .bf-tile__plate { position: relative; aspect-ratio: 4 / 3; }
+  .bf-tile__name {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    padding: 16px 18px 0;
+  }
+  .bf-tile__name .mono { display: none; }
+  .bf-tile__read {
+    position: relative;
+    inset: auto;
+    opacity: 1;
+    transform: none;
+    background: none;
+    padding: 12px 18px 18px;
+  }
+  .bf-tile__read h3 { display: none; }
+  .bf-tile__links { margin-top: 4px; }
+}
+
+.bf-actions--row { align-items: center; margin-top: 0; }
+button.bf-btn { cursor: pointer; background: none; }
+
+.bf-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.bf-tags span {
+  padding: 5px 9px;
+  border: 1px solid var(--bf-line);
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--bf-dim);
+}
+
+/* ---------- experience ---------- */
+
+.bf-timeline { margin: 0; padding: 0; list-style: none; }
+.bf-role {
+  position: relative;
+  padding: 0 0 clamp(40px, 6vh, 60px) 30px;
+  border-left: 1px solid var(--bf-line);
+}
+.bf-role:last-child { border-left-color: transparent; padding-bottom: 0; }
+.bf-role__dot {
+  position: absolute;
+  left: -4.5px;
+  top: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3a3f47;
+}
+.bf-role[data-now] .bf-role__dot {
+  background: #7fa8d4;
+  box-shadow: 0 0 0 4px rgb(127 168 212 / 0.14);
+}
+.bf-role__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 18px;
+}
+.bf-role__head h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.bf-role__head em { font-style: normal; color: var(--bf-label); }
+.bf-role__head b {
+  margin-left: 9px;
+  padding: 3px 7px;
+  border-radius: 2px;
+  background: rgb(127 168 212 / 0.14);
+  color: #9cc0e4;
+  font-weight: 500;
+  font-size: 9px;
+}
+.bf-role__head > span { color: var(--bf-dim); }
+.bf-role__where { margin: 8px 0 0; color: var(--bf-dim); opacity: 0.8; }
+.bf-role__bullets {
+  margin: 16px 0 16px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  max-width: 66ch;
+}
+.bf-role__bullets li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--bf-dim);
+}
+.bf-role__bullets li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 4px;
+  height: 1px;
+  background: var(--bf-label);
+}
+
+/* ---------- stack: a label column and a grid of chips per group ---------- */
+
+.bf-skills {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(22px, 3.5vh, 32px);
+}
+.bf-skillrow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding-top: clamp(18px, 3vh, 26px);
+  border-top: 1px solid var(--bf-line);
+}
+@media (min-width: 700px) {
+  .bf-skillrow { grid-template-columns: 160px 1fr; align-items: start; gap: 28px; }
+}
+.bf-skillrow > span { color: var(--bf-label); padding-top: 9px; }
+.bf-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.bf-chips span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--bf-line);
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: var(--bf-ink);
+  background: var(--bf-card);
+  transition: border-color 0.25s, background-color 0.25s;
+}
+.bf-chips span:hover {
+  border-color: rgb(255 255 255 / 0.24);
+  background: rgb(255 255 255 / 0.05);
+}
+
+/* ---------- notes ---------- */
+
+.bf-notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--bf-line);
+}
+.bf-note {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 20px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--bf-line);
+}
+.bf-note > span { color: var(--bf-label); padding-top: 3px; }
+.bf-note p {
+  margin: 0;
+  max-width: 66ch;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--bf-ink);
+  text-wrap: pretty;
+}
+
+/* ---------- contact ---------- */
+
+.bf-contact {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(32px, 5vw, 64px);
+  margin-bottom: clamp(40px, 7vh, 72px);
+}
+@media (min-width: 900px) {
+  .bf-contact { grid-template-columns: 1fr 400px; align-items: start; }
+}
+.bf-contact__title {
+  margin: 0 0 22px;
+  font-family: Anton, 'Arial Narrow', Impact, sans-serif;
+  font-size: clamp(2.6rem, 6.4vw, 4.6rem);
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: 0.006em;
+  text-transform: uppercase;
+  color: var(--bf-ink);
+}
+.bf-contact__title em { font-style: normal; color: var(--bf-label); }
+.bf-contact .bf-lede { margin-bottom: 28px; }
+
+.bf-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 30px;
+  color: var(--bf-dim);
+}
+.bf-facts div { display: flex; gap: 22px; }
+.bf-facts dt { min-width: 84px; opacity: 0.7; }
+.bf-facts dd {
+  margin: 0;
+  color: var(--bf-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.bf-facts dd i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #7fa8d4;
+  box-shadow: 0 0 0 3px rgb(127 168 212 / 0.16);
+}
+
+.bf-channels { align-self: start; }
+.bf-channel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--bf-line);
+  color: var(--bf-ink);
+  font-size: 13px;
+  text-decoration: none;
+  transition: background-color 0.25s;
+}
+.bf-channel:last-child { border-bottom: 0; }
+.bf-channel:hover { background: rgb(255 255 255 / 0.035); }
+.bf-channel > .mono { color: var(--bf-dim); }
+.bf-channel > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  text-align: right;
+}
+.bf-channel i { font-style: normal; transition: transform 0.3s var(--bf-ease); }
+.bf-channel:hover i { transform: translateX(3px); }
+
+.bf-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--bf-line);
+  color: var(--bf-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brief * { transition: none !important; }
+}

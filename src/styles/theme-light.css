@@ -1,0 +1,171 @@
+/* ---------- The white-and-red pass ----------
+
+   Everything here applies only while <html data-theme="light"> (set from
+   theme.ts). The dark stylesheets are untouched: this file only overrides
+   the tokens they read and the handful of values they hard-code. Set THEME
+   back to 'dark' and none of this is live. */
+
+:root[data-theme='light'] {
+  --bg: #ffffff;
+  --text: #111114;
+  --muted: #6a6a72;
+
+  --red: #e0122f;
+  --red-deep: #7a0a1a;
+
+  --hero-elevated: #f3f3f5;
+  --hero-accent: var(--red);
+  --hero-accent-hot: var(--red);
+  --hero-hairline: #e4e4e7;
+  --hero-hairline-strong: #b8b8bf;
+  --hero-ascii: var(--red);
+}
+
+[data-theme='light'] ::selection {
+  background: var(--red);
+  color: #fff;
+}
+
+/* ---------- home: the split hero ---------- */
+
+[data-theme='light'] .hero__scrim {
+  background: linear-gradient(
+    to top,
+    var(--bg) 0%,
+    color-mix(in srgb, var(--bg) 30%, transparent) 45%,
+    color-mix(in srgb, var(--bg) 5%, transparent) 100%
+  );
+}
+[data-theme='light'] .hero__panel[data-hero-panel='story'] .hero__scrim::after {
+  opacity: 0.35;
+}
+[data-theme='light'] .hero__fallback {
+  background: var(--bg);
+}
+[data-theme='light'] .hero__enter {
+  color: var(--red);
+}
+
+/* ---------- projects: the stage ---------- */
+
+[data-theme='light'] .work {
+  --work-line: rgb(0 0 0 / 0.08);
+}
+[data-theme='light'] .work__corner--tr b {
+  color: var(--red);
+}
+
+/* ---------- story ---------- */
+
+[data-theme='light'] .story {
+  --st-line: rgb(0 0 0 / 0.1);
+}
+[data-theme='light'] .proof__thesis em,
+[data-theme='light'] .about__statement em,
+[data-theme='light'] .shero__title em,
+[data-theme='light'] .shero__word {
+  color: var(--red);
+}
+[data-theme='light'] .proof__value {
+  color: var(--red);
+}
+[data-theme='light'] .shero__rule {
+  background: var(--red);
+}
+[data-theme='light'] .st-corner--tr {
+  color: var(--red);
+}
+
+/* ---------- brief ---------- */
+
+[data-theme='light'] .brief {
+  --bf-ink: #111114;
+  --bf-dim: #6a6a72;
+  --bf-label: var(--red);
+  --bf-line: rgb(0 0 0 / 0.1);
+  --bf-card: rgb(255 255 255 / 0.86);
+}
+
+/* The halftone ground, printed: the tone is inverted to paper, and the dot
+   screen is laid down in the red's complement so the inversion lands it on
+   the red itself (0.12, 0.89, 0.8 -> 0.88, 0.11, 0.2). */
+[data-theme='light'] .brief__bg {
+  filter: invert(1);
+}
+[data-theme='light'] .brief__bg::before {
+  background-image: radial-gradient(closest-side circle, #1ee3cc 0 46%, #000 64%);
+}
+[data-theme='light'] .brief__grid {
+  background-image: radial-gradient(rgb(0 0 0 / 0.07) 1px, transparent 1px);
+}
+[data-theme='light'] .brief__grain {
+  mix-blend-mode: multiply;
+  opacity: 0.1;
+}
+
+[data-theme='light'] .bf-rail {
+  background: rgb(255 255 255 / 0.8);
+}
+[data-theme='light'] .bf-rail a:hover {
+  background: rgb(0 0 0 / 0.05);
+}
+[data-theme='light'] .bf-btn:hover {
+  border-color: rgb(0 0 0 / 0.3);
+  background: rgb(0 0 0 / 0.03);
+}
+[data-theme='light'] .bf-top__story {
+  color: var(--red) !important;
+}
+
+[data-theme='light'] .bf-portrait {
+  background: #ededf0;
+}
+[data-theme='light'] .bf-portrait__tick {
+  border-color: rgb(0 0 0 / 0.4);
+}
+[data-theme='light'] .bf-pillar {
+  background: rgb(255 255 255 / 0.86);
+}
+[data-theme='light'] .bf-divider {
+  color: rgb(224 18 47 / 0.32);
+}
+
+/* the tiles stay screens -- dark glass on the page -- so the type on them
+   keeps its light ink; the brief that rises over them is a sheet of paper */
+[data-theme='light'] .bf-tile:hover {
+  border-color: rgb(0 0 0 / 0.3);
+}
+[data-theme='light'] .bf-tile__bar,
+[data-theme='light'] .bf-tile__lead,
+[data-theme='light'] .bf-tile__name h3 {
+  color: #f6f1ea;
+}
+[data-theme='light'] .bf-tile__name .mono {
+  color: rgb(255 255 255 / 0.6);
+}
+[data-theme='light'] .bf-tile__read {
+  background: rgb(255 255 255 / 0.96);
+}
+
+[data-theme='light'] .bf-role__dot {
+  background: #c9c9cf;
+}
+[data-theme='light'] .bf-role[data-now] .bf-role__dot {
+  background: var(--red);
+  box-shadow: 0 0 0 4px rgb(224 18 47 / 0.14);
+}
+[data-theme='light'] .bf-role__head b {
+  background: rgb(224 18 47 / 0.1);
+  color: var(--red);
+}
+[data-theme='light'] .bf-chips span:hover {
+  border-color: rgb(0 0 0 / 0.3);
+  background: rgb(0 0 0 / 0.03);
+}
+[data-theme='light'] .bf-facts dd i {
+  background: var(--red);
+  box-shadow: 0 0 0 3px rgb(224 18 47 / 0.16);
+}
+[data-theme='light'] .bf-channel:hover {
+  background: rgb(0 0 0 / 0.03);
+}

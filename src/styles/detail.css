@@ -1,0 +1,312 @@
+/* ---------- Project detail: the opened project ----------
+
+   A sheet just inside the viewport, over the dimmed page. Information down
+   the left, the case-study stream down the right, scrolling on its own.
+   The open and close motion is set by ProjectDetail.tsx; this is the
+   resting frame it grows into. */
+
+.pd {
+  --pd-paper: #f3f1ed;
+  --pd-plate: #0f0b0c;
+  --pd-ink: #111114;
+  --pd-dim: #6a6a72;
+  --pd-line: rgb(0 0 0 / 0.1);
+  --pd-accent: var(--red, #c8102e);
+  --pd-pad: clamp(1.5rem, 3.2vw, 3.5rem);
+  --pd-ease: var(--hero-ease);
+
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  font-family: Inter, system-ui, sans-serif;
+  color: var(--pd-ink);
+}
+
+.pd .mono {
+  font-family: var(--hero-display);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* the page under it: dimmed, still there */
+.pd__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.58);
+}
+
+/* The sheet. Its resting frame is this inset; while it opens and closes the
+   script drives left/top/width/height inline and clears them after. */
+.pd__sheet {
+  position: fixed;
+  inset: 3vh 3.2vw;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--pd-paper);
+  box-shadow: 0 40px 120px rgb(0 0 0 / 0.5);
+  will-change: left, top, width, height;
+}
+
+/* held at the resting size during the motion, so nothing reflows mid-flight */
+.pd__body {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
+}
+
+/* ---------- left: the information ---------- */
+
+.pd__info {
+  padding: var(--pd-pad);
+  padding-right: calc(var(--pd-pad) * 0.6);
+  min-width: 0;
+}
+
+.pd__title {
+  margin: 0;
+  max-width: 12ch;
+  font-family: 'Bricolage Grotesque', Inter, system-ui, sans-serif;
+  font-size: clamp(1.9rem, 3vw, 3.4rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.pd__summary {
+  margin: 1.6rem 0 0;
+  max-width: 32em;
+  font-size: clamp(0.95rem, 1.1vw, 1.15rem);
+  line-height: 1.5;
+  color: var(--pd-ink);
+}
+
+.pd__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2.2rem;
+}
+
+/* the two links: small pills, the arrow set in its own disc as the reference's */
+.pd__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: 38px;
+  padding: 0 1rem 0 0.35rem;
+  border-radius: 999px;
+  background: #e9e6e0;
+  color: var(--pd-ink);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  transition: background-color 0.3s var(--pd-ease), color 0.3s var(--pd-ease);
+}
+.pd__link-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--pd-ink);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  transition: transform 0.3s var(--pd-ease), background-color 0.3s var(--pd-ease);
+}
+.pd__link:hover,
+.pd__link:focus-visible {
+  background: var(--pd-ink);
+  color: #fff;
+}
+.pd__link:hover .pd__link-mark,
+.pd__link:focus-visible .pd__link-mark {
+  background: var(--pd-accent);
+  transform: translate(1px, -1px);
+}
+
+.pd__chip {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 1rem;
+  border-radius: 999px;
+  background: #e9e6e0;
+  color: var(--pd-ink);
+}
+.pd__emoji {
+  margin-left: 0.25rem;
+  font-size: 22px;
+  line-height: 1;
+}
+.pd__note {
+  margin: 1rem 0 0;
+  color: var(--pd-dim);
+}
+
+/* ---------- right: the stream ---------- */
+
+.pd__stream {
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--pd-pad) var(--pd-pad) var(--pd-pad) 0;
+  scrollbar-width: none;
+}
+.pd__stream::-webkit-scrollbar {
+  display: none;
+}
+
+.pd__item {
+  position: relative;
+  margin: 0 0 clamp(1.5rem, 3.5vh, 3rem);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--pd-plate);
+  container-type: inline-size;
+}
+.pd__item--lead {
+  aspect-ratio: 16 / 10;
+}
+.pd__media-item {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.pd__item--lead .pd__media-item {
+  height: 100%;
+  object-fit: cover;
+}
+
+/* the ribbon's title card, as the stream's first picture */
+.pd__plate {
+  position: absolute;
+  inset: 0;
+}
+
+/* the numbers and the stack, closing the stream */
+.pd__specs {
+  padding: clamp(1.5rem, 3vw, 2.75rem);
+  color: #f6f1ea;
+}
+.pd__metrics {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  font-size: clamp(1.8rem, 3.2cqw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+.pd__body-copy {
+  margin: 1.6rem 0 0;
+  max-width: 44em;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgb(246 241 234 / 0.8);
+}
+.pd__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: rgb(246 241 234 / 0.72);
+}
+.pd__tags li {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 999px;
+}
+
+/* ---------- the plate that flies, and the close ---------- */
+
+.pd__fly {
+  position: absolute;
+  overflow: hidden;
+  background: var(--pd-plate);
+  container-type: inline-size;
+  pointer-events: none;
+}
+
+.pd__close {
+  position: absolute;
+  top: clamp(1rem, 2vw, 1.75rem);
+  right: clamp(1rem, 2vw, 1.75rem);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--pd-ink);
+  cursor: pointer;
+  transition: background-color 0.3s var(--pd-ease), transform 0.3s var(--pd-ease);
+}
+.pd__close span {
+  position: absolute;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: #fff;
+  transform: rotate(45deg);
+}
+.pd__close span:last-child {
+  transform: rotate(-45deg);
+}
+.pd__close:hover,
+.pd__close:focus-visible {
+  background: var(--pd-accent);
+  transform: scale(1.06);
+  outline: none;
+}
+
+/* ---------- narrow: one column, the sheet itself scrolls ---------- */
+
+@media (max-width: 899px) {
+  .pd__sheet {
+    inset: 12px;
+    border-radius: 18px;
+  }
+  .pd__body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .pd__info {
+    padding: 1.4rem 1.25rem 0.5rem;
+    padding-right: 4.5rem;
+  }
+  .pd__title {
+    max-width: none;
+    font-size: clamp(1.6rem, 7vw, 2.2rem);
+  }
+  .pd__stream {
+    height: auto;
+    overflow: visible;
+    padding: 1rem 1.25rem 1.5rem;
+  }
+  .pd__close {
+    width: 44px;
+    height: 44px;
+    top: 12px;
+    right: 12px;
+  }
+}

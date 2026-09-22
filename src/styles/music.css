@@ -1,0 +1,170 @@
+/* ---------- The music player: a small plate in the bottom-left ---------- */
+
+.mp {
+  --mp-alpha: 0.68;
+  --mp-ink: var(--text, #f1ebe8);
+  --mp-dim: var(--muted, #8b8287);
+  --mp-accent: var(--red-hot, var(--hero-accent, #e0122f));
+
+  position: fixed;
+  left: clamp(14px, 1.6vw, 24px);
+  bottom: clamp(14px, 1.6vw, 24px);
+  z-index: 55;
+  width: 236px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  background: rgb(10 8 9 / var(--mp-alpha));
+  color: var(--mp-ink);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+  transform-origin: left bottom;
+  will-change: transform;
+  user-select: none;
+}
+
+.mp .mono {
+  font-family: var(--hero-display);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mp__row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.mp__btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--mp-ink);
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.25s var(--hero-ease), background-color 0.25s var(--hero-ease), color 0.25s var(--hero-ease);
+}
+.mp__btn:hover,
+.mp__btn:focus-visible {
+  opacity: 1;
+  background: rgb(255 255 255 / 0.07);
+  outline: none;
+}
+.mp__btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.mp__btn--play {
+  background: rgb(255 255 255 / 0.08);
+}
+.mp__btn--play:hover:not(:disabled) {
+  color: #fff;
+  background: var(--mp-accent);
+}
+.mp__btn--mute {
+  margin-left: 2px;
+}
+
+.mp__icon {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+}
+.mp__icon--stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mp__title {
+  flex: 1;
+  min-width: 0;
+  padding: 0 6px 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mp-dim);
+}
+.mp[data-has] .mp__title {
+  color: var(--mp-ink);
+}
+
+/* the seek bar: folded away until the pointer is over the plate */
+.mp__seek {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 0;
+  overflow: hidden;
+  padding: 0 4px;
+}
+.mp__time {
+  width: 30px;
+  flex: 0 0 auto;
+  color: var(--mp-dim);
+  letter-spacing: 0.06em;
+}
+.mp__time:last-child {
+  text-align: right;
+}
+.mp__bar {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  cursor: pointer;
+  touch-action: none;
+}
+.mp__bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 6px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.14);
+}
+.mp__fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 6px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--mp-accent);
+  transform-origin: left center;
+}
+.mp__knob {
+  position: absolute;
+  top: 3px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 999px;
+  background: var(--mp-ink);
+  opacity: 0;
+  transition: opacity 0.2s var(--hero-ease);
+}
+.mp__bar:hover .mp__knob,
+.mp__bar:focus-visible .mp__knob {
+  opacity: 1;
+}
+.mp__bar:focus-visible {
+  outline: none;
+}
+
+@media (max-width: 899px) {
+  .mp {
+    width: 200px;
+  }
+}

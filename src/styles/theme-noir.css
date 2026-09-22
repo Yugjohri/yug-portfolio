@@ -1,0 +1,143 @@
+/* ---------- The black-and-red pass ----------
+
+   Black first, red second. Active while <html data-theme="noir"> (set from
+   theme.ts). The dark stylesheets stay as they are; this overrides the
+   tokens they read, and the few places where the original's orange, blue
+   and navy are written out. */
+
+:root[data-theme='noir'] {
+  --bg: #050405;
+  --text: #f1ebe8;
+  --muted: #8b8287;
+
+  --red: #c8102e;
+  --red-hot: #e0122f;
+  --red-deep: #5a0912;
+
+  --hero-elevated: #0e0b0c;
+  --hero-accent: var(--red);
+  --hero-accent-hot: var(--red-hot);
+  --hero-hairline: #1d1517;
+  --hero-hairline-strong: #4a2c31;
+  --hero-ascii: #d7203f;
+}
+
+[data-theme='noir'] ::selection {
+  background: var(--red);
+  color: #fff;
+}
+
+/* ---------- home: the split hero ---------- */
+
+[data-theme='noir'] .hero__scrim {
+  background: linear-gradient(
+    to top,
+    var(--bg) 0%,
+    color-mix(in srgb, var(--bg) 30%, transparent) 45%,
+    color-mix(in srgb, var(--bg) 5%, transparent) 100%
+  );
+}
+[data-theme='noir'] .hero__panel[data-hero-panel='story'] .hero__scrim::after {
+  background: radial-gradient(120% 80% at 70% 50%, transparent 45%, rgb(200 16 46 / 0.22) 100%);
+}
+[data-theme='noir'] .hero__fallback {
+  background: var(--bg);
+}
+[data-theme='noir'] .hero__fallback::before {
+  background: radial-gradient(
+    circle,
+    rgb(255 226 214 / 0.95) 0%,
+    rgb(224 18 47 / 0.85) 18%,
+    rgb(150 12 32 / 0.6) 38%,
+    rgb(60 8 18 / 0.45) 62%,
+    transparent 78%
+  );
+}
+
+/* ---------- projects: the stage ---------- */
+
+[data-theme='noir'] .work {
+  --work-line: rgb(255 255 255 / 0.06);
+}
+[data-theme='noir'] .work__corner--tr b {
+  color: var(--red-hot);
+}
+[data-theme='noir'] .work__stat {
+  background:
+    radial-gradient(110% 80% at 100% 0%, rgb(200 16 46 / 0.16), transparent 58%),
+    radial-gradient(70% 55% at 0% 100%, rgb(90 9 18 / 0.35), transparent 62%),
+    linear-gradient(#1a1214, #0f0b0c 65%, #080607);
+}
+[data-theme='noir'] .work__go:hover,
+[data-theme='noir'] .work__go:focus-visible {
+  color: #fff;
+  background: var(--red);
+  border-color: var(--red);
+}
+
+/* ---------- story ---------- */
+
+[data-theme='noir'] .story {
+  --st-line: rgb(255 255 255 / 0.08);
+}
+[data-theme='noir'] .proof__thesis em,
+[data-theme='noir'] .about__statement em,
+[data-theme='noir'] .shero__title em,
+[data-theme='noir'] .shero__word,
+[data-theme='noir'] .proof__value {
+  color: var(--red-hot);
+}
+[data-theme='noir'] .shero__rule {
+  background: var(--red-hot);
+}
+[data-theme='noir'] .st-corner--tr {
+  color: var(--red-hot);
+}
+
+/* ---------- brief ---------- */
+
+[data-theme='noir'] .brief {
+  --bf-ink: #f1ebe8;
+  --bf-dim: #8b8287;
+  --bf-label: var(--red-hot);
+  --bf-line: rgb(255 255 255 / 0.09);
+  --bf-card: rgb(8 6 7 / 0.84);
+}
+/* the halftone pool, printed in red rather than in white */
+[data-theme='noir'] .brief__bg::before {
+  background-image: radial-gradient(closest-side circle, #ff5a70 0 46%, #000 64%);
+}
+[data-theme='noir'] .brief__bg::after {
+  background:
+    radial-gradient(760px 660px at calc(50% + 330px) 30%,
+      rgb(5 4 5 / 0.04) 0%, rgb(5 4 5 / 0.5) 58%, rgb(5 4 5 / 0.93) 100%),
+    linear-gradient(rgb(5 4 5 / 0.05), rgb(5 4 5 / 0.4));
+}
+[data-theme='noir'] .bf-divider {
+  color: rgb(224 18 47 / 0.22);
+}
+[data-theme='noir'] .bf-tile__plate {
+  background:
+    radial-gradient(110% 80% at 100% 0%, rgb(200 16 46 / 0.16), transparent 58%),
+    radial-gradient(70% 55% at 0% 100%, rgb(90 9 18 / 0.35), transparent 62%),
+    linear-gradient(#1a1214, #0f0b0c 65%, #080607);
+}
+[data-theme='noir'] .bf-role[data-now] .bf-role__dot {
+  background: var(--red-hot);
+  box-shadow: 0 0 0 4px rgb(224 18 47 / 0.16);
+}
+[data-theme='noir'] .bf-role__head b {
+  background: rgb(224 18 47 / 0.14);
+  color: #ff7a8a;
+}
+[data-theme='noir'] .bf-facts dd i {
+  background: var(--red-hot);
+  box-shadow: 0 0 0 3px rgb(224 18 47 / 0.18);
+}
+[data-theme='noir'] .bf-btn:hover,
+[data-theme='noir'] .bf-chips span:hover {
+  border-color: rgb(224 18 47 / 0.5);
+}
+[data-theme='noir'] .bf-tile:hover {
+  border-color: rgb(224 18 47 / 0.45);
+}

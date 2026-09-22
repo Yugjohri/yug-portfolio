@@ -1,0 +1,91 @@
+@import './hero.css';
+@import './projects.css';
+@import './story.css';
+@import './brief.css';
+@import './detail.css';
+@import './stack.css';
+@import './music.css';
+/* the white-and-red pass; active while <html data-theme="light"> (see theme.ts) */
+@import './theme-light.css';
+@import './theme-noir.css';
+
+/* The old portfolio's styles. Left in the project but not loaded, since only
+   the hero renders right now. Re-enable alongside pages/Portfolio.tsx.
+@import './portfolio.css';
+*/
+
+/* Tokens for the dark hero. The cream page owns its own in portfolio.css. */
+:root {
+  --bg: #06060f;
+  --text: #f6f1ea;
+  --muted: #9c9da8;
+}
+
+/* ---------- reset ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Lenis owns the scroll when it is running; the browser's own smoothing
+   would fight it on programmatic jumps */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
