@@ -130,72 +130,55 @@
 
 .about {
   position: relative;
-  display: flex;
-  align-items: center;
-  /* pinned for the reveal: exactly one screen, the content centred in it */
+  /* pinned for the reveal: exactly one screen, the composition inside it */
   height: 100dvh;
-  padding-block: clamp(4rem, 10vh, 8rem);
   overflow: hidden;
   background: var(--bg);
 }
 
+/* Three points against the whole frame, not a column: the introduction left
+   of centre, the portrait in the middle, the statement right of centre, all
+   on one line a little above the middle of the screen. The air around them
+   is the design -- nothing else belongs in here. */
 .about__grid {
+  position: absolute;
+  inset: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    'statement portrait'
-    'line portrait'
-    'rule portrait'
-    'facts portrait';
-  column-gap: clamp(2rem, 5vw, 5rem);
-  row-gap: 0;
-  align-items: start;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  /* the row sits at 44.6% of the height rather than dead centre */
+  padding-bottom: 10.8dvh;
 }
 
-.about__statement {
-  grid-area: statement;
-  margin: 0;
-  font-family: var(--st-grotesk);
-  font-size: clamp(2.4rem, 5vw, 5.8rem);
-  font-weight: 600;
-  line-height: 1.02;
-  letter-spacing: -0.03em;
-  text-wrap: balance;
-}
-.about__statement em { color: var(--red-hot, var(--muted)); }
-
-/* the paragraph, indented under the statement as the reference sets it, with its label */
-.about__copy {
-  grid-area: line;
+/* left: the lead-in, then the name under it */
+.about__intro {
+  justify-self: start;
+  margin: 0 0 0 15.9vw;
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-  margin: clamp(2rem, 5vh, 3.5rem) 0 0 clamp(0rem, 18%, 14rem);
+  font-family: var(--st-grotesk);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
 }
-.about__label { opacity: 0.7; }
-.about__rule {
-  grid-area: rule;
-  display: block;
-  height: 1px;
-  margin-top: clamp(2.5rem, 6vh, 4rem);
-  background: var(--st-line);
+.about__lead {
+  color: var(--text);
+  font-weight: 500;
+}
+.about__name {
+  color: var(--muted);
 }
 
-/* the portrait comes in from the page edge, the way Luke's does: the gutter
-   is given back on that side so it bleeds to the frame */
+/* centre: small, alone, and a long way from both */
 .about__portrait {
-  grid-area: portrait;
-  align-self: center;
-  /* past the column's own margin too, so it meets the frame on wide screens */
-  margin: 0 calc(-1 * max(var(--st-pad), (100vw - var(--st-col)) / 2 + var(--st-pad))) 0 0;
-  /* sized by height so the screen always holds it whole; the width follows */
-  height: min(72vh, 640px);
+  margin: 0;
+  height: min(26dvh, 13vw);
   width: auto;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 2 / 3;
   overflow: hidden;
-  border-radius: 28px 0 0 28px;
   background: var(--hero-elevated);
-  will-change: filter, transform, opacity;
+  will-change: clip-path;
 }
 .about__portrait img {
   width: 100%;
@@ -203,46 +186,75 @@
   object-fit: cover;
   /* the top third of the source is shopfront: frame the subject, as on the Brief */
   object-position: 50% 92%;
-  transform: scale(1.26);
   transform-origin: 50% 50%;
 }
 
+/* right: one statement, three lines at this width */
 .about__line {
-  margin: 0;
-  max-width: 30em;
+  justify-self: end;
+  /* the reference's width at the reference's viewport; on a smaller screen it
+     stops narrowing, so the statement keeps its three or four lines */
+  width: max(14.2vw, 15rem);
+  margin: 0 16.6vw 0 0;
+  font-family: var(--st-grotesk);
   font-size: 17px;
-  line-height: 1.65;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
   color: var(--muted);
 }
-/* the paragraph's words, so each can come up on its own */
+/* the statement's words, so each can come up on its own */
 .about__pword {
   display: inline-block;
-  margin-right: 0.28em;
-  will-change: filter, transform, opacity;
+  margin-right: 0.26em;
+  will-change: transform, opacity;
 }
 .about__pword:last-child { margin-right: 0; }
-.about .st-word > span,
-.about .st-word > em {
-  will-change: filter, transform, opacity;
-}
 
-.about__facts {
-  grid-area: facts;
+/* ---------- superseded: the statement-and-facts About ----------
+   The composition this replaced -- a display statement with the portrait
+   bleeding off the right edge, a paragraph indented under it, a rule and
+   three facts. Kept here so it can be put back.
+
+.about { display: flex; align-items: center; padding-block: clamp(4rem, 10vh, 8rem); }
+.about__grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin: 0;
-  padding: 1.4rem 0 0;
-  list-style: none;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'statement portrait' 'line portrait' 'rule portrait' 'facts portrait';
+  column-gap: clamp(2rem, 5vw, 5rem);
+  row-gap: 0;
+  align-items: start;
 }
-.about__fact {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--text);
+.about__statement {
+  grid-area: statement; margin: 0;
+  font-family: var(--st-grotesk);
+  font-size: clamp(2.4rem, 5vw, 5.8rem);
+  font-weight: 600; line-height: 1.02; letter-spacing: -0.03em; text-wrap: balance;
 }
+.about__statement em { color: var(--red-hot, var(--muted)); }
+.about__copy {
+  grid-area: line; display: flex; flex-direction: column; gap: 0.9rem;
+  margin: clamp(2rem, 5vh, 3.5rem) 0 0 clamp(0rem, 18%, 14rem);
+}
+.about__label { opacity: 0.7; }
+.about__rule {
+  grid-area: rule; display: block; height: 1px;
+  margin-top: clamp(2.5rem, 6vh, 4rem); background: var(--st-line);
+}
+.about__portrait {
+  grid-area: portrait; align-self: center;
+  margin: 0 calc(-1 * max(var(--st-pad), (100vw - var(--st-col)) / 2 + var(--st-pad))) 0 0;
+  height: min(72vh, 640px); width: auto; aspect-ratio: 3 / 4;
+  border-radius: 28px 0 0 28px;
+}
+.about__portrait img { transform: scale(1.26); }
+.about__line { margin: 0; max-width: 30em; font-size: 17px; line-height: 1.65; color: var(--muted); }
+.about .st-word > span, .about .st-word > em { will-change: filter, transform, opacity; }
+.about__facts {
+  grid-area: facts; display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem; margin: 0; padding: 1.4rem 0 0; list-style: none;
+}
+.about__fact { display: flex; flex-direction: column; gap: 0.55rem; font-size: 14px; line-height: 1.45; color: var(--text); }
+---------------------------------------------------------------- */
 
 /* ---------- narrow ---------- */
 
@@ -251,36 +263,99 @@
   .proof__receipts { grid-template-columns: 1fr; gap: 1.75rem; }
   .proof__value { font-size: clamp(3rem, 14vw, 5rem); }
 
+  /* the three points stack, still spare, still a long way apart */
   .about__grid {
     grid-template-columns: 1fr;
-    grid-template-areas:
-      'statement'
-      'portrait'
-      'line'
-      'rule'
-      'facts';
+    justify-items: center;
+    align-content: center;
+    gap: clamp(2.5rem, 7vh, 5rem);
+    padding-bottom: 6dvh;
   }
-  .about__copy { margin-left: 0; }
-  .about__portrait {
-    margin: 2.5rem 0 0;
-    height: auto;
-    width: 100%;
-    aspect-ratio: 4 / 5;
-    border-radius: 6px;
+  .about__intro,
+  .about__line {
+    justify-self: center;
+    margin: 0;
+    width: min(74vw, 30em);
+    text-align: center;
   }
-  .about__facts { grid-template-columns: 1fr; gap: 1.1rem; }
+  .about__portrait { height: min(30dvh, 42vw); }
   .st-corner--tr { display: none; }
 }
 
 /* ---------- The Story's header: one gesture into the ribbon ---------- */
 
 .shero {
+  /* The composition is measured from the glass: these must stay in step with
+     .shero__screen below, which owns the glass's own size. The type either
+     side is then given whatever is left over, less the page margin and a
+     deliberately small gap. */
+  /* the glass as the ratio gives it, then a little length on the sides and
+     a little more height than the ratio would allow on its own */
+  --crt-base: min(81.3vw, 71dvh * 1.68);
+  --crt-w: calc(var(--crt-base) + 24px);
+  --crt-h: calc(var(--crt-base) / 1.6807 + 30px);
+  --crt-top: 7.5dvh;
+  --crt-gap: 0.4vw;
+  --zone: calc((100vw - var(--crt-w)) / 2 - var(--st-pad) - var(--crt-gap));
+
   position: relative;
   height: 100dvh;
   overflow: hidden;
   background: var(--bg);
   isolation: isolate;
 }
+
+/* ---------- dormant: the type the glass stood between ----------
+
+   Anton, uppercase, set tight: the line spacing is shorter than the letters
+   are tall and the tracking is drawn in, so each block reads as one solid
+   mass rather than as lines of a heading. Every line is sized by the width
+   of its own side -- the multipliers are that string's measured width in
+   Anton, so a line fills its column edge to edge whatever the viewport.
+
+   Nothing renders .shero__lede at the moment: the glass stands on its own.
+   The rules stay as they were, ready for it to come back. */
+
+.shero__lede {
+  position: absolute;
+  top: var(--crt-top);
+  z-index: 2;
+  height: var(--crt-h);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0;
+  font-family: Anton, 'Arial Narrow', Impact, sans-serif;
+  font-weight: 400;
+  /* as close as Anton's own glyphs allow: below this the taller line of a
+     block cuts into the one above it */
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  white-space: nowrap;
+}
+.shero__lede span { display: block; }
+
+.shero__lede--l {
+  left: var(--st-pad);
+  align-items: flex-start;
+}
+.shero__lede--r {
+  right: var(--st-pad);
+  align-items: flex-end;
+}
+
+/* The multipliers are 0.98 / (the string's measured width in Anton at 1em,
+   tracked -0.04em), so each line runs to within a breath of its column. */
+.shero__lede--l span:nth-child(1) { font-size: calc(var(--zone) * 0.416); } /* HI, I'M  */
+.shero__lede--l span:nth-child(2) { font-size: calc(var(--zone) * 0.702); } /* YUG      */
+.shero__lede--r span:nth-child(1) { font-size: calc(var(--zone) * 0.513); } /* AN AI    */
+.shero__lede--r span:nth-child(2) { font-size: calc(var(--zone) * 0.261); } /* SOFTWARE */
+.shero__lede--r span:nth-child(3) { font-size: calc(var(--zone) * 0.291); } /* ENGINEER */
+
+/* the one word the rest of the site would also set in the accent */
+.shero__lede--r span:nth-child(3) { color: var(--red-hot, var(--hero-accent)); }
 
 /* the picture and its line, one layer: the mask closes over both */
 .shero__frame {
@@ -299,12 +374,13 @@
   position: absolute;
   left: 50%;
   /* a little more room above it than the reference leaves */
-  top: 7.5dvh;
+  top: var(--crt-top);
   translate: -50% 0;
-  /* the glass is a touch longer than 16:10, and no deeper for it: the height
-     cap comes down by as much as the extra top margin takes */
-  width: min(81.3vw, 71dvh * 1.68);
-  aspect-ratio: 16 / 9.52;
+  /* Sized from the numbers the whole header is measured by, rather than from
+     a ratio of its own: the width and height carry their own few pixels on
+     top of the ratio, so an aspect-ratio here would fight them. */
+  width: var(--crt-w);
+  height: var(--crt-h);
   /* The height is the ratio's and nothing else's. An aspect-ratio box takes
      its content as an automatic minimum height, so a canvas inside it that
      came out a fraction taller (browser zoom, device-pixel snapping) would
@@ -345,14 +421,20 @@
 }
 
 /* the two definitions, and the rule the strip becomes between them */
+/* The name's two halves, set as display type: upright serif at the scale the
+   reference sets its own pair (168px on a 2560px window, 6.6vw), one line
+   high. The lockup is as wide as the finished "Yug -- Johri", so the rule
+   between the halves comes out short, as the reference's does. */
 .shero__lockup {
+  --shero-word: clamp(3.4rem, 6.6vw, 11rem);
   position: absolute;
   left: 50%;
   top: 50%;
   z-index: 2;
   display: flex;
   align-items: flex-start;
-  width: min(62vw, 960px);
+  gap: clamp(1rem, 1.6vw, 2.5rem);
+  width: min(46vw, 1500px);
   translate: -50% -50%;
   will-change: transform;
 }
@@ -361,7 +443,7 @@
   flex: 0 0 auto;
   flex-direction: column;
   gap: 0.7rem;
-  width: clamp(11rem, 16vw, 16rem);
+  width: auto;
   will-change: transform, opacity;
 }
 .shero__def--r {
@@ -371,15 +453,17 @@
 .shero__meta { opacity: 0.75; }
 .shero__word {
   font-family: var(--st-serif);
-  font-style: italic;
-  font-size: clamp(2.6rem, 5vw, 5rem);
-  line-height: 0.95;
-  letter-spacing: -0.02em;
+  font-style: normal;
+  font-weight: 400;
+  font-size: var(--shero-word);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
   color: var(--text);
 }
 .shero__meaning {
   margin: 0.2rem 0 0;
-  max-width: 15.5rem;
+  max-width: clamp(15.5rem, 17vw, 24rem);
   font-family: var(--hero-display);
   font-size: 10px;
   font-weight: 500;
@@ -392,7 +476,7 @@
 .shero__rule {
   flex: 1;
   height: 2px;
-  margin-top: calc(11px * 1.55 + 0.7rem + clamp(1.2rem, 2.3vw, 2.3rem));
+  margin-top: calc(11px * 1.55 + 0.7rem + var(--shero-word) * 0.55);
   background: var(--text);
   transform-origin: 50% 50%;
 }
@@ -423,7 +507,28 @@
     top: 10.5dvh;
     width: min(96vw, 57.2dvh * 1.68);
   }
-  .shero__lockup { width: 88vw; }
+
+  /* No room beside the glass here, so the two blocks stand under it instead,
+     centred. The column is whatever width the space left below the glass can
+     carry both blocks at -- 2.3 being their combined height in zone widths,
+     less the corner the music player keeps for itself. */
+  .shero {
+    --crt-w: min(96vw, 57.2dvh * 1.68);
+    --crt-top: 10.5dvh;
+    --zone: min(52vw, calc((100dvh - var(--crt-top) - var(--crt-h) - 15dvh) / 2.3));
+  }
+  .shero__lede {
+    left: 50%;
+    right: auto;
+    top: auto;
+    height: auto;
+    transform: translateX(-50%);
+    align-items: center;
+    text-align: center;
+  }
+  .shero__lede--l { top: calc(var(--crt-top) + var(--crt-h) + 3dvh); }
+  .shero__lede--r { bottom: 11dvh; }
+  .shero__lockup { width: 88vw; --shero-word: clamp(2.6rem, 11vw, 3.4rem); }
   .shero__def { width: 38%; }
   .shero__meaning { max-width: none; }
   .shero__title { font-size: clamp(1.8rem, 7.5vw, 3.2rem); }

@@ -98,6 +98,29 @@
   line-height: 1;
   letter-spacing: -0.02em;
 }
+/* a technology with a logo is only its logo: the card keeps its slot -- the
+   same box, placed and turned by the script -- but loses the plate, the edge
+   and the shadow, so the brand's own mark floats in the space. Its size is in
+   em, set per mark by TechStack.tsx so every logo reads at about the same
+   weight. */
+.stack__card--logo {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.stack__logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  max-width: none;
+  font-size: 64px;
+  transform: translate(-50%, -50%);
+  user-select: none;
+  pointer-events: none;
+}
 .stack__cat {
   position: absolute;
   left: 14px;
@@ -143,6 +166,9 @@
   .stack__mark {
     top: 8px;
     right: 10px;
+  }
+  .stack__logo {
+    font-size: 50px;
   }
   /* eight on the ring, so the statement keeps clear air */
   .stack__card:nth-child(n + 9) {

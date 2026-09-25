@@ -38,7 +38,7 @@ const DENT = 0.0 // the card no longer bows as a whole: the cursor's own hollow 
 /** Card proportions, matched to the reference: a shade wider than 16:10, ~42% of the height. */
 const CARD_H = 0.42
 const CARD_ASPECT = 1.58
-const GAP = 0.012 // of the viewport width
+const GAP = 0.008 // of the viewport width (was 0.012: the cards now sit a third closer)
 const CORNER_PX = 28
 
 /** The same two numbers the shader uses, for the CPU copy of the sheet. */
@@ -72,6 +72,39 @@ const BALL_TAP_EVERY = 0.06 // seconds between trail samples
 const LENS_PULL = 0.0 // the cloth is not dragged sideways: the dish stays even, the print unstretched
 const LENS_RADIUS = 0.7 // of the card's height
 
+/*
+ * The card under the hand: a plate with weight. It rises a little toward the
+ * reader and tips away from where the hand is -- press the right side and the
+ * right side gives -- on a spring that is just under-damped, so a quick sweep
+ * carries it past and it settles back, and the hand's own speed leans it the
+ * way it is going. Pressing sinks it; letting go lifts it again. All of it is
+ * an offset on the card's own surface, applied before the sheet bends it, so
+ * the ribbon's geometry stays what it was.
+ */
+export const TILT_SLOPE = 0.025 // depth change per world unit across the card at full tip (~1.4deg): a lean, not a swing
+export const TILT_K = 110 // spring stiffness, 1/s^2
+export const TILT_ZETA = 0.8 // damping ratio: settles without swinging past
+export const TILT_SPEED = 0.025 // how much the hand's speed (card widths/s) leans it
+export const LIFT_K = 150
+export const LIFT_ZETA = 0.85
+export const LIFT_Z = 0.012 // rise under the hand, as a share of the card's height: well inside the gap to its neighbours
+export const LIFT_PRESS = -0.45 // the pressed depth, in units of that rise
+
+/*
+ * The opened card. A click takes the card as it is -- tipped, lifted, bent
+ * with the sheet -- and flies that same surface to the panel's frame: the
+ * middle leads and the sides follow a little behind, so it billows out of the
+ * ribbon and lays flat as it arrives, washing to the panel's paper on the way.
+ * The rest of the stage darkens under it. The DOM panel then fades in over a
+ * card that is already exactly where it is.
+ */
+const OPEN_LAG_X = 0.15 // how far behind the middle the side edges arrive, of the flight
+const OPEN_LAG_Y = 0.05
+const OPEN_BULGE = 0.06 // how far the card billows toward the reader mid-flight, of its height
+const OPEN_CORNER_PX = 24 // the panel's radius
+const VEIL = 0.52 // how far the stage darkens behind an opened card
+const VEIL_RGB: [number, number, number] = [0.05, 0.05, 0.06]
+
 const FLOOR_RUN = 70 // world units the floor recedes past the strip
 const FLOOR_NEAR = 22 // world units it comes toward the camera
 
@@ -86,21 +119,21 @@ const FLOOR_NEAR = 22 // world units it comes toward the camera
 // and the gaps between them as one surface.
 
 /** Field texels across; the height follows the canvas' aspect. */
-const SURFACE_RES = 192
+export const SURFACE_RES = 192
 /** The hand's reach into the sheet, as a fraction of the canvas height. */
-const STIR_RADIUS = 0.09
+export const STIR_RADIUS = 0.09
 /** Displacement pushed per unit the hand moved this frame (both in height units). */
-const STIR_GAIN = 0.7
+export const STIR_GAIN = 0.7
 /** The most the sheet can be pushed anywhere, in height units: fast strokes saturate here. */
-const STIR_MAX = 0.06
+export const STIR_MAX = 0.06
 /** Half-life of a disturbance, seconds: how briefly the sheet remembers. */
-const SURFACE_HALF_LIFE = 0.12
+export const SURFACE_HALF_LIFE = 0.12
 /** How far a disturbance is carried along its own flow each frame, and how much
  *  it blends with its neighbours: the drift and softening that make it fluid. */
-const SURFACE_DRIFT = 0.55
-const SURFACE_SPREAD = 0.3
+export const SURFACE_DRIFT = 0.55
+export const SURFACE_SPREAD = 0.3
 /** How quickly the smoothed hand follows the pointer, seconds. */
-const HAND_LAG = 0.07
+export const HAND_LAG = 0.07
 
 // ------------------------------------------------------------------ shaders
 
@@ -238,6 +271,11 @@ uniform float uBallZ;  // bump height at amplitude 1, world units
 uniform vec2 uLens;    // pointer in uv
 uniform float uLensA;  // pull toward it, world units at the centre
 uniform vec2 uLensR;   // its reach in uv, per axis
+uniform vec2 uTilt;    // the weighted plate: depth per world unit across and up the card
+uniform float uLift;   // and how far it has risen, world units
+uniform float uOpen;   // 0 on the ribbon, 1 laid flat in the panel's frame
+uniform vec4 uRect;    // that frame at z = 0: left, top, right, bottom, world
+uniform float uBulge;  // how far it billows toward the reader on the way, world units
 varying vec2 vUv;
 varying vec3 vFlat;
 ${SHEET_GLSL}
@@ -246,6 +284,7 @@ void main() {
   vec3 rest = vec3(uCentre + aPos * uRes, 0.0);
   vFlat = rest;
   vec4 w = vec4(rest, 1.0);
+  w.z += uLift + uTilt.x * aPos.x * uRes.x + uTilt.y * aPos.y * uRes.y;
   w.z -= uHover * uDent * uRes.y * sheetDome(aUv);
   /* the cursor: the surface rises under the finger's path and is drawn a
      little toward the finger itself, both fading to nothing away from it */
@@ -255,6 +294,15 @@ void main() {
   w.xy -= (aUv - uLens) * uRes * uLensA * uHover * k * k;
   w = sheet(w);
   w = lean(w, uSheetP);
+  if (uOpen > 0.0001) {
+    /* the middle leads, the sides follow: it billows, then lays flat */
+    vec2 e = abs(aUv - 0.5) * 2.0;
+    float lag = ${OPEN_LAG_X.toFixed(3)} * e.x * e.x + ${OPEN_LAG_Y.toFixed(3)} * e.y * e.y;
+    float p = clamp((uOpen - lag) / (1.0 - lag), 0.0, 1.0);
+    vec3 to = vec3(mix(uRect.x, uRect.z, aUv.x), mix(uRect.w, uRect.y, aUv.y), 0.0);
+    to.z += uBulge * sin(PI * p) * (1.0 - 0.5 * e.x * e.x);
+    w.xyz = mix(w.xyz, to, p);
+  }
   gl_Position = uProj * uView * w;
 }
 `
@@ -275,6 +323,12 @@ uniform float uScrim;
 uniform float uAlpha;
 uniform vec3 uCam;
 uniform float uBallWarp;
+uniform vec2 uFit;     // the plane's size for the picture's fit and the corners: the card's, or the panel's as it opens
+uniform vec2 uTilt;    // the weighted plate's tip, so the light moves across it
+uniform float uOpen;
+uniform vec3 uPaper;   // the panel's paper, which an opening card washes to
+uniform float uVeil;   // the stage darkening behind an opened card
+uniform vec3 uVeilC;
 varying vec2 vUv;
 varying vec3 vFlat;
 ${SHEET_GLSL}
@@ -317,6 +371,8 @@ vec3 sheetNormal(float wx, vec2 uv) {
   float dzdx = -uSheetD * sheetShapeSlope(sheetQ(wx)) * uSheetT / uSheetW * uSheetP;
   dzdx += (uLeanA / uLeanW) * leanSlope(wx / uLeanW) * uSheetP;
   float dzdy = 0.0;
+  dzdx += uTilt.x;
+  dzdy += uTilt.y;
   if (uHover > 0.0001) {
     vec2 q = uv * 2.0 - 1.0;
     float a = uHover * uDent;
@@ -341,17 +397,19 @@ void main() {
      the image and not just the silhouette */
   vec2 grad = ballGrad(vUv);
   vec2 uvw = vUv - grad * uBallWarp;
-  vec4 tex = texture2D(uTex, uvCover(uRes, uSize, uvw));
+  vec4 tex = texture2D(uTex, uvCover(uFit, uSize, uvw));
 
   float depth = sheetShade(vFlat.x, vUv);
   tex.rgb = mix(tex.rgb, vec3(0.059), uShade * 0.8 * pow(depth, uShadeS));
 
   /* the scrim the title sits on, then the title itself: on the surface, so
-     it takes the same bend, depth and light as the picture under it */
+     it takes the same bend, depth and light as the picture under it. An
+     opening card lets both go first: the panel sets its own title. */
+  float keep = 1.0 - smoothstep(0.0, 0.35, uOpen);
   float g = 1.0 - smoothstep(0.0, 0.5, vUv.y);
-  tex.rgb = mix(tex.rgb, vec3(0.0), uScrim * 0.65 * g * g);
+  tex.rgb = mix(tex.rgb, vec3(0.0), uScrim * 0.65 * g * g * keep);
   vec4 label = texture2D(uLabel, uvw);
-  tex.rgb = mix(tex.rgb, label.rgb, label.a);
+  tex.rgb = mix(tex.rgb, label.rgb, label.a * keep);
   /* the hollow is lit as a surface: its normal from the field's slope, so the
      wall facing the lamp brightens and the wall turned from it falls into shadow */
   vec3 hn = normalize(vec3(-grad * 0.16, 1.0));
@@ -361,7 +419,11 @@ void main() {
   vec3 p = vFlat + vec3(0.0, 0.0, sheetOffset(vFlat.x, vUv));
   tex.rgb = sheetLit(tex.rgb, sheetNormal(vFlat.x, vUv), normalize(uCam - p), uShade);
 
-  vec2 sz = vec2(uRes.x / max(uRes.y, 0.0001), 1.0);
+  /* opening, the picture washes to the panel's paper as it lays flat */
+  tex.rgb = mix(tex.rgb, uPaper, smoothstep(0.3, 0.88, uOpen));
+  tex.rgb = mix(tex.rgb, uVeilC, uVeil);
+
+  vec2 sz = vec2(uFit.x / max(uFit.y, 0.0001), 1.0);
   vec2 mid = sz * 0.5;
   float r = min(uCorner, min(mid.x, mid.y));
   float d = roundedBox(vUv * sz, mid, r);
@@ -402,6 +464,8 @@ uniform vec3 uC1;    // the near tint
 uniform vec3 uLine;  // the grid's own colour, at full strength
 uniform float uGrid;
 uniform vec2 uGridF; // cells across, cells along
+uniform float uVeil;
+uniform vec3 uVeilC;
 varying vec2 vUv;
 varying float vFar;
 void main() {
@@ -418,13 +482,13 @@ void main() {
   /* the near edge dissolves before it reaches the camera */
   float near = smoothstep(-0.32, -0.05, vFar);
   col = mix(uC0, col, near);
-  gl_FragColor = vec4(col, 1.0);
+  gl_FragColor = vec4(mix(col, uVeilC, uVeil), 1.0);
 }
 `
 
 // ------------------------------------------------------------------ helpers
 
-const QUAD_VERT = /* glsl */ `
+export const QUAD_VERT = /* glsl */ `
 attribute vec2 aPos;
 varying vec2 vUv;
 void main() {
@@ -437,7 +501,7 @@ void main() {
    the neighbours there, let it settle, then push the hand's movement in
    under a soft disc. Values are displacement in height units; on a device
    without half-float render targets they are packed into bytes about 0.5. */
-const FIELD_FRAG = /* glsl */ `
+export const FIELD_FRAG = /* glsl */ `
 precision highp float;
 uniform sampler2D uField;
 uniform vec2 uTexel;
@@ -480,7 +544,7 @@ void main() {
 `
 
 /* The frame, read through the field. */
-const SURFACE_FRAG = /* glsl */ `
+export const SURFACE_FRAG = /* glsl */ `
 precision highp float;
 uniform sampler2D uScene;
 uniform sampler2D uField;
@@ -508,7 +572,7 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
   return sh
 }
 
-function program(gl: WebGLRenderingContext, vert: string, frag: string) {
+export function program(gl: WebGLRenderingContext, vert: string, frag: string) {
   const p = gl.createProgram()
   if (!p) throw new Error('program')
   gl.attachShader(p, compile(gl, gl.VERTEX_SHADER, vert))
@@ -716,6 +780,15 @@ type Card = {
     since: number
     trail: Float32Array // BALL_TAPS × (x, y, amp)
   }
+  /** the weighted plate: its tip (-1..1 across and up) and rise, each a spring */
+  plate: { tx: number; ty: number; x: number; y: number; vx: number; vy: number; lift: number; liftV: number }
+}
+
+/** A spring step, semi-implicit: position and velocity toward a target. */
+export function spring(x: number, v: number, to: number, k: number, zeta: number, dt: number): [number, number] {
+  const c = 2 * Math.sqrt(k) * zeta
+  v += (k * (to - x) - c * v) * dt
+  return [x + v * dt, v]
 }
 
 export class RibbonScene {
@@ -746,6 +819,23 @@ export class RibbonScene {
   /** 0..n-1: the card nearest the centre, after the last render */
   nearest = 0
 
+  /** the pointer for the weighted plate, CSS px over the canvas, or null */
+  private plateAt: { x: number; y: number } | null = null
+  private platePrev = { x: 0, y: 0 }
+  private pressed = false
+  /** the card under the hand after the last render, or -1 */
+  private under = -1
+  private underUv = { u: 0.5, v: 0.5 }
+  /** the opened card, or -1; how far it has flown (0..1); the frame it flies to, world */
+  private opened = -1
+  openProgress = 0
+  /** how far the page behind it has darkened, 0..1: the panel's curve, shared with the page's own veil */
+  openVeil = 0
+  /** Lifted over the page: where the section's top sits in the canvas, CSS px; null in place. */
+  private band: number | null = null
+  private openRect = { l: 0, t: 0, r: 0, b: 0, wPx: 1, hPx: 1 }
+  private paper: [number, number, number] = [0.953, 0.945, 0.929]
+
   private ground: [number, number, number]
 
   // the surface: the frame's render target, the field's two textures, the quad
@@ -771,7 +861,9 @@ export class RibbonScene {
     this.canvas = document.createElement('canvas')
     this.ground = parseColor(ground)
     const gl = this.canvas.getContext('webgl', {
-      alpha: false,
+      // clear where the canvas is lifted over the page with an opened card;
+      // opaque everywhere else, as the frame always paints its ground
+      alpha: true,
       antialias: true,
       premultipliedAlpha: true,
       powerPreference: 'high-performance',
@@ -788,12 +880,14 @@ export class RibbonScene {
       'uShade', 'uShadeS', 'uScrim', 'uAlpha', 'uCam', 'uSheetW', 'uSheetD', 'uSheetT',
       'uSheetC', 'uSheetP', 'uSheetV', 'uLeanA', 'uLeanW', 'uBall', 'uBallR', 'uBallZ',
       'uBallWarp', 'uLens', 'uLensA', 'uLensR', 'uPress', 'uPressR', 'uEdge',
+      'uTilt', 'uLift', 'uOpen', 'uRect', 'uBulge', 'uFit', 'uPaper', 'uVeil', 'uVeilC',
     ]) {
       this.uniforms.set(name, gl.getUniformLocation(this.cardProg, name))
     }
     for (const name of [
       'uProj', 'uView', 'uHalfW', 'uFloorY', 'uRun', 'uNearZ', 'uC0', 'uC1', 'uLine', 'uGrid', 'uGridF',
       'uSheetW', 'uSheetD', 'uSheetT', 'uSheetC', 'uSheetP', 'uSheetV', 'uLeanA', 'uLeanW',
+      'uVeil', 'uVeilC',
     ]) {
       this.floorUniforms.set(name, gl.getUniformLocation(this.floorProg, name))
     }
@@ -827,6 +921,7 @@ export class RibbonScene {
       live: false,
       kickedAt: 0,
       ball: { tx: 0.5, ty: 0.5, x: 0.5, y: 0.5, amp: 0, since: 0, trail: new Float32Array(BALL_TAPS * 3) },
+      plate: { tx: 0, ty: 0, x: 0, y: 0, vx: 0, vy: 0, lift: 0, liftV: 0 },
     }))
     this.cards.forEach((card) => {
       this.paint(card)
@@ -1212,8 +1307,10 @@ export class RibbonScene {
   /** Where a point of card i's surface (in its uv) lands on screen. */
   private surface(i: number, u: number, v: number, l: ReturnType<RibbonScene['layout']>, W: number, D: number) {
     const cx = this.cardX(i, l)
-    // the point under the pointer sits on the stamp's floor, which is pressed in
-    const dz = -PRESS_DEPTH * l.ch * this.cards[i].hover
+    // the point under the pointer sits on the stamp's floor, which is pressed in,
+    // and the plate is tipped and lifted as the shader has it
+    const pl = this.plate(this.cards[i], l)
+    const dz = -PRESS_DEPTH * l.ch * this.cards[i].hover + pl.lift + pl.sx * (u - 0.5) * l.cw + pl.sy * (v - 0.5) * l.ch
     return this.project(
       this.sheetPoint(cx - l.cw / 2 + u * l.cw, l.cy - l.ch / 2 + v * l.ch, this.velocity, W, D, dz),
     )
@@ -1300,6 +1397,115 @@ export class RibbonScene {
       }
     })
     return h.index
+  }
+
+  // ------------------------------------------------ the plate and the opening
+
+  /** The hand over the stage, for the weighted plate, CSS px over the canvas; null when it has left. */
+  hold(px: number | null, py = 0) {
+    this.plateAt = px === null ? null : { x: px, y: py }
+  }
+
+  /** The hand pressed down on the stage, or let go. */
+  press(on: boolean) {
+    this.pressed = on
+  }
+
+  /**
+   * Card i leaves the ribbon for the panel. From here the plate stops
+   * following the hand -- the card keeps the tip it had when it was clicked
+   * -- and `openProgress` (0..1, driven by the panel's timeline) flies it.
+   */
+  open(i: number) {
+    this.opened = i
+    this.openProgress = 0
+    this.pressed = false
+  }
+
+  /** It is back on the ribbon: the hand has the stage again. */
+  closed() {
+    this.opened = -1
+    this.openProgress = 0
+    this.openVeil = 0
+  }
+
+  /**
+   * While a card is open the canvas is lifted out of its section to cover
+   * the viewport, so the card can fly anywhere on the page and the page
+   * around it can darken with the ribbon: `top` is where the section's top
+   * now sits in the canvas (CSS px), null when the canvas is back in place.
+   */
+  lift(top: number | null) {
+    this.band = top
+  }
+
+  /** The page-level veil that matches the ribbon's own darkening, as CSS. */
+  static veilCss() {
+    const [r, g, b] = VEIL_RGB.map((c) => Math.round(c * 255))
+    return `rgba(${r}, ${g}, ${b}, ${VEIL})`
+  }
+
+  /** The panel's frame, CSS px over the canvas, and its paper colour. */
+  openFrame(x: number, y: number, width: number, height: number, paper?: string) {
+    this.openRect = { l: x, t: y, r: x + width, b: y + height, wPx: Math.max(1, width), hPx: Math.max(1, height) }
+    if (paper) this.paper = parseColor(paper)
+  }
+
+  /** The plate's offsets for a card, world units: its rise and its tip as depth per unit across and up. */
+  private plate(card: Card, l: ReturnType<RibbonScene['layout']>) {
+    return {
+      lift: card.plate.lift * LIFT_Z * l.ch,
+      sx: -TILT_SLOPE * card.plate.x,
+      sy: -TILT_SLOPE * card.plate.y,
+    }
+  }
+
+  /**
+   * One frame of the plates. The card under the hand tips away from the hand
+   * and rises, leaning further the way the hand is moving; every other card
+   * settles flat. While a card is open nothing follows the hand: the opened
+   * one holds its tip into the flight, and lifts clear of any press.
+   */
+  private stepPlates(dt: number) {
+    const h = dt > 0 ? Math.min(dt, 1 / 30) : 0
+    if (this.opened < 0) {
+      // A moving ribbon carries cards under a still hand: the plate stands
+      // down while it moves, so no card tips or rises in the stream and none
+      // is pushed into its neighbours. It takes the hand again once it slows.
+      const moving = Math.abs(this.velocity) > 0.02
+      const hit = this.plateAt && !moving ? this.hit(this.plateAt.x, this.plateAt.y) : { index: -1, u: 0.5, v: 0.5 }
+      // the lean is the hand's own speed, not the ribbon's: only a moved hand leans the card
+      const handMoved = !!this.plateAt && (this.plateAt.x !== this.platePrev.x || this.plateAt.y !== this.platePrev.y)
+      if (this.plateAt) this.platePrev = { x: this.plateAt.x, y: this.plateAt.y }
+      let du = 0
+      let dv = 0
+      if (handMoved && hit.index >= 0 && hit.index === this.under && h > 0) {
+        du = (hit.u - this.underUv.u) / h
+        dv = (hit.v - this.underUv.v) / h
+      }
+      this.under = hit.index
+      this.underUv = { u: hit.u, v: hit.v }
+      this.cards.forEach((card, i) => {
+        const p = card.plate
+        if (i === hit.index) {
+          const clamp = (n: number, m: number) => Math.max(-m, Math.min(m, n))
+          p.tx = clamp((hit.u - 0.5) * 2 + clamp(du * TILT_SPEED, 0.6), 1.2)
+          p.ty = clamp((hit.v - 0.5) * 2 + clamp(dv * TILT_SPEED * CARD_ASPECT, 0.6), 1.2)
+        } else {
+          p.tx = 0
+          p.ty = 0
+        }
+      })
+    }
+    this.cards.forEach((card, i) => {
+      const p = card.plate
+      let liftTo = 0
+      if (this.opened >= 0) liftTo = i === this.opened ? 1 : 0
+      else if (i === this.under) liftTo = this.pressed ? LIFT_PRESS : 1
+      ;[p.x, p.vx] = spring(p.x, p.vx, p.tx, TILT_K, TILT_ZETA, h)
+      ;[p.y, p.vy] = spring(p.y, p.vy, p.ty, TILT_K, TILT_ZETA, h)
+      ;[p.lift, p.liftV] = spring(p.lift, p.liftV, liftTo, LIFT_K, LIFT_ZETA, h)
+    })
   }
 
   /**
@@ -1392,17 +1598,46 @@ export class RibbonScene {
     const W = this.halfW
     const v = Math.min(1, Math.abs(this.velocity))
     const D = W * SHEET_DEPTH * (1 + SHEET_VEL_DEPTH * v)
+    this.stepPlates(dt)
+    // the stage darkens behind an opened card, as it leaves
+    const op = this.opened >= 0 ? this.openProgress : 0
+    const veil = VEIL * (this.opened >= 0 ? this.openVeil : 0)
+    const mixVeil = (c: number, k: number) => c + (VEIL_RGB[k] - c) * veil
+
+    // Lifted off the page, the canvas covers the viewport and the ribbon is
+    // drawn where its section sits in it: the camera is shifted down by the
+    // section's offset, and everything but the opened card is kept inside the
+    // section's band, the rest of the canvas left clear for the page under it.
+    let proj = this.proj
+    const lifted = this.band !== null
+    if (lifted) {
+      proj = this.proj.slice()
+      proj[9] += (2 * this.band!) / this.height
+    }
+    const bandScissor = () => {
+      if (!lifted) return
+      const top = Math.max(0, this.band!)
+      const bottom = Math.min(this.height, this.band! + this.height)
+      const y = Math.round((this.height - bottom) * this.dpr)
+      gl.enable(gl.SCISSOR_TEST)
+      gl.scissor(0, y, this.canvas.width, Math.max(0, Math.round((this.height - top) * this.dpr) - y))
+    }
 
     // the frame is drawn to its own target, and read through the surface after
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.surfaceOn ? this.sceneFbo : null)
     gl.viewport(0, 0, this.canvas.width, this.canvas.height)
-    gl.clearColor(this.ground[0], this.ground[1], this.ground[2], 1)
+    if (lifted) {
+      gl.clearColor(0, 0, 0, 0)
+      gl.clear(gl.COLOR_BUFFER_BIT)
+    }
+    bandScissor()
+    gl.clearColor(mixVeil(this.ground[0], 0), mixVeil(this.ground[1], 1), mixVeil(this.ground[2], 2), 1)
     gl.clear(gl.COLOR_BUFFER_BIT)
 
     // ---- floor
     gl.useProgram(this.floorProg)
     const fu = (n: string) => this.floorUniforms.get(n) ?? null
-    gl.uniformMatrix4fv(fu('uProj'), false, this.proj)
+    gl.uniformMatrix4fv(fu('uProj'), false, proj)
     gl.uniformMatrix4fv(fu('uView'), false, VIEW)
     gl.uniform1f(fu('uHalfW'), W)
     gl.uniform1f(fu('uFloorY'), l.cy - l.ch / 2 - l.ch * 0.02)
@@ -1422,6 +1657,8 @@ export class RibbonScene {
     }
     gl.uniform1f(fu('uGrid'), 1.0)
     gl.uniform2f(fu('uGridF'), 66, 44)
+    gl.uniform1f(fu('uVeil'), veil)
+    gl.uniform3f(fu('uVeilC'), VEIL_RGB[0], VEIL_RGB[1], VEIL_RGB[2])
     this.sheetUniforms(fu, W, D, v)
     gl.bindBuffer(gl.ARRAY_BUFFER, this.floorGeo.pos)
     const fa = gl.getAttribLocation(this.floorProg, 'aPos')
@@ -1433,7 +1670,7 @@ export class RibbonScene {
     // ---- cards, far to near so the blend composes
     gl.useProgram(this.cardProg)
     const u = (n: string) => this.uniforms.get(n) ?? null
-    gl.uniformMatrix4fv(u('uProj'), false, this.proj)
+    gl.uniformMatrix4fv(u('uProj'), false, proj)
     gl.uniformMatrix4fv(u('uView'), false, VIEW)
     gl.uniform2f(u('uRes'), l.cw, l.ch)
     gl.uniform1f(u('uDent'), DENT)
@@ -1455,6 +1692,11 @@ export class RibbonScene {
     gl.uniform1f(u('uBallWarp'), BALL_WARP)
     gl.uniform2f(u('uLensR'), LENS_RADIUS / CARD_ASPECT, LENS_RADIUS)
     gl.uniform1f(u('uLensA'), LENS_PULL)
+    gl.uniform1f(u('uOpen'), 0)
+    gl.uniform2f(u('uFit'), l.cw, l.ch)
+    gl.uniform3f(u('uPaper'), this.paper[0], this.paper[1], this.paper[2])
+    gl.uniform1f(u('uVeil'), veil)
+    gl.uniform3f(u('uVeilC'), VEIL_RGB[0], VEIL_RGB[1], VEIL_RGB[2])
 
     const pa = gl.getAttribLocation(this.cardProg, 'aPos')
     const ua = gl.getAttribLocation(this.cardProg, 'aUv')
@@ -1485,11 +1727,38 @@ export class RibbonScene {
         if (card.video) castChanged = true
       }
     }
-    // the S puts the right half far and the left half near: draw right first
+    // the S puts the right half far and the left half near: draw right first;
+    // an opened card is over everything, so it goes last
     order.sort((a, b) => b.x - a.x)
+    if (this.opened >= 0) {
+      const k = order.findIndex((o) => o.i === this.opened)
+      const [o] = k >= 0 ? order.splice(k, 1) : [{ i: this.opened, x: this.cardX(this.opened, l) }]
+      order.push(o)
+    }
 
     for (const { i, x } of order) {
       const card = this.cards[i]
+      const pl = this.plate(card, l)
+      gl.uniform2f(u('uTilt'), pl.sx, pl.sy)
+      gl.uniform1f(u('uLift'), pl.lift)
+      if (i === this.opened) {
+        // over everything, the page included: out of the section's band
+        gl.disable(gl.SCISSOR_TEST)
+        // world frame of the panel at z = 0, from its CSS px over the section
+        const R = this.openRect
+        const toX = (px: number) => (px / this.width) * 2 * W - W
+        const toY = (py: number) => this.halfH - (py / this.height) * 2 * this.halfH
+        const rw = toX(R.r) - toX(R.l)
+        const rh = toY(R.t) - toY(R.b)
+        gl.uniform1f(u('uOpen'), op)
+        gl.uniform4f(u('uRect'), toX(R.l), toY(R.t), toX(R.r), toY(R.b))
+        gl.uniform1f(u('uBulge'), OPEN_BULGE * l.ch)
+        gl.uniform2f(u('uFit'), l.cw + (rw - l.cw) * op, l.ch + (rh - l.ch) * op)
+        const c0 = CORNER_PX / (CARD_H * this.height)
+        gl.uniform1f(u('uCorner'), c0 + (OPEN_CORNER_PX / R.hPx - c0) * op)
+        gl.uniform1f(u('uShade'), 1 - op)
+        gl.uniform1f(u('uVeil'), 0)
+      }
       card.hover += (card.hoverTarget - card.hover) * (1 - Math.exp(-6 * dt))
       this.stepBall(card, dt)
       gl.uniform3fv(u('uBall'), card.ball.trail)
@@ -1516,6 +1785,7 @@ export class RibbonScene {
       this.syncVideo(performance.now())
     }
 
+    gl.disable(gl.SCISSOR_TEST)
     if (this.surfaceOn) this.stepSurface(dt)
   }
 

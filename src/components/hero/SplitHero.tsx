@@ -15,13 +15,13 @@ const PANELS: { key: PanelKey; name: string; descriptor: string; href: string }[
   {
     key: 'brief',
     name: 'Brief Read',
-    descriptor: 'A quick scan for recruiters & HR.',
+    descriptor: 'the short version. one page, no warm-up.',
     href: '/brief',
   },
   {
     key: 'story',
     name: 'My Story',
-    descriptor: 'How I think, work, and build.',
+    descriptor: 'the long version. how i actually think.',
     href: '/story',
   },
 ]

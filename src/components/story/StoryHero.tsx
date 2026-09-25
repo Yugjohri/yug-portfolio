@@ -4,7 +4,6 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { CrtScreen } from './crtScreen'
 import { BRIEF } from '../../data/brief'
-import { grade } from '../../theme'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -13,25 +12,27 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
  *
  * A curved display stands in the frame under a line of type, drawing its
  * picture as a field of small glyphs. Scrolling closes a mask over it until
- * only a strip is left; two definitions stand either side of that strip; the
- * strip turns, thins and shortens until it is the rule between the two words;
+ * only a strip is left -- the page's ground coming in from both sides as two
+ * panels, the name already standing on them, uncovered as they close; the
+ * strip turns to flat, thins and shortens until it is the rule between the
+ * two halves of the name;
  * the lockup draws up toward the corner, and the ribbon rises over it.
  *
  * One pinned range, one scrubbed timeline. Everything is a transform or a
  * clip-path on three elements: the frame, the two definitions, the rule.
  */
 
-/** Two words that define the story, from the Brief's own copy. */
+/** The name, split across the two panels, each half with its line from the Brief's own copy. */
 const DEFINITIONS = [
   {
-    word: 'Think',
+    word: 'think',
     meaning:
-      'A model is a capable but unreliable coworker — useful the moment its output is checkable, dangerous the moment it is not.',
+      'i start by assuming it is wrong. a cheap habit, and it has saved me more than once.',
   },
   {
-    word: 'Build',
+    word: 'build',
     meaning:
-      'Retrieval before generation, evaluation before deployment. Air-gapped, one GPU, no excuses.',
+      'then i take things out until it stops surprising me. surprise is good company everywhere except production.',
   },
 ]
 
@@ -58,7 +59,9 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
     const rootEl = root.current
     if (!host || !rootEl) return
 
-    const screen = new CrtScreen({ videoSrc, posterSrc: '/portrait.webp', grade: grade() })
+    // 'lit' reads the footage as it is; the ember grade that pulled it toward
+    // crimson is still in the shader, unused
+    const screen = new CrtScreen({ videoSrc, posterSrc: '/portrait.webp', grade: 'lit' })
     if (!screen.supported) {
       screen.dispose()
       return
@@ -152,7 +155,10 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
         const pad = parseFloat(getComputedStyle(rootEl).getPropertyValue('--st-pad')) || 40
         const ruleLen = ruleEl.offsetWidth
         const ruleThick = Math.max(2, ruleEl.offsetHeight)
-        const ruleCy = lockupEl.offsetTop + ruleEl.offsetTop + ruleEl.offsetHeight / 2
+        // the lockup is centred by a translate of half its own height, which
+        // offsetTop does not include: take it off, or the strip lands low
+        const ruleCy =
+          lockupEl.offsetTop - lockupEl.offsetHeight / 2 + ruleEl.offsetTop + ruleEl.offsetHeight / 2
         // how far each word starts out from its resting place: at the gutter.
         // The lockup is centred, so its visual left is half the slack, not
         // its offsetLeft (which is the centre it is translated back from).
@@ -192,19 +198,23 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
       tl.fromTo(
         frameEl,
         { clipPath: 'inset(0% 0% 0% 0%)' },
-        { clipPath: strip, duration: 0.34, ease: 'power2.inOut' },
+        { clipPath: strip, duration: 0.34, ease: 'power1.inOut' },
         0,
       )
-      // the definitions stand up either side as the ground clears
-      tl.fromTo(defs, { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.2, stagger: 0.04, ease: 'power2.out' }, 0.14)
+      // the name is already standing on the ground the mask uncovers: it is
+      // not faded in, it is revealed as the two panels close in from the
+      // sides (it is only switched on under the still-opaque frame, so a
+      // theme without the frame's black backing cannot show it early)
+      tl.fromTo(defs, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, 0.01)
 
-      // 2. the strip turns -- past horizontal and back, as the reference's does --
-      //    while it shortens to the rule's length, thins to its weight and drops
-      //    to the rule's line. clip-path works in the frame's own box, before
-      //    the rotation, so a thin, short *vertical* strip is what turns into
-      //    the horizontal bar.
-      tl.fromTo(frameEl, { rotate: 0 }, { rotate: 104, duration: 0.26, ease: 'power2.inOut', immediateRender: false }, 0.4)
-      tl.to(frameEl, { rotate: 90, duration: 0.1, ease: 'power2.out' }, 0.66)
+      // 2. the strip turns to flat while it shortens to the rule's length, thins
+      //    to its weight and drops to the rule's line. One tween, 0 to exactly
+      //    90 degrees on an ease that never leaves 0..1, so it reaches
+      //    horizontal once, at 0.70, and cannot pass it or turn back; it is
+      //    flat before the handover to the rule at 0.72. clip-path works in
+      //    the frame's own box, before the rotation, so a thin, short
+      //    *vertical* strip is what turns into the horizontal bar.
+      tl.fromTo(frameEl, { rotate: 0 }, { rotate: 90, duration: 0.3, ease: 'power2.inOut', immediateRender: false }, 0.4)
       // explicit about where it starts (the strip), so a refresh mid-gesture
       // can never make it interpolate from the open frame
       tl.fromTo(

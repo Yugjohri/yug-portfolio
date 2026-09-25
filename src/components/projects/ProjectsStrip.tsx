@@ -25,13 +25,19 @@ const VEL_NORM = 2800
 const SCROLL_RATE = 0.68
 
 /** The thrown ribbon: how quickly a release's speed dies away, seconds, and
- *  the speed below which it is considered stopped, scroll px/s. */
+ *  the speed below which it is considered stopped, ribbon px/s. */
 const FLING_FRICTION_S = 0.6
 const FLING_STOP = 24
-/** Over the last share of the range, the hand's pull weakens toward the end. */
-const EDGE_ZONE = 0.1
+/** The fastest a throw can leave the hand, ribbon px/s: a flick carries about
+ *  a loop of the strip at most, however sharp the pointer's last event was. */
+const FLING_MAX = 6000
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
+
+/** The ribbon shows the finished projects only -- the ones with their film.
+ *  The rest stay in the data (the Brief and the index still list them) and
+ *  join the ribbon as soon as they have one. */
+const PROJECTS = SLEEVES.filter((p) => p.video)
 
 /** The stacked column's screen. On the stage the scene draws screens and
  *  titles alike; the column stays in the DOM, off screen, for readers and
@@ -96,6 +102,9 @@ export default function ProjectsStrip() {
   // returned to its screen, so a second click cannot open a second one.
   const stage = useRef<Stage | null>(null)
   const busy = useRef(false)
+  // where the hand last was, viewport px: the panel covers the stage while it
+  // is open, so this is how the ribbon knows what is under the hand on return
+  const lastPointer = useRef<{ x: number; y: number } | null>(null)
   const [detail, setDetail] = useState<{ project: Sleeve; origin: DetailOrigin } | null>(null)
 
   const openProject = useCallback((index: number, fallback: HTMLElement | null) => {
@@ -103,20 +112,42 @@ export default function ProjectsStrip() {
     const st = stage.current
     let origin: DetailOrigin | null = null
     if (st) {
-      // from the screen's footprint on the stage
+      // The ribbon's own card is what opens: the scene flies that surface,
+      // tipped and lifted as the hand left it, to the panel's frame, and the
+      // panel's timeline drives the flight so the two cannot drift apart. The
+      // ribbon itself -- its scroll, its place, its cloth -- is not touched.
       const r = st.pinEl.getBoundingClientRect()
       const c = st.scene.cardRect(index)
-      origin = { x: r.left + c.x, y: r.top + c.y, width: c.width, height: c.height, radius: c.radius }
-      st.scene.stir(null)
+      origin = {
+        x: r.left + c.x,
+        y: r.top + c.y,
+        width: c.width,
+        height: c.height,
+        radius: c.radius,
+        flight: {
+          veil: RibbonScene.veilCss(),
+          frame: (R, paper) => {
+            const p = st.pinEl.getBoundingClientRect()
+            st.scene.lift(p.top)
+            st.scene.openFrame(R.left - p.left, R.top - p.top, R.width, R.height, paper)
+          },
+          progress: (p, veil) => {
+            st.scene.openProgress = p
+            st.scene.openVeil = veil
+          },
+        },
+      }
+      // The opening is the page's, not the section's: the canvas is lifted
+      // out to cover the viewport -- over the page's own veil, under the
+      // panel -- so the card can fly wherever the panel is even when the
+      // section is only part way on screen. It still draws the ribbon exactly
+      // where the section is; the page scroll and the pin are not touched.
+      const cv = st.scene.canvas
+      Object.assign(cv.style, { position: 'fixed', left: `${r.left}px`, top: '0px', zIndex: '59', pointerEvents: 'none' })
+      document.body.appendChild(cv)
+      st.scene.lift(r.top)
+      st.scene.open(index)
       st.pinEl.style.cursor = ''
-      // the stage responds: a press, then it draws in toward the screen and
-      // gives way; the corners step back with it
-      const cx = origin.x + origin.width / 2 - r.left
-      const cy = origin.y + origin.height / 2 - r.top
-      gsap
-        .timeline()
-        .to(st.scene.canvas, { scale: 0.985, duration: 0.12, ease: 'power2.out', transformOrigin: `${cx}px ${cy}px` })
-        .to(st.scene.canvas, { scale: 1.08, duration: 0.95, ease: 'expo.inOut' })
       gsap.to(st.corners, { autoAlpha: 0, duration: 0.35, ease: 'power2.out' })
     } else if (fallback) {
       // from the card in the stacked column
@@ -128,18 +159,39 @@ export default function ProjectsStrip() {
     window.__lenis?.stop()
     // touch scrolls the window natively under Lenis; hold it while the sheet is up
     if (window.matchMedia('(hover: none)').matches) document.documentElement.style.overflow = 'hidden'
-    setDetail({ project: SLEEVES[index], origin })
+    setDetail({ project: PROJECTS[index], origin })
   }, [])
 
   const onCloseStart = useCallback(() => {
     const st = stage.current
     if (!st) return
-    gsap.killTweensOf(st.scene.canvas)
-    gsap.to(st.scene.canvas, { scale: 1, duration: 0.9, ease: 'expo.inOut' })
-    gsap.to(st.corners, { autoAlpha: 1, duration: 0.5, delay: 0.35, ease: 'power2.out' })
+    gsap.to(st.corners, { autoAlpha: 1, duration: 0.5, delay: 0.45, ease: 'power2.out' })
   }, [])
 
   const onClosed = useCallback(() => {
+    const st = stage.current
+    if (st) {
+      // the card is back in its place; the hand takes the stage again from
+      // wherever it is now, so the card under it (if any) picks up at once
+      st.scene.closed()
+      // back into its section, drawn in place again
+      const cv = st.scene.canvas
+      cv.style.removeProperty('position')
+      cv.style.removeProperty('left')
+      cv.style.removeProperty('top')
+      cv.style.removeProperty('z-index')
+      cv.style.removeProperty('pointer-events')
+      st.pinEl.prepend(cv)
+      st.scene.lift(null)
+      const r = st.pinEl.getBoundingClientRect()
+      const at = lastPointer.current
+      if (at && at.x >= r.left && at.x <= r.right && at.y >= r.top && at.y <= r.bottom) {
+        st.scene.hold(at.x - r.left, at.y - r.top)
+        st.pinEl.style.cursor = 'grab'
+      } else {
+        st.scene.hold(null)
+      }
+    }
     setDetail(null)
     document.documentElement.style.overflow = ''
     window.__lenis?.start()
@@ -161,7 +213,7 @@ export default function ProjectsStrip() {
         if (!cards.length) return
 
         const ground = getComputedStyle(rootEl).backgroundColor
-        const scene = new RibbonScene(SLEEVES, ground)
+        const scene = new RibbonScene(PROJECTS, ground)
         if (!scene.supported) {
           // no WebGL: the stacked column is the page
           rootEl.setAttribute('data-flat', '')
@@ -197,10 +249,18 @@ export default function ProjectsStrip() {
           }
         }
 
-        // One full loop of the strip per pinned range, linear in px so the
-        // hand never feels ahead of or behind the screens. Progress 0 and 1 are
-        // the same frame, so the section can end anywhere and still read as
-        // endless.
+        // Where the ribbon is: one number, in loops of the strip. The scroll
+        // sets one part of it -- one full loop per pinned range, linear in px
+        // so the hand never feels ahead of or behind the screens -- and the
+        // hand sets the other, by dragging and throwing. Neither writes to the
+        // other, so they cannot fight; the scene draws their sum, and since it
+        // draws the strip modulo one loop, the sum can run on for ever in
+        // either direction without a seam.
+        const place = { scroll: 0, hand: 0 }
+        const apply = () => {
+          scene.progress = place.scroll + place.hand
+        }
+
         const trigger = ScrollTrigger.create({
           trigger: pinEl,
           pin: true,
@@ -211,11 +271,13 @@ export default function ProjectsStrip() {
           invalidateOnRefresh: true,
           onRefresh: (self) => {
             measure()
-            scene.progress = self.progress
+            place.scroll = self.progress
+            apply()
             render()
           },
           onUpdate: (self) => {
-            scene.progress = self.progress
+            place.scroll = self.progress
+            apply()
             const t = Math.tanh(self.getVelocity() / VEL_NORM)
             pushV(t * Math.abs(t))
             if (hint.current) hint.current.style.opacity = self.progress > 0.02 ? '0' : ''
@@ -239,29 +301,34 @@ export default function ProjectsStrip() {
         ScrollTrigger.addEventListener('scrollEnd', settle)
 
         // ------------------------------------------------------------ the hand
-        // Dragging throws the ribbon through the same scroll the wheel uses:
-        // the hand moves the page within the pinned range, ScrollTrigger reads
-        // it, the scene follows. One state, so the two never fight. A release
-        // keeps the hand's speed and lets it die away; the range's ends pull
-        // back gently rather than stopping dead.
+        // The hand grabs the strip itself: a drag moves it with the finger,
+        // one ribbon px per screen px, and a release keeps the hand's speed
+        // and lets it die away. It moves the hand's share of the ribbon's
+        // place, never the page, so it has no ends to meet: past the last
+        // screen comes the first again. The sheet bends with the hand's speed
+        // as it does with the wheel's.
         const drag = { on: false, moved: false, downX: 0, lastX: 0, lastT: 0, v: 0 }
-        const scrollNow = () => window.scrollY
-        const jump = (y: number) => {
-          if (window.__lenis) window.__lenis.scrollTo(y, { immediate: true, force: true })
-          else window.scrollTo(0, y)
+        /** ribbon px/s to the wheel's scroll px/s, for the sheet's speed */
+        const bend = (pxPerS: number) => {
+          const t = Math.tanh((pxPerS * SCROLL_RATE) / VEL_NORM)
+          pushV(t * Math.abs(t))
+        }
+        /** move the hand's share by ribbon px; kept within one loop, which draws the same */
+        const nudge = (px: number) => {
+          place.hand -= px / Math.max(1, scene.loopPx())
+          place.hand -= Math.floor(place.hand)
+          apply()
         }
         const fling = (_t: number, deltaMs: number) => {
           const dt = Math.min(deltaMs, 50) / 1000
-          const lo = trigger.start
-          const hi = trigger.end
-          let y = scrollNow() + drag.v * dt
+          nudge(drag.v * dt)
           drag.v *= Math.exp(-dt / FLING_FRICTION_S)
-          if (y <= lo || y >= hi) {
-            y = Math.min(hi, Math.max(lo, y))
+          bend(drag.v)
+          if (Math.abs(drag.v) < FLING_STOP) {
             drag.v = 0
+            gsap.ticker.remove(fling)
+            pushV(0)
           }
-          jump(y)
-          if (Math.abs(drag.v) < FLING_STOP) gsap.ticker.remove(fling)
         }
         const stopFling = () => {
           drag.v = 0
@@ -276,11 +343,13 @@ export default function ProjectsStrip() {
           drag.lastT = e.timeStamp
           pinEl.setPointerCapture(e.pointerId)
           pinEl.style.cursor = 'grabbing'
+          scene.press(true)
         }
         // the hand stirs the surface over the stage whether or not it is dragging
         const onMove = (e: PointerEvent) => {
           const r = pinEl.getBoundingClientRect()
           scene.stir(e.clientX - r.left, e.clientY - r.top)
+          scene.hold(e.clientX - r.left, e.clientY - r.top)
           if (!drag.on) {
             pinEl.style.cursor = 'grab'
             return
@@ -290,19 +359,15 @@ export default function ProjectsStrip() {
           drag.lastX = e.clientX
           drag.lastT = e.timeStamp
           if (Math.abs(e.clientX - drag.downX) > 6) drag.moved = true
-          // ribbon px to scroll px, the way the wheel is mapped; weaker near the ends
-          const lo = trigger.start
-          const hi = trigger.end
-          const span = Math.max(1, hi - lo)
-          const at = (scrollNow() - lo) / span
-          const toward = dx < 0 ? 1 - at : at
-          const ease = Math.min(1, toward / EDGE_ZONE)
-          const step = -dx * SCROLL_RATE * (0.15 + 0.85 * ease)
-          jump(Math.min(hi, Math.max(lo, scrollNow() + step)))
-          // speed, smoothed: what a release will keep
-          drag.v = drag.v * 0.5 + (step / dt) * 0.5
+          // the strip follows the finger
+          nudge(dx)
+          // speed, smoothed: what a release will keep, in ribbon px/s
+          drag.v = drag.v * 0.5 + (dx / dt) * 0.5
+          drag.v = Math.max(-FLING_MAX, Math.min(FLING_MAX, drag.v))
+          bend(drag.v)
         }
         const onUp = (e: PointerEvent) => {
+          scene.press(false)
           if (!drag.on) return
           drag.on = false
           if (pinEl.hasPointerCapture(e.pointerId)) pinEl.releasePointerCapture(e.pointerId)
@@ -310,9 +375,11 @@ export default function ProjectsStrip() {
           // a hand that paused before letting go throws nothing
           if (e.timeStamp - drag.lastT > 90) drag.v = 0
           if (Math.abs(drag.v) > FLING_STOP) gsap.ticker.add(fling)
+          else pushV(0)
         }
         const onLeave = () => {
           scene.stir(null)
+          scene.hold(null)
           if (!drag.on) pinEl.style.cursor = ''
         }
         // a click -- a press that did not drag -- on a screen opens the project
@@ -327,6 +394,10 @@ export default function ProjectsStrip() {
           if (index < 0) return
           openProject(index, null)
         }
+        const track = (e: PointerEvent) => {
+          lastPointer.current = { x: e.clientX, y: e.clientY }
+        }
+        window.addEventListener('pointermove', track, { passive: true })
         pinEl.addEventListener('pointerdown', onDown)
         pinEl.addEventListener('pointermove', onMove)
         pinEl.addEventListener('pointerup', onUp)
@@ -352,6 +423,7 @@ export default function ProjectsStrip() {
           visible.kill()
           ro.disconnect()
           stopFling()
+          window.removeEventListener('pointermove', track)
           pinEl.removeEventListener('pointerdown', onDown)
           pinEl.removeEventListener('pointermove', onMove)
           pinEl.removeEventListener('pointerup', onUp)
@@ -396,7 +468,7 @@ export default function ProjectsStrip() {
     { scope: root, dependencies: [openProject] },
   )
 
-  const total = pad2(SLEEVES.length)
+  const total = pad2(PROJECTS.length)
 
   return (
     <section className="work" id="projects" ref={root} aria-labelledby="work-heading">
@@ -406,7 +478,7 @@ export default function ProjectsStrip() {
 
       <div className="work__pin" ref={pin}>
         <div className="work__ribbon" ref={ribbon}>
-          {SLEEVES.map((p, i) => (
+          {PROJECTS.map((p, i) => (
             <article
               key={p.code}
               className="work__card"
@@ -450,7 +522,7 @@ export default function ProjectsStrip() {
           {total}
         </div>
         <div className="work__corner work__corner--bl mono" ref={caption}>
-          {`${SLEEVES[0]?.org ?? ''} — ${SLEEVES[0]?.metrics[0] ?? ''}`}
+          {`${PROJECTS[0]?.org ?? ''} — ${PROJECTS[0]?.metrics[0] ?? ''}`}
         </div>
         <div className="work__corner work__corner--br mono" ref={hint} aria-hidden="true">
           Scroll

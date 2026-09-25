@@ -310,3 +310,38 @@
     right: 12px;
   }
 }
+
+/* ---------- the page's veil, for a project opened from the stage ----------
+
+   The whole viewport darkens behind an opened project, whichever sections
+   are on screen: this sits at the page's level, under the stage's canvas
+   (lifted over the page while the card flies) and the panel above it. Its
+   opacity follows the same curve the stage darkens its ribbon by. */
+.pd__dim {
+  position: fixed;
+  inset: 0;
+  z-index: 58;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- the pictures, drawn by the panel's canvas ----------
+
+   On the stage the stream's pictures are drawn by a canvas over the sheet
+   (popupSurface.ts), so they answer the hand as the ribbon does. Their
+   elements stay for layout and scrolling, unseen; the figure's own plate
+   goes too, so a tipped picture shows nothing square behind it. */
+.pd__gl {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.pd__item[data-gl-item] {
+  background: transparent;
+}
+.pd__item[data-gl-item] > .pd__media-item {
+  opacity: 0;
+}

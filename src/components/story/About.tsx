@@ -2,33 +2,30 @@ import { useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { BRIEF, HIGHLIGHTS } from '../../data/brief'
+import { BRIEF } from '../../data/brief'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
 /**
- * The person behind the systems, in one read: a short statement set as the
- * headline with its last words in the serif, a plain paragraph of positioning
- * indented under it, the portrait at the page's edge, and three facts on a
- * rule. The Brief has the long form; this is the paragraph a reader should
- * remember.
+ * The person behind the systems, in three points and a great deal of air:
+ * an introduction left of centre, the portrait small and alone in the
+ * middle, one short statement to the right. Nothing else -- the emptiness
+ * around them is the composition, so this section stays spare on purpose.
+ * The Brief carries the long form and the numbers.
  *
- * It is read by scrolling. The section pins and one scrubbed timeline
- * uncovers it in order: the portrait first, as a soft presence that
- * sharpens; the statement a word at a time, each coming up out of blur; then
- * the paragraph the same way, quicker; the small label; the rule and the
- * facts last. Scroll slowly and it unfolds slowly; scroll back and it folds
- * away again. When it is all there the pin lets go and the page moves on.
+ * It is read by scrolling, on one scrubbed timeline: the portrait uncovers
+ * from its lower edge, the introduction settles a line at a time, the
+ * statement follows a word at a time. All of it runs while the section rises
+ * into place, so it is whole by the time it reaches the top. Scroll back and
+ * it folds away again.
  */
 
-const STATEMENT = 'I build AI systems that'
-const STATEMENT_EM = 'hold up.'
+/** Two short lines, left of centre: the lead-in, then the name under it. */
+const INTRO_LEAD = "hi, i'm"
 
+/** One statement, right of centre. Three lines at the width set in the CSS. */
 const LINE =
-  'AI engineer in Delhi. Retrieval, agents and fine-tuned models built for places the internet does not reach — an air-gapped lab, one GPU, a budget that says no. The work is making them dependable there.'
-
-/** How far the reader scrolls through the reveal, as viewport heights. */
-const PIN_LENGTH = 1.6
+  'i design, and i write code. what i care about is making the complex simple — and the simple meaningful.'
 
 export default function About() {
   const root = useRef<HTMLElement>(null)
@@ -39,49 +36,44 @@ export default function About() {
       if (!rootEl) return
 
       const q = gsap.utils.selector(rootEl)
-      const statementWords = q('[data-about-word]')
       const lineWords = q('[data-about-pword]')
 
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-      const blurred = { autoAlpha: 0, filter: 'blur(12px)', y: 10 }
-      const sharp = { autoAlpha: 1, filter: 'blur(0px)', y: 0 }
+      gsap.set(q('[data-about-intro]'), { autoAlpha: 0, y: 10 })
+      gsap.set(lineWords, { autoAlpha: 0, y: 8 })
+      gsap.set(q('[data-about-corner]'), { autoAlpha: 0 })
+      // the portrait is uncovered rather than faded: a clip from its lower edge
+      gsap.set(q('[data-about-portrait]'), { clipPath: 'inset(100% 0% 0% 0%)' })
+      gsap.set(q('[data-about-portrait] img'), { scale: 1.08 })
 
-      gsap.set(statementWords, blurred)
-      gsap.set(lineWords, { autoAlpha: 0, filter: 'blur(8px)', y: 6 })
-      gsap.set(q('[data-about-label], [data-about-fact], [data-about-corner]'), { autoAlpha: 0 })
-      gsap.set(q('[data-about-rule]'), { scaleX: 0, transformOrigin: 'left center' })
-      gsap.set(q('[data-about-portrait]'), { autoAlpha: 0, filter: 'blur(28px)', x: 40 })
-      gsap.set(q('[data-about-portrait] img'), { scale: 1.42 })
-
-      // one timeline over the pin, 0..1; every piece placed along it
+      // One timeline over the section's own arrival, 0..1. It runs while the
+      // section travels up the screen -- from the moment its top edge appears
+      // at the bottom to the moment it reaches the top -- rather than over a
+      // pin once it is already there. The header's pin releases exactly as
+      // this begins, so the two run back to back: the header leaves while
+      // this is being uncovered, and no blank screen sits between them.
       const tl = gsap.timeline({
         defaults: { ease: 'power2.out' },
         scrollTrigger: {
           trigger: rootEl,
-          pin: true,
-          start: 'top top',
-          end: () => `+=${Math.round(window.innerHeight * PIN_LENGTH)}`,
+          start: 'top bottom',
+          end: 'top top',
           scrub: 0.6,
-          anticipatePin: 1,
           invalidateOnRefresh: true,
         },
       })
 
-      // 1. the portrait: a soft presence at the edge that resolves
-      tl.to(q('[data-about-portrait]'), { autoAlpha: 1, filter: 'blur(0px)', x: 0, duration: 0.42, ease: 'power2.inOut' }, 0)
-      tl.to(q('[data-about-portrait] img'), { scale: 1.26, duration: 0.6, ease: 'power2.out' }, 0)
-      // 2. the statement, a word at a time, out of blur
-      tl.to(statementWords, { ...sharp, duration: 0.16, stagger: 0.045 }, 0.06)
-      // 3. the paragraph follows the same way, quicker, and its label
-      tl.to(lineWords, { autoAlpha: 1, filter: 'blur(0px)', y: 0, duration: 0.1, stagger: 0.006 }, 0.36)
-      tl.to(q('[data-about-label]'), { autoAlpha: 1, duration: 0.08 }, 0.5)
-      // 4. the small details, last: the rule draws, the facts stand up, the corners
-      tl.to(q('[data-about-rule]'), { scaleX: 1, duration: 0.18, ease: 'power3.inOut' }, 0.58)
-      tl.to(q('[data-about-fact]'), { autoAlpha: 1, y: 0, duration: 0.14, stagger: 0.05 }, 0.66)
-      tl.fromTo(q('[data-about-fact]'), { y: 12 }, { y: 0, duration: 0.14, stagger: 0.05 }, 0.66)
-      tl.to(q('[data-about-corner]'), { autoAlpha: 1, duration: 0.1 }, 0.7)
-      // a beat at the end with everything in place, before the pin lets go
+      // 1. the portrait, uncovered from below, its picture settling as it comes
+      tl.to(q('[data-about-portrait]'), { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.4, ease: 'power2.inOut' }, 0)
+      tl.to(q('[data-about-portrait] img'), { scale: 1, duration: 0.62, ease: 'power2.out' }, 0)
+      // 2. the introduction, a line at a time
+      tl.to(q('[data-about-intro]'), { autoAlpha: 1, y: 0, duration: 0.18, stagger: 0.08 }, 0.16)
+      // 3. the statement follows, a word at a time, quicker
+      tl.to(lineWords, { autoAlpha: 1, y: 0, duration: 0.12, stagger: 0.012 }, 0.34)
+      // 4. the corner labels last
+      tl.to(q('[data-about-corner]'), { autoAlpha: 1, duration: 0.12 }, 0.58)
+      // a beat at the end with everything in place, as it lands
       tl.to({}, { duration: 0.12 }, 0.88)
     },
     { scope: root },
@@ -96,15 +88,13 @@ export default function About() {
         {BRIEF.role} · {BRIEF.location}
       </div>
 
-      <div className="st-wrap about__grid">
-        <h2 className="about__statement" id="about-heading">
-          {STATEMENT.split(' ').map((w, i) => (
-            <span className="st-word" key={i}>
-              <span data-about-word>{w}</span>
-            </span>
-          ))}
-          <span className="st-word">
-            <em data-about-word>{STATEMENT_EM}</em>
+      <div className="about__grid">
+        <h2 className="about__intro" id="about-heading">
+          <span className="about__lead" data-about-intro>
+            {INTRO_LEAD}
+          </span>
+          <span className="about__name" data-about-intro>
+            {BRIEF.name}
           </span>
         </h2>
 
@@ -112,28 +102,13 @@ export default function About() {
           <img src="/portrait.webp" alt={`${BRIEF.name}, ${BRIEF.role}, ${BRIEF.location}`} loading="lazy" decoding="async" />
         </figure>
 
-        <div className="about__copy">
-          <span className="mono about__label" data-about-label>
-            Info
-          </span>
-          <p className="about__line">
-            {LINE.split(' ').map((w, i) => (
-              <span className="about__pword" key={i} data-about-pword>
-                {w}
-              </span>
-            ))}
-          </p>
-        </div>
-
-        <i className="about__rule" data-about-rule aria-hidden="true" />
-        <ul className="about__facts">
-          {HIGHLIGHTS.map((h) => (
-            <li className="about__fact" data-about-fact key={h.label}>
-              <span className="mono">{h.label}</span>
-              <span>{h.value}</span>
-            </li>
+        <p className="about__line">
+          {LINE.split(' ').map((w, i) => (
+            <span className="about__pword" key={i} data-about-pword>
+              {w}
+            </span>
           ))}
-        </ul>
+        </p>
       </div>
     </section>
   )

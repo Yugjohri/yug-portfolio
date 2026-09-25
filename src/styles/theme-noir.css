@@ -96,21 +96,25 @@
 [data-theme='noir'] .proof__value {
   color: var(--red-hot);
 }
-/* The first screen is the old black, and the gesture wipes it away.
+/* The first screen is black, and the gesture wipes it away.
 
    The header's mask is a clip-path on .shero__frame: as it closes from both
    sides the page's cream ground is what sweeps in behind it. So the black
    goes *inside* that frame, as its backing -- it fills the first viewport,
    and the same clip-path already takes it away from both edges. Nothing in
-   the timeline changes; the sweep is the one that was always there. The
-   title rides on this black, so it keeps the ink the black ground gave it. */
+   the timeline changes; the sweep is the one that was always there.
+
+   Anything set on this black takes the light ink below, rather than the
+   page's own -- nothing does at the moment, but both rules are kept for
+   whatever stands here next. */
 [data-theme='noir'] .shero__frame::before {
   content: '';
   position: absolute;
   inset: 0;
   background: #050405;
 }
-[data-theme='noir'] .shero__title {
+[data-theme='noir'] .shero__title,
+[data-theme='noir'] .shero__lede {
   color: #f1ebe8;
 }
 /* the corner labels were showing through the frame while it had no backing;

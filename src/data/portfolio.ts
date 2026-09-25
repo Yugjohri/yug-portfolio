@@ -168,26 +168,32 @@ export type Tech = {
   /** Two or three characters, set small in the card's corner. */
   mark: string
   category: string
+  /** Its logo in techLogos.ts, where a reliable one exists; without one the card keeps its type. */
+  logo?: string
 }
 
 /** Only what the work above actually used. Order is the order round the ring. */
 export const TECH: Tech[] = [
-  { name: 'Python', mark: 'PY', category: 'Language' },
-  { name: 'PyTorch', mark: 'PT', category: 'Deep learning' },
-  { name: 'React', mark: 'RE', category: 'Interface' },
-  { name: 'LangChain', mark: 'LC', category: 'Retrieval' },
-  { name: 'PostgreSQL', mark: 'PG', category: 'Database' },
-  { name: 'Hugging Face', mark: 'HF', category: 'Models' },
-  { name: 'TypeScript', mark: 'TS', category: 'Language' },
-  { name: 'FAISS', mark: 'FA', category: 'Vector search' },
-  { name: 'Supabase', mark: 'SB', category: 'Backend' },
-  { name: 'QLoRA', mark: 'QL', category: 'Fine-tuning' },
-  { name: 'Ollama', mark: 'OL', category: 'Local models' },
-  { name: 'Docker', mark: 'DK', category: 'Deployment' },
-  { name: 'Pandas', mark: 'PD', category: 'Data' },
-  { name: 'ChromaDB', mark: 'CH', category: 'Vector store' },
-  { name: 'SQL', mark: 'SQ', category: 'Data' },
-  { name: 'GSAP', mark: 'GS', category: 'Motion' },
+  { name: 'Python', mark: 'PY', category: 'Language', logo: 'python' },
+  { name: 'C++', mark: 'C+', category: 'Language', logo: 'cplusplus' },
+  { name: 'Java', mark: 'JV', category: 'Language', logo: 'java' },
+  { name: 'PyTorch', mark: 'PT', category: 'Deep learning', logo: 'pytorch' },
+  { name: 'React', mark: 'RE', category: 'Interface', logo: 'react' },
+  { name: 'OpenAI API', mark: 'OA', category: 'Models', logo: 'openai' },
+  { name: 'LangChain', mark: 'LC', category: 'Retrieval', logo: 'langchain' },
+  { name: 'PostgreSQL', mark: 'PG', category: 'Database', logo: 'postgresql' },
+  { name: 'Hugging Face', mark: 'HF', category: 'Models', logo: 'huggingface' },
+  { name: 'TypeScript', mark: 'TS', category: 'Language', logo: 'typescript' },
+  { name: 'JavaScript', mark: 'JS', category: 'Language', logo: 'javascript' },
+  { name: 'Supabase', mark: 'SB', category: 'Backend', logo: 'supabase' },
+  { name: 'Node.js', mark: 'NO', category: 'Runtime', logo: 'nodedotjs' },
+  { name: 'Ollama', mark: 'OL', category: 'Local models', logo: 'ollama' },
+  { name: 'Docker', mark: 'DK', category: 'Deployment', logo: 'docker' },
+  { name: 'Git', mark: 'GT', category: 'Version control', logo: 'git' },
+  { name: 'Pandas', mark: 'PD', category: 'Data', logo: 'pandas' },
+  { name: 'NumPy', mark: 'NP', category: 'Data', logo: 'numpy' },
+  { name: 'GSAP', mark: 'GS', category: 'Motion', logo: 'gsap' },
+  { name: 'Unreal Engine', mark: 'UE', category: 'Real-time 3D', logo: 'unrealengine' },
 ]
 
 export type Role = {

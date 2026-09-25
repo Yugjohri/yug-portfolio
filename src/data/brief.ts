@@ -10,15 +10,15 @@ export const BRIEF = {
   name: 'Yug Johri',
   role: 'AI Engineer',
   location: 'Delhi, India',
-  leadIn: 'AI engineer who builds for the worst case.',
+  leadIn: 'i am not easily impressed.',
   intro:
-    'Retrieval, agents and fine-tuned models that hold up where the internet does not reach. I treat a model like a capable but unreliable coworker — useful the moment its output is checkable, dangerous the moment it is not.',
+    'that includes my own work. most of what i do is checking — the building tends to be the quick part.',
 }
 
 export const PILLARS: { label: string; text: string }[] = [
-  { label: 'Retrieval', text: 'Answers grounded in cited sources' },
-  { label: 'Constraint', text: 'Air-gapped, one GPU, no excuses' },
-  { label: 'Evals', text: 'Measuring what actually matters' },
+  { label: 'Retrieval', text: 'say where you got that' },
+  { label: 'Constraint', text: 'limits make better arguments' },
+  { label: 'Evals', text: 'i would rather measure than argue' },
 ]
 
 export const HIGHLIGHTS: { label: string; value: string }[] = [
@@ -28,16 +28,15 @@ export const HIGHLIGHTS: { label: string; value: string }[] = [
 ]
 
 export const ABOUT_HEADING =
-  'I like building systems that keep working when the network, the budget and the model all refuse to cooperate.'
+  'the interesting part is usually the part that does not show.'
 
 export const ABOUT_PARAS: string[] = [
-  'Two and a half years of building on one assumption: a model is only useful once its output is checkable. That has taken me through a defence research lab, an analytics firm, and a year inside model-evaluation loops at Outlier AI.',
-  'At Outlier I rated roughly 500 outputs a month and learned what a bad answer actually looks like before I ever tried to prevent one. At CFEES I am the sole developer on a system for 500+ personnel that cannot call the internet — retrieval before generation, evaluation before deployment.',
-  'Constraint is a design input, not an excuse. An air-gapped intranet, one consumer GPU, and a team that cannot tolerate a hallucinated asset record produce better architecture than an unlimited budget does.',
-  'Outside the terminal: badminton at district level, martial arts, drums, and learning ASL — repetition until the hard thing looks easy.',
+  'i learned this backwards. i read bad answers for a year before i tried to write good ones. strange education. i recommend it.',
+  'since then i have not trusted much that i cannot check. it reads as caution. it is mostly curiosity — i want to know why the thing worked, not just that it did.',
+  'badminton, martial arts, drums, sign language. i keep choosing things that only give way to repetition. it is a pattern i have stopped arguing with.',
 ]
 
-export const ABOUT_CLOSER = 'Bring me something that has to hold up.'
+export const ABOUT_CLOSER = 'bring me something that has to hold up.'
 
 export const LINKS = {
   email: 'yugjohri8@gmail.com',

@@ -24,17 +24,23 @@ import { GRADE_ID, INK, INK_DEEP, PAPER, type Grade } from '../../theme'
 
 // ------------------------------------------------------------------ dials
 
-/** Cell pitch, CSS px. The reference's is 6 device px on a 2x display. */
-const CELL_CSS = 3.2
-const CELL_MIN_PX = 5
+/** Cell pitch, CSS px. Opened up past the reference's 6 device px so each
+ *  mark is ~5% larger and still keeps a little more ground around it. */
+const CELL_CSS = 3.45
+const CELL_MIN_PX = 5.4
 
 /** The characters a cell can be. Dense and holed, so every mark reads as a
  *  small ring rather than a dot or a block; ordered light to dark. */
 const GLYPHS = '@#W$98&60'
 /** How much of a glyph a cell shows: >1 crops to its centre, which is what
  *  makes neighbours nearly touch. Eased off 1.7 so a little more of each
- *  glyph's own margin comes with it and the ground shows between marks. */
-const GLYPH_SCALE = 1.55
+ *  glyph's own margin comes with it and the ground shows between marks.
+ *  Mark size goes as pitch x scale, so with the wider pitch this lands the
+ *  marks ~5% larger while the gap between them grows. */
+const GLYPH_SCALE = 1.51
+/** Softens each mark's edge in the atlas, atlas px: the marks glow rather
+ *  than cut out of the ground. */
+const GLYPH_BLUR = 2.4
 
 /** The tube: how much of the canvas the flat rectangle takes, and how far
  *  its edges bow, in half-canvas units. Sides barely; top and bottom more. */
@@ -50,6 +56,13 @@ const FISHEYE = 0.22
 const SATURATION = 0.7
 const EXPOSURE = 0.88
 const BLOOM = 0.55
+/** How much of the neighbouring cells each cell's colour takes: the picture
+ *  goes soft, as a tube's does, instead of every cell reading its own pixel. */
+const SOFTEN = 0.5
+/** Phosphor spill: the picture, wide-blurred, lit faintly in the gaps. */
+const HALO = 0.06
+/** Falloff toward the edges of the glass. */
+const VIGNETTE = 0.28
 
 /** The pointer. Radius in CSS px around the head and along the trail; how far
  *  cells are pushed at full influence, in CSS px; how quickly the hand's speed
@@ -89,6 +102,9 @@ uniform float uFisheye;
 uniform float uSat;
 uniform float uExposure;
 uniform float uBloom;
+uniform float uSoften;
+uniform float uHalo;
+uniform float uVignette;
 uniform float uRadius;   // device px
 uniform float uPush;     // device px
 uniform float uStrength;
@@ -227,29 +243,41 @@ void main() {
   col.g = pic(readUv).g;
   col.b = pic(readUv - chroma).b;
 
+  /* the tube's softness: each cell takes some of its neighbours' colour */
+  vec2 cellStep = vec2(uCell) / uRes;
+  vec3 near = (pic(readUv + vec2(cellStep.x, 0.0)) + pic(readUv - vec2(cellStep.x, 0.0))
+             + pic(readUv + vec2(0.0, cellStep.y)) + pic(readUv - vec2(0.0, cellStep.y))) * 0.25;
+  col = mix(col, near, uSoften);
+
   /* --- the mark: a dense glyph, chosen by value, inked in the picture's colour */
   float luma = dot(col, vec3(0.299, 0.587, 0.114));
   float idx = floor((1.0 - clamp(luma, 0.0, 1.0)) * (uGlyphN - 1.0) + 0.5);
-  vec2 local = (mod(frag, uCell) - uCell * 0.5) / (uCell * 0.5 * uGlyphScale);
+  /* a little shorter than wide, so rows part as clearly as columns do */
+  vec2 local = (mod(frag, uCell) - uCell * 0.5) / (uCell * 0.5 * uGlyphScale * vec2(1.0, 0.86));
   vec2 guv = clamp(local * 0.5 + 0.5, 0.0, 1.0);
   float ink = texture2D(uGlyphs, vec2((idx + guv.x) / uGlyphN, guv.y)).r;
   /* the cells the hand pushes also flare a little, as a disturbed phosphor would */
   col *= 1.0 + 0.35 * influence;
   vec3 mark = col * ink;
 
-  /* --- bloom: the picture itself, blurred, where it is bright */
-  vec2 px = 2.0 / uRes;
-  vec3 blur = (pic(readUv + vec2(px.x, 0.0)) + pic(readUv - vec2(px.x, 0.0))
-             + pic(readUv + vec2(0.0, px.y)) + pic(readUv - vec2(0.0, px.y))) * 0.25;
+  /* --- bloom: the picture itself, blurred wide, where it is bright; and a
+     faint phosphor spill of the same blur everywhere, so the gaps between
+     marks carry a little of the picture instead of reading as black */
+  vec2 px = cellStep * 1.8;
+  vec3 blur = (pic(readUv + vec2(px.x, px.y)) + pic(readUv - vec2(px.x, px.y))
+             + pic(readUv + vec2(px.x, -px.y)) + pic(readUv - vec2(px.x, -px.y))) * 0.25;
+  blur = mix(blur, near, 0.4);
   float bright = max(max(blur.r, blur.g), blur.b);
-  vec3 bloom = blur * smoothstep(0.55, 1.0, bright) * uBloom;
+  vec3 bloom = blur * smoothstep(0.5, 1.0, bright) * uBloom + blur * uHalo;
 
   /* --- the glass */
   float sd = tube(vUv * 2.0 - 1.0);
   float fall = uCell * 0.8 * (2.0 / min(uRes.x, uRes.y));
   float mask = (1.0 - smoothstep(0.0, fall, sd)) * uAlpha;
 
-  vec3 out3 = clamp(mark + bloom, 0.0, 1.0);
+  /* the glass dims toward its edges */
+  float vig = 1.0 - uVignette * smoothstep(-0.55, 0.0, sd);
+  vec3 out3 = clamp((mark + bloom) * vig, 0.0, 1.0);
 
   /* printed: the same marks, but as ink on paper. Shadow takes the most ink
      and the deepest red, light the least, so the picture prints as a
@@ -291,6 +319,7 @@ function glyphAtlas(chars: string, size = 56) {
   ctx.textBaseline = 'middle'
   // bold, and a chunky fallback: the marks want weight, or they read as hairlines
   ctx.font = `700 ${Math.floor(size * 0.8)}px "JetBrains Mono", Consolas, Menlo, Monaco, monospace`
+  ctx.filter = `blur(${GLYPH_BLUR}px)`
   for (let i = 0; i < chars.length; i++) {
     ctx.fillText(chars[i], i * size + size * 0.5, size * 0.54)
   }
@@ -354,7 +383,7 @@ export class CrtScreen {
     }
     for (const n of [
       'uTex', 'uGlyphs', 'uRes', 'uTexSize', 'uCell', 'uGlyphN', 'uGlyphScale', 'uFisheye', 'uSat',
-      'uExposure', 'uBloom', 'uRadius', 'uPush', 'uStrength', 'uTailLen', 'uTime', 'uAlpha', 'uTrailN',
+      'uExposure', 'uBloom', 'uSoften', 'uHalo', 'uVignette', 'uRadius', 'uPush', 'uStrength', 'uTailLen', 'uTime', 'uAlpha', 'uTrailN',
       'uGrade', 'uPaperCol', 'uInk', 'uInkDeep',
     ]) {
       this.u.set(n, gl.getUniformLocation(this.prog, n))
@@ -514,6 +543,9 @@ export class CrtScreen {
     gl.uniform1f(u('uSat'), SATURATION)
     gl.uniform1f(u('uExposure'), EXPOSURE)
     gl.uniform1f(u('uBloom'), BLOOM)
+    gl.uniform1f(u('uSoften'), SOFTEN)
+    gl.uniform1f(u('uHalo'), HALO)
+    gl.uniform1f(u('uVignette'), VIGNETTE)
     gl.uniform1f(u('uRadius'), POINTER_RADIUS * this.dpr)
     gl.uniform1f(u('uPush'), POINTER_PUSH * this.dpr)
     gl.uniform1f(u('uStrength'), POINTER_STRENGTH * (0.15 + this.energy.v * 0.85))
