@@ -2,10 +2,13 @@ import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
+import { SplitText } from 'gsap/SplitText'
 import { CrtScreen } from './crtScreen'
 import { BRIEF } from '../../data/brief'
+import { routeTransition, whenSettled } from '../../motion/routeTransition.ts'
+import { BEAT, EASE } from '../../motion/tokens'
 
-gsap.registerPlugin(useGSAP, ScrollTrigger)
+gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText)
 
 /**
  * The Story's header, and the one gesture that carries it into the ribbon.
@@ -50,8 +53,15 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
   const media = useRef<HTMLDivElement>(null)
   const lockup = useRef<HTMLDivElement>(null)
   const rule = useRef<HTMLDivElement>(null)
+  const title = useRef<HTMLHeadingElement>(null)
   /** 0..1 through the gesture, read by the render loop to know when to stop */
   const progress = useRef(0)
+  /** the tube's power, read by the screen each frame: 1 unless the header is opening */
+  const power = useRef({ v: 1 })
+  /** told by the screen after each frame it draws, with the power it drew at */
+  const drawn = useRef<((power: number) => void) | null>(null)
+  /** how wide the tube's middle line is, as a share of the screen's width; set by the screen */
+  const tubeLine = useRef(0)
 
   // ------------------------------------------------------------- the screen
   useEffect(() => {
@@ -68,6 +78,7 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
     }
     screen.canvas.className = 'shero__canvas'
     host.appendChild(screen.canvas)
+    tubeLine.current = CrtScreen.lineWidth
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -84,7 +95,9 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
       raf = requestAnimationFrame(frameLoop)
       // once the strip has become the rule there is nothing of the glass left
       if (!visible || progress.current > 0.78) return
+      screen.power = power.current.v
       screen.render(now / 1000)
+      drawn.current?.(screen.power)
     }
 
     // The screen keeps its own short trail of the hand's movement and eases
@@ -125,6 +138,7 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
       rootEl.removeEventListener('pointerleave', onLeave)
       screen.canvas.remove()
       screen.dispose()
+      tubeLine.current = 0
     }
   }, [videoSrc])
 
@@ -245,6 +259,137 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
     { scope: root },
   )
 
+  // ------------------------------------------------------------ the opening
+  // Event Horizon's second half, and the header's own opening on a direct
+  // load. A point -- carried from the landing's hole, or lit where the line
+  // will be -- stretches into a line across the tube's middle; the glass
+  // powers on from that line; then the title rises and the corners come up.
+  // None of it touches the frame, its clip-path or its rotation, which belong
+  // to the gesture. Under reduced motion, or landing part-way down the page,
+  // the header is simply there, as it always was.
+  useGSAP(
+    () => {
+      const rootEl = root.current
+      const host = media.current
+      const titleEl = title.current
+      if (!rootEl || !host || !titleEl) return
+
+      const handoff = routeTransition.consume('story')
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if (handoff) routeTransition.end()
+        return
+      }
+      if (!handoff && (window.scrollY > 2 || !routeTransition.claim('/story'))) return
+
+      power.current.v = 0
+      const corners = gsap.utils.toArray<HTMLElement>(':scope > .st-corner', rootEl)
+      gsap.set(corners, { autoAlpha: 0 })
+
+      // where the tube powers on from, measured live
+      const line = () => {
+        const r = host.getBoundingClientRect()
+        if (!r.width) return null
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2, width: r.width * (tubeLine.current || 1) }
+      }
+      const carry = routeTransition.lineIn({ from: handoff?.point, line })
+      const on = carry.duration()
+      const titleAt = on + 0.7 + 0.15
+
+      // everything waits, the point held where it is, until the page has settled
+      let started = false
+      let rise: gsap.core.Timeline | null = null
+      const tl = gsap.timeline({ paused: true })
+      // the glass takes the line over in the first frame it draws with any
+      // power, and the overlay's line goes in that same frame
+      tl.call(
+        () => {
+          drawn.current = (p) => {
+            if (p <= 0) return
+            drawn.current = null
+            routeTransition.lineOff()
+          }
+        },
+        undefined,
+        on,
+      )
+      tl.to(power.current, { v: 1, duration: 0.7, ease: EASE.unfold }, on)
+      // with no glass to take it (no WebGL), the line simply goes
+      tl.call(
+        () => {
+          if (!drawn.current) return
+          drawn.current = null
+          routeTransition.lineOff()
+        },
+        undefined,
+        on + 0.12,
+      )
+      tl.call(
+        () => {
+          if (handoff) {
+            titleEl.tabIndex = -1
+            titleEl.focus({ preventScroll: true })
+          }
+          routeTransition.end()
+        },
+        undefined,
+        on + 0.7,
+      )
+      tl.to(corners, { autoAlpha: 1, duration: BEAT, ease: EASE.unfold }, titleAt)
+
+      // The title rises a line at a time out of its own mask. SplitText
+      // names the h1 from its text, which loses the line break's space, so
+      // the name is given from what the h1 reads as. Once risen, the masks
+      // stop clipping: at rest the title is exactly as it was.
+      const label = titleEl.innerText.replace(/\s+/g, ' ').trim()
+      let risen = false
+      const unmask = (masks: Element[]) => masks.forEach((m) => ((m as HTMLElement).style.overflow = 'visible'))
+      SplitText.create(titleEl, {
+        type: 'lines',
+        mask: 'lines',
+        autoSplit: true,
+        onSplit(self) {
+          titleEl.setAttribute('aria-label', label)
+          if (risen) {
+            unmask(self.masks)
+            return
+          }
+          rise = gsap.timeline({ paused: !started })
+          rise.fromTo(
+            self.lines,
+            { yPercent: 100 },
+            {
+              yPercent: 0,
+              duration: BEAT,
+              ease: EASE.unfold,
+              stagger: 0.08,
+              onComplete: () => {
+                risen = true
+                unmask(self.masks)
+              },
+            },
+            titleAt,
+          )
+          return rise
+        },
+      })
+
+      const cancel = whenSettled(() => {
+        started = true
+        carry.play()
+        tl.play()
+        rise?.play()
+      })
+
+      return () => {
+        cancel()
+        carry.kill()
+        drawn.current = null
+        power.current.v = 1
+      }
+    },
+    { scope: root },
+  )
+
   return (
     <section className="shero" id="story-top" ref={root} aria-label="My story">
       <div className="st-corner st-corner--tl mono">{BRIEF.name}</div>
@@ -253,7 +398,7 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
       {/* the picture and the line: one layer, masked as one */}
       <div className="shero__frame" ref={frame}>
         <div className="shero__screen" ref={media} aria-hidden="true" />
-        <h1 className="shero__title">
+        <h1 className="shero__title" ref={title}>
           How I think, work,
           <br />
           and <em>build.</em>

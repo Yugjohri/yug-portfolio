@@ -111,6 +111,10 @@ uniform float uStrength;
 uniform float uTailLen;
 uniform float uTime;
 uniform float uAlpha;
+uniform float uOpenY;    // power-on: how far the glass has opened, as a share of its height (1 at rest)
+uniform float uPulse;    // power-on: the one brightness pulse (0 at rest)
+uniform float uHot;      // power-on: the opening line burning white (0 at rest)
+uniform vec3 uHotCol;
 uniform float uGrade;    // 0 lit, 1 printed: red ink on paper, 2 ember
 uniform vec3 uPaperCol;
 uniform vec3 uInk;
@@ -157,12 +161,16 @@ vec2 fisheye(vec2 uv) {
    the edges bow while the corners -- where one bow meets the other -- stay
    sharp. Chebyshev distance, not euclidean, is what keeps them sharp. */
 float tube(vec2 p) {
+  /* powering on, the glass opens from its centre line: the outline, bows and
+     all, is squeezed toward it (at rest both scales are exactly 1) */
+  p.y /= uOpenY;
   float yn = clamp(p.y / ${TUBE_H.toFixed(2)}, -1.0, 1.0);
   float w = ${TUBE_W.toFixed(2)} + ${BULGE_SIDE.toFixed(3)} * (1.0 - yn * yn);
   float xn = clamp(p.x / ${TUBE_W.toFixed(2)}, -1.0, 1.0);
   float vb = p.y < 0.0 ? ${BULGE_BOTTOM.toFixed(2)} : ${BULGE_TOP.toFixed(2)};
   float h = ${TUBE_H.toFixed(2)} + vb * (1.0 - xn * xn);
   vec2 d = abs(p) - vec2(w, h);
+  d.y *= uOpenY;
   return max(d.x, d.y);
 }
 
@@ -278,6 +286,8 @@ void main() {
   /* the glass dims toward its edges */
   float vig = 1.0 - uVignette * smoothstep(-0.55, 0.0, sd);
   vec3 out3 = clamp((mark + bloom) * vig, 0.0, 1.0);
+  /* powering on: one gentle pulse of brightness */
+  if (uPulse > 0.0) out3 = clamp((mark + bloom) * vig * (1.0 + 0.35 * uPulse), 0.0, 1.0);
 
   /* printed: the same marks, but as ink on paper. Shadow takes the most ink
      and the deepest red, light the least, so the picture prints as a
@@ -287,6 +297,8 @@ void main() {
     vec3 inkCol = mix(uInk, uInkDeep, dens * dens);
     out3 = mix(uPaperCol, inkCol, ink * (0.25 + 0.75 * dens));
   }
+  /* the first line of a powering-on tube burns white, whatever the picture */
+  if (uHot > 0.0) out3 = mix(out3, uHotCol, uHot);
   gl_FragColor = vec4(out3 * mask, mask);
 }
 `
@@ -337,6 +349,29 @@ type Options = {
 
 type TrailPoint = { x: number; y: number; dx: number; dy: number }
 
+/** The phosphor white a powering-on tube's first line burns: the overlay's point, exactly. */
+const HOT = { r: 241 / 255, g: 235 / 255, b: 232 / 255 }
+
+/** Power-on, from `power` (0..1). The glass opens vertically from its centre
+ *  line with power, over-scaled 3% on the way and settling back to its own
+ *  height over the last 30%; it pulses once, gently, peaking at 0.7; and its
+ *  first line burns white before the picture comes up through it. At 1 every
+ *  term is exactly at rest: opening 1, pulse 0, heat 0. */
+function powerOn(power: number) {
+  const p = Math.min(Math.max(power, 0), 1)
+  if (p === 1) return { open: 1, pulse: 0, hot: 0 }
+  const smooth = (a: number, b: number, x: number) => {
+    const t = Math.min(Math.max((x - a) / (b - a), 0), 1)
+    return t * t * (3 - 2 * t)
+  }
+  const over = smooth(0, 0.7, p) * (1 - smooth(0.7, 1, p))
+  return {
+    open: Math.max(p, 0.002) * (1 + 0.03 * over),
+    pulse: Math.sin(Math.PI * Math.min(Math.max((p - 0.4) / 0.6, 0), 1)) ** 2,
+    hot: 1 - smooth(0, 0.2, p),
+  }
+}
+
 export class CrtScreen {
   readonly canvas: HTMLCanvasElement
   readonly supported: boolean
@@ -358,7 +393,13 @@ export class CrtScreen {
   private energyTo: (v: number) => void
 
   alpha = 1
+  /** 0..1. At 0 the tube is off and draws nothing; rising, it powers on from
+   *  a line across its middle. 1, the default, is the screen as it always was. */
+  power = 1
   private grade: Grade
+
+  /** How wide the tube is across its middle, where it powers on from, as a share of the canvas' width. */
+  static readonly lineWidth = TUBE_W + BULGE_SIDE
 
   constructor({ videoSrc, posterSrc, grade = 'lit' }: Options) {
     this.canvas = document.createElement('canvas')
@@ -384,7 +425,7 @@ export class CrtScreen {
     for (const n of [
       'uTex', 'uGlyphs', 'uRes', 'uTexSize', 'uCell', 'uGlyphN', 'uGlyphScale', 'uFisheye', 'uSat',
       'uExposure', 'uBloom', 'uSoften', 'uHalo', 'uVignette', 'uRadius', 'uPush', 'uStrength', 'uTailLen', 'uTime', 'uAlpha', 'uTrailN',
-      'uGrade', 'uPaperCol', 'uInk', 'uInkDeep',
+      'uGrade', 'uPaperCol', 'uInk', 'uInkDeep', 'uOpenY', 'uPulse', 'uHot', 'uHotCol',
     ]) {
       this.u.set(n, gl.getUniformLocation(this.prog, n))
     }
@@ -551,7 +592,13 @@ export class CrtScreen {
     gl.uniform1f(u('uStrength'), POINTER_STRENGTH * (0.15 + this.energy.v * 0.85))
     gl.uniform1f(u('uTailLen'), TRAIL_LENGTH)
     gl.uniform1f(u('uTime'), time)
-    gl.uniform1f(u('uAlpha'), this.alpha)
+    // a tube with no power draws nothing at all
+    gl.uniform1f(u('uAlpha'), this.power > 0 ? this.alpha : 0)
+    const on = powerOn(this.power)
+    gl.uniform1f(u('uOpenY'), on.open)
+    gl.uniform1f(u('uPulse'), on.pulse)
+    gl.uniform1f(u('uHot'), on.hot)
+    gl.uniform3f(u('uHotCol'), HOT.r, HOT.g, HOT.b)
     gl.uniform1f(u('uTrailN'), n)
     gl.uniform4fv(u('uTrail'), this.trailData)
     gl.uniform1f(u('uGrade'), GRADE_ID[this.grade])

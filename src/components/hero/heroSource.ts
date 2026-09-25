@@ -28,6 +28,18 @@ const MAX_DPR = 2
 const ASCII_PASS_SCALE = 0.35
 const ASCII_PASS_MIN = 320
 
+/** Mirrors of the shader's framing, for measuring the hole from outside it:
+ *  the resting zoom, the shadow's radius (R_H), how far above centre the hole
+ *  sits (0.031 / 2.50, in units of the short side), and the cursor's
+ *  parallax (0.035 x CURSOR_K). */
+const ZOOM_REST = 2.5
+const SHADOW_R = 0.28
+const HOLE_Y = 0.031 / 2.5
+const PARALLAX = 0.035 * (1.2 / 2.5)
+/** and the near half of the disk, which crosses in front of the shadow: its
+ *  inner edge (R_IN) comes within R_IN x SQ of the centre */
+const CLEAR_R = 0.31 * 0.21
+
 const VERT = `
 attribute vec2 aPos;
 varying vec2 vUv;
@@ -52,6 +64,8 @@ uniform float     uGrade;     // 0 lit, 1 printed on paper, 2 ember
 uniform vec3      uPaperCol;
 uniform vec3      uInk;
 uniform vec3      uInkDeep;
+uniform float     uZoom;      // how far back the camera sits: 2.50 at rest
+uniform float     uDive;      // 0 at rest; toward 1 the stars streak in toward the hole
 
 const vec3 BG = vec3(0.024, 0.024, 0.059);
 
@@ -192,8 +206,10 @@ void main() {
      Everything drawn below is in these pulled-back units, so the terms that
      describe the frame itself (stars, vignette) are scaled to match. */
   if (uUseVideo < 0.5) {
-    uv *= 2.50;
-    uv.y -= 0.031;
+    uv *= uZoom;
+    /* the hole sits a little above centre; scaled with the zoom so it holds
+       its place on screen while the camera moves -- at 2.50 this is 0.031 */
+    uv.y -= 0.031 * (uZoom / 2.50);
   }
 
   float r = length(uv);
@@ -206,7 +222,16 @@ void main() {
     float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
     col = mix(vec3(l), col, 1.35);
   } else {
-    col = BG + starfield(uv * 0.432, uTime);
+    vec3 stars = starfield(uv * 0.432, uTime);
+    if (uDive > 0.001) {
+      /* a dive toward the hole draws the stars in along their radius: the
+         same field, sampled a little further out and painted here */
+      for (int i = 1; i <= 3; i++) {
+        float k = 1.0 + float(i) * 0.07 * uDive;
+        stars = max(stars, starfield(uv * 0.432 * k, uTime) * (1.0 - float(i) * 0.24));
+      }
+    }
+    col = BG + stars;
 
     /* disk-plane coordinates: tilted on screen, squashed by inclination */
     vec2 p = uv * rot(TILT);
@@ -325,6 +350,18 @@ export class HeroSource {
   private asciiW = 1
   private asciiH = 1
   private grade: Grade
+  /** the canvas' size in CSS px, as last given to resize() */
+  private cssW = 1
+  private cssH = 1
+  /** the disk's clock: equal to the caller's time while spin is 1 */
+  private clock = { last: Number.NaN, offset: 0 }
+
+  /** How far back the camera sits (the shader's uZoom). 2.50 is the landing's framing. */
+  zoom = ZOOM_REST
+  /** How fast the disk turns, as a multiple of its own speed. */
+  spin = 1
+  /** 0..1: how far the stars are drawn in toward the hole by a dive. */
+  dive = 0
 
   constructor({ videoSrc, grade = 'lit' }: HeroSourceOptions = {}) {
     this.canvas = document.createElement('canvas')
@@ -366,7 +403,7 @@ export class HeroSource {
     gl.useProgram(program)
     for (const name of [
       'uRes', 'uTime', 'uPointer', 'uPointerAmt', 'uUseVideo', 'uVideo',
-      'uGrade', 'uPaperCol', 'uInk', 'uInkDeep',
+      'uGrade', 'uPaperCol', 'uInk', 'uInkDeep', 'uZoom', 'uDive',
     ]) {
       this.u[name] = gl.getUniformLocation(program, name)
     }
@@ -408,8 +445,34 @@ export class HeroSource {
     return { width: this.asciiW, height: this.asciiH }
   }
 
+  /**
+   * The hole's centre in the canvas, CSS px from its top-left. The shader
+   * places it a little above centre, and the cursor's parallax drifts the
+   * whole field; the pull right under the cursor is local and not counted.
+   * `pointer` and `amount` are what the panel is rendering with.
+   */
+  holeCentrePx(pointerX = 0, pointerY = 0, amount = 0) {
+    const m = Math.min(this.cssW, this.cssH)
+    const ux = pointerX * amount * PARALLAX
+    const uy = HOLE_Y + pointerY * amount * PARALLAX
+    return { x: this.cssW / 2 + ux * m, y: this.cssH / 2 - uy * m }
+  }
+
+  /** The shadow's radius in CSS px at the current zoom. */
+  shadowRadiusPx() {
+    return (SHADOW_R / this.zoom) * Math.min(this.cssW, this.cssH)
+  }
+
+  /** How much of the shadow, from its centre, nothing crosses: the near half
+   *  of the disk passes in front of the rest. CSS px at the current zoom. */
+  clearRadiusPx() {
+    return (CLEAR_R / this.zoom) * Math.min(this.cssW, this.cssH)
+  }
+
   /** Size the source to one panel, in CSS pixels. */
   resize(width: number, height: number) {
+    this.cssW = Math.max(1, width)
+    this.cssH = Math.max(1, height)
     const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR)
     const w = Math.max(1, Math.round(width * dpr))
     const h = Math.max(1, Math.round(height * dpr))
@@ -456,8 +519,17 @@ export class HeroSource {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, this.video)
     }
 
+    // spin speeds the disk by running its clock faster from here on; while
+    // it is 1 the offset never moves and the clock is exactly the caller's
+    if (!Number.isNaN(this.clock.last) && this.spin !== 1) {
+      this.clock.offset += (time - this.clock.last) * (this.spin - 1)
+    }
+    this.clock.last = time
+
     gl.uniform2f(this.u.uRes, w, h)
-    gl.uniform1f(this.u.uTime, time)
+    gl.uniform1f(this.u.uTime, time + this.clock.offset)
+    gl.uniform1f(this.u.uZoom, this.zoom)
+    gl.uniform1f(this.u.uDive, this.dive)
     gl.uniform2f(this.u.uPointer, pointerX, pointerY)
     gl.uniform1f(this.u.uPointerAmt, amount)
     gl.uniform1f(this.u.uUseVideo, this.video ? 1 : 0)

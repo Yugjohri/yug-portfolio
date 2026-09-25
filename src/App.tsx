@@ -4,6 +4,7 @@ import Home from './pages/Home'
 import BriefRead from './pages/BriefRead'
 import Story from './pages/Story'
 import MusicPlayer from './components/MusicPlayer'
+import RouteTransition from './motion/RouteTransition.tsx'
 import { applyTheme } from './theme'
 
 /** Each route wears its own theme: the Story is black-and-red, the rest the original dark. */
@@ -28,6 +29,8 @@ export default function App() {
         <Route path="/brief" element={<BriefRead />} />
         <Route path="/story" element={<Story />} />
       </Routes>
+      {/* the layer route transitions play in: over every page, under the player */}
+      <RouteTransition />
       {/* on every route, in the corner; tracks in data/music.ts */}
       <MusicPlayer />
     </>

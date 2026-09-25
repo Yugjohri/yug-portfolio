@@ -5,6 +5,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { useSmoothScroll } from '../lib/useSmoothScroll'
 import { isLight } from '../theme'
+import { routeTransition, whenSettled } from '../motion/routeTransition.ts'
 import { NOTES, ROLES, SLEEVES, type Sleeve } from '../data/portfolio'
 // The Brief's ground: the wallpaper clip, referenced where it lives (../my
 // brief backgrounds, beside the app) rather than copied in.
@@ -217,13 +218,37 @@ export default function BriefRead() {
   // ------------------------------------------------------------- the motion
   useGSAP(
     () => {
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      // arrived by Glyph Drain: the band is still on screen, over a cover
+      const arrival = routeTransition.consume('brief')
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if (arrival) routeTransition.end()
+        return
+      }
 
-      gsap
-        .timeline({ defaults: { ease: 'expo.out', duration: 1 } })
+      // the entrance, which waits for the band when there is one
+      const entrance = gsap
+        .timeline({ defaults: { ease: 'expo.out', duration: 1 }, paused: !!arrival })
         .from('[data-rise]', { y: 26, autoAlpha: 0, stagger: 0.07 }, 0.15)
         .from('[data-portrait]', { y: 34, autoAlpha: 0, duration: 1.2 }, 0.3)
         .from('[data-pillar]', { y: 20, autoAlpha: 0, stagger: 0.08 }, 0.6)
+
+      // The band sweeps down and the page opens from its line; the entrance
+      // starts once 40% of the screen is open, and the name takes focus at the end.
+      const sweep = arrival
+        ? routeTransition.briefIn({
+            divider: root.current?.querySelector<HTMLElement>('[data-divider]') ?? null,
+            onOpen: () => entrance.play(),
+            onDone: () => {
+              const name = root.current?.querySelector<HTMLElement>('.bf-name')
+              if (name) {
+                name.tabIndex = -1
+                name.focus({ preventScroll: true })
+              }
+              routeTransition.end()
+            },
+          })
+        : null
+      const cancel = sweep ? whenSettled(() => sweep.play()) : null
 
       // everything below the fold arrives as it comes into frame
       gsap.utils.toArray<HTMLElement>('[data-reveal]').forEach((el) => {
@@ -250,6 +275,11 @@ export default function BriefRead() {
           onToggle: (self) => (self.isActive ? drift.play() : drift.pause()),
         })
       })
+
+      return () => {
+        cancel?.()
+        sweep?.kill()
+      }
     },
     { scope: root },
   )

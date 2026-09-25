@@ -89,3 +89,63 @@ ul {
     scroll-behavior: auto;
   }
 }
+
+/* ---------- route transitions (src/motion) ----------
+   The layer a route change plays in: over every page, under the music
+   player (55), never taking the pointer. Everything in it is hidden at rest;
+   the transition controller shows and moves it, and clears its inline styles
+   back to these when a transition ends. */
+
+.rt {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+.rt__iris,
+.rt__cover,
+.rt__band,
+.rt__point {
+  position: fixed;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+/* Event Horizon: the hole's shadow grown past the screen, in the Story's black */
+.rt__iris {
+  inset: 0;
+  background: #050405;
+  will-change: clip-path;
+}
+/* the carried phosphor point -- and, stretched, the CRT's line */
+.rt__point {
+  left: 0;
+  top: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #f1ebe8;
+  box-shadow: 0 0 6px 1px rgb(241 235 232 / 0.7), 0 0 18px 3px rgb(241 235 232 / 0.22);
+  contain: layout size style;
+  will-change: transform, width, height;
+}
+/* Glyph Drain: the landing's ground over the Brief, and the band that wipes it away */
+.rt__cover {
+  inset: 0;
+  background: #06060f;
+  will-change: clip-path;
+}
+.rt__band {
+  left: 0;
+  top: 0;
+  margin: 0;
+  overflow: hidden;
+  white-space: pre;
+  user-select: none;
+  will-change: transform;
+}
+/* the headings a route transition hands focus to: somewhere to read from, not a control */
+.shero__title:focus,
+.bf-name:focus {
+  outline: none;
+}
