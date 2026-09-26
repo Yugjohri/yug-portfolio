@@ -58,7 +58,8 @@
   transition: opacity 0.4s var(--work-ease);
 }
 .work__corner--tl { top: var(--work-pad); left: var(--work-pad); }
-.work__corner--tr { top: var(--work-pad); right: var(--work-pad); }
+/* under the Story's section nav (its place is set on .story) */
+.work__corner--tr { top: calc(var(--nav-top, 0px) + var(--nav-h, 0px) + 14px); right: var(--work-pad); }
 .work__corner--bl { bottom: var(--work-pad); left: var(--work-pad); }
 /* the scroll hint stands just left of the music player, on its middle line */
 .work__corner--br {

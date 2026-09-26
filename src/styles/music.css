@@ -6,10 +6,17 @@
 :root {
   --mp-inset: clamp(14px, 1.6vw, 24px);
   --mp-width: 236px;
+  /* the plate's material, shared with the Story's nav and the Resume pill */
+  --plate-rgb: 10 8 9;
+  --plate-alpha: 0.68;
+  --plate-border: 1px solid rgb(255 255 255 / 0.08);
+  --plate-blur: blur(10px);
+  --plate-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+  --plate-ink: #f1ebe8;
 }
 
 .mp {
-  --mp-alpha: 0.68;
+  --mp-alpha: var(--plate-alpha);
   --mp-ink: var(--text, #f1ebe8);
   --mp-dim: var(--muted, #8b8287);
   --mp-accent: var(--red-hot, var(--hero-accent, #e0122f));
@@ -21,12 +28,12 @@
   width: var(--mp-width);
   padding: 8px 10px;
   border-radius: 12px;
-  border: 1px solid rgb(255 255 255 / 0.08);
-  background: rgb(10 8 9 / var(--mp-alpha));
+  border: var(--plate-border);
+  background: rgb(var(--plate-rgb) / var(--mp-alpha));
   color: var(--mp-ink);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+  backdrop-filter: var(--plate-blur);
+  -webkit-backdrop-filter: var(--plate-blur);
+  box-shadow: var(--plate-shadow);
   transform-origin: right bottom;
   will-change: transform;
   user-select: none;
