@@ -289,12 +289,27 @@
      .shero__screen below, which owns the glass's own size. The type either
      side is then given whatever is left over, less the page margin and a
      deliberately small gap. */
-  /* the glass as the ratio gives it, then a little length on the sides and
-     a little more height than the ratio would allow on its own */
-  --crt-base: min(81.3vw, 71dvh * 1.68);
-  --crt-w: calc(var(--crt-base) + 24px);
-  --crt-h: calc(var(--crt-base) / 1.6807 + 30px);
-  --crt-top: 7.5dvh;
+  /* The glass in the reference's proportions, on every screen: 58.1% of the
+     width from a tablet up (87.2% on a phone, below), 1.63 times as wide as
+     it is tall, its centre at 45.7% of the height. Like the reference's, it
+     scales with the width alone -- until the headline would crowd it; there
+     the height takes over and keeps 2% of the screen clear between the
+     glass's bottom corners and the headline's first line.
+     These size the box the canvas fills. The tube is drawn inside it at
+     96.5% of its width and 93.5% of its height (crtScreen.ts), centred at
+     50.25% of its height, with its bottom corners at 90%: so the box is
+     58.1 / 0.965 = 60.23vw wide and 1.63 x 0.935 / 0.965 = 1.5791 times as
+     wide as it is tall; 0.3975 is how far below the glass's centre its
+     corners fall, and 52.3dvh the room below that centre, less the 2%. */
+  --crt-share: 60.23vw;
+  --crt-h: min(
+    calc(var(--crt-share) / 1.5791),
+    calc((52.3dvh - var(--shero-title-reach)) / 0.3975)
+  );
+  --crt-w: calc(var(--crt-h) * 1.5791);
+  --crt-top: calc(45.7dvh - 0.5025 * var(--crt-h));
+  /* how far above the bottom edge the headline's first line of caps begins */
+  --shero-title-reach: calc(var(--st-pad) + 64px + 1.82 * clamp(1.9rem, 3.1vw, 5rem));
   --crt-gap: 0.4vw;
   --zone: calc((100vw - var(--crt-w)) / 2 - var(--st-pad) - var(--crt-gap));
 
@@ -365,20 +380,16 @@
   transform-origin: 50% 50%;
   will-change: transform, clip-path;
 }
-/* The screen. The canvas is 16:10 and the tube is drawn inside it at 93% of
-   its width and 80-94% of its height (bowed), as the reference's is; so the
-   canvas is sized a little over the display we want. Height-limited on wide
-   windows, width-limited on narrow ones. Sits below the corner labels with
-   the reference's breathing room. */
+/* The screen. The tube is drawn inside the canvas at 93-96.5% of its width
+   and 80-94% of its height (bowed), as the reference's is; so the canvas is
+   sized a little over the display we want -- by .shero's numbers above. */
 .shero__screen {
   position: absolute;
   left: 50%;
-  /* a little more room above it than the reference leaves */
   top: var(--crt-top);
   translate: -50% 0;
   /* Sized from the numbers the whole header is measured by, rather than from
-     a ratio of its own: the width and height carry their own few pixels on
-     top of the ratio, so an aspect-ratio here would fight them. */
+     a ratio of its own, so the headline's clearance can cap it. */
   width: var(--crt-w);
   height: var(--crt-h);
   /* The height is the ratio's and nothing else's. An aspect-ratio box takes
@@ -502,20 +513,13 @@
 .shero[data-still] .shero__def { opacity: 1; visibility: visible; }
 
 @media (max-width: 899px) {
-  /* one column of type below it, so the glass sits higher and smaller */
-  .shero__screen {
-    top: 10.5dvh;
-    width: min(96vw, 57.2dvh * 1.68);
-  }
-
   /* No room beside the glass here, so the two blocks stand under it instead,
      centred. The column is whatever width the space left below the glass can
      carry both blocks at -- 2.3 being their combined height in zone widths,
      less the corner the music player keeps for itself. */
   .shero {
-    --crt-w: min(96vw, 57.2dvh * 1.68);
-    --crt-top: 10.5dvh;
     --zone: min(52vw, calc((100dvh - var(--crt-top) - var(--crt-h) - 15dvh) / 2.3));
+    --shero-title-reach: calc(var(--st-pad) + 64px + 1.82 * clamp(1.8rem, 7.5vw, 3.2rem));
   }
   .shero__lede {
     left: 50%;
@@ -532,4 +536,9 @@
   .shero__def { width: 38%; }
   .shero__meaning { max-width: none; }
   .shero__title { font-size: clamp(1.8rem, 7.5vw, 3.2rem); }
+}
+
+/* a phone: the glass takes 87.2% of the width, as the reference's does below 768 */
+@media (max-width: 767px) {
+  .shero { --crt-share: 90.34vw; }
 }
