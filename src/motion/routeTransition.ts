@@ -23,11 +23,13 @@ export type TransitionKind = 'story' | 'brief'
 
 /**
  * The Brief's band exactly as the ASCII pass last drew it, so the overlay can
- * take it over in the same frame: its rows, set in the pass's own face, in a
- * box placed where the pass's rows are and scaled as the pass is.
+ * take it over in the same frame: the pass's whole box, placed and scaled as
+ * the pass is, holding the pass's own text with every row but the band's
+ * left blank. The whole box rather than one cut to the band, so each row is
+ * laid out -- and its glyphs land on the pixel grid -- exactly as in the pass.
  */
 export type BandShape = {
-  /** the box before its scale, viewport px */
+  /** the pass's box before its scale, viewport px */
   left: number
   top: number
   width: number
@@ -39,12 +41,17 @@ export type BandShape = {
   /** what the panel clips off either side, px in the box */
   clipLeft: number
   clipRight: number
-  /** the rows, and the face they were set in */
+  /** the text, and where the band's rows are in it */
   text: string
+  first: number
   rows: number
+  /** the face, with size and leading as the pass's own CSS values: a line
+   *  height given another way can round each line box differently */
   fontFamily: string
-  fontSize: number
-  lineHeight: number
+  fontSize: string
+  lineHeight: string
+  /** one row's height, px, for placing things by the rows */
+  rowHeight: number
   color: string
 }
 
@@ -227,15 +234,14 @@ class RouteTransitionController {
       top: `${b.top}px`,
       width: `${b.width}px`,
       height: `${b.height}px`,
-      // the rows' glyphs stand taller than their lines, as in the pass
-      overflow: 'visible',
+      overflow: 'hidden',
       fontFamily: b.fontFamily,
-      fontSize: `${b.fontSize}px`,
-      lineHeight: `${b.lineHeight}px`,
+      fontSize: b.fontSize,
+      lineHeight: b.lineHeight,
       color: b.color,
       transformOrigin: `${b.originX}px ${b.originY}px`,
       transform: `scale(${b.scale})`,
-      clipPath: `inset(-${b.lineHeight}px ${b.clipRight}px -${b.lineHeight}px ${b.clipLeft}px)`,
+      clipPath: `inset(0px ${b.clipRight}px 0px ${b.clipLeft}px)`,
     })
     shown(el, true)
   }
@@ -352,13 +358,14 @@ class RouteTransitionController {
     const ink = look?.color ?? 'rgb(255 255 255 / 0.11)'
     const toInk = gsap.utils.interpolate(band.color, ink)
     // where the band is on screen as the pass drew it: its centre line, and its ends
-    const cy = band.top + band.originY + (band.height / 2 - band.originY) * band.scale
+    const mid = (band.first + band.rows / 2) * band.rowHeight
+    const cy = band.top + band.originY + (mid - band.originY) * band.scale
     const x0 = band.left + band.originX + (band.clipLeft - band.originX) * band.scale
     const x1 = band.left + band.originX + (band.width - band.clipRight - band.originX) * band.scale
-    const rowH = band.lineHeight * band.scale
+    const rowH = band.rowHeight * band.scale
     // The rows flatten about their own middle rather than about the pass's
     // centre: the same placement, re-expressed about a different origin.
-    const oy = band.height / 2
+    const oy = mid
     const ty0 = (band.originY - oy) * (1 - band.scale)
 
     const state = { sweep: 0, flat: 0, widen: 0 }
@@ -413,6 +420,9 @@ class RouteTransitionController {
         color: ink,
         transformOrigin: '0px 0px',
         maskImage: look?.maskImage || 'none',
+        // composited only now it is moving: promoted at the handoff it would
+        // rasterize differently from the pass it is standing in for
+        willChange: 'transform',
       })
       el.style.setProperty('-webkit-mask-image', look?.getPropertyValue('-webkit-mask-image') || look?.maskImage || 'none')
       draw()

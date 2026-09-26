@@ -135,6 +135,8 @@ ul {
   background: #06060f;
   will-change: clip-path;
 }
+/* not promoted to a layer of its own until it moves: at the handoff it must
+   rasterize exactly as the ASCII pass it stands in for */
 .rt__band {
   left: 0;
   top: 0;
@@ -142,7 +144,6 @@ ul {
   overflow: hidden;
   white-space: pre;
   user-select: none;
-  will-change: transform;
 }
 /* the headings a route transition hands focus to: somewhere to read from, not a control */
 .shero__title:focus,

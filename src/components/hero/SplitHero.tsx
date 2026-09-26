@@ -49,7 +49,7 @@ const prefersReducedMotion = () =>
  * The drained band exactly as the ASCII pass last drew it -- its rows, the
  * face they are set in, and where they stand -- so the overlay can take it
  * over in the same frame. The pass is scaled about its centre and clipped by
- * its panel; the band's box is the pre's own, cut down to its rows.
+ * its panel; the copy is the pre's whole box with only the band's rows kept.
  */
 function bandOf(pre: HTMLPreElement): BandShape | null {
   const media = pre.parentElement
@@ -64,8 +64,10 @@ function bandOf(pre: HTMLPreElement): BandShape | null {
   if (!media || first < 0) return null
 
   const style = getComputedStyle(pre)
-  const fontSize = parseFloat(style.fontSize)
-  const lineHeight = fontSize * (parseFloat(pre.style.lineHeight) || 0.87)
+  // size and leading exactly as the pass set them, so the copy's lines fall where its do
+  const fontSize = pre.style.fontSize || style.fontSize
+  const lineHeight = pre.style.lineHeight || style.lineHeight
+  const rowHeight = parseFloat(fontSize) * (parseFloat(pre.style.lineHeight) || 0.87)
   const box = pre.getBoundingClientRect()
   const clip = media.getBoundingClientRect()
   const w = pre.offsetWidth
@@ -75,22 +77,23 @@ function bandOf(pre: HTMLPreElement): BandShape | null {
   const cy = box.top + box.height / 2
   // a viewport x, in the pre's own (unscaled) px
   const local = (x: number) => w / 2 + (x - cx) / scale
-  const rows = last - first + 1
   return {
     left: cx - w / 2,
-    top: cy - h / 2 + first * lineHeight,
+    top: cy - h / 2,
     width: w,
-    height: rows * lineHeight,
+    height: h,
     scale,
     originX: w / 2,
-    originY: h / 2 - first * lineHeight,
+    originY: h / 2,
     clipLeft: Math.max(0, local(clip.left)),
     clipRight: Math.max(0, w - local(clip.right)),
-    text: lines.slice(first, last + 1).join('\n'),
-    rows,
+    text: lines.map((row, i) => (i >= first && i <= last ? row : '')).join('\n'),
+    first,
+    rows: last - first + 1,
     fontFamily: style.fontFamily,
     fontSize,
     lineHeight,
+    rowHeight,
     color: style.color,
   }
 }
