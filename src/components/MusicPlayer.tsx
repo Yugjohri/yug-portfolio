@@ -3,7 +3,7 @@ import gsap from 'gsap'
 import { TRACKS } from '../data/music'
 
 /**
- * A small player, fixed to the page's bottom-left corner.
+ * A small player, fixed to the page's bottom-right corner.
  *
  * Rewind, play/pause, next, mute, and the track's name, on a dark translucent
  * plate. The seek bar stays folded away until the pointer is over the player;

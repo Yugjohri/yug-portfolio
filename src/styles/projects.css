@@ -59,9 +59,13 @@
 }
 .work__corner--tl { top: var(--work-pad); left: var(--work-pad); }
 .work__corner--tr { top: var(--work-pad); right: var(--work-pad); }
-/* the caption stands clear of the music player in the same corner */
-.work__corner--bl { bottom: var(--work-pad); left: calc(var(--work-pad) + 250px); }
-.work__corner--br { bottom: var(--work-pad); right: var(--work-pad); }
+.work__corner--bl { bottom: var(--work-pad); left: var(--work-pad); }
+/* the scroll hint stands just left of the music player, on its middle line */
+.work__corner--br {
+  bottom: calc(var(--mp-inset) + 23px);
+  right: calc(var(--mp-inset) + var(--mp-width) + 18px);
+  transform: translateY(50%);
+}
 
 .work__corner--tr b {
   color: var(--text);

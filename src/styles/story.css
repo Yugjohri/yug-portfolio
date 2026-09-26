@@ -526,7 +526,7 @@
   /* No room beside the glass here, so the two blocks stand under it instead,
      centred. The column is whatever width the space left below the glass can
      carry both blocks at -- 2.3 being their combined height in zone widths,
-     less the corner the music player keeps for itself. */
+     less the strip along the bottom the music player and headline keep. */
   .shero {
     --zone: min(52vw, calc((100dvh - var(--crt-top) - var(--crt-h) - 15dvh) / 2.3));
     /* two lines, neither wider than 92vw: sized for lines of up to 15em */

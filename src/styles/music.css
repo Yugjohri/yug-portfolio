@@ -1,4 +1,12 @@
-/* ---------- The music player: a small plate in the bottom-left ---------- */
+/* ---------- The music player: a small plate in the bottom-right ----------
+   Anchored by its bottom-right corner, so on hover it grows leftward and
+   upward, into the page rather than off it. Its inset and width are shared
+   so things that sit beside it (the ribbon's scroll hint) can line up. */
+
+:root {
+  --mp-inset: clamp(14px, 1.6vw, 24px);
+  --mp-width: 236px;
+}
 
 .mp {
   --mp-alpha: 0.68;
@@ -7,10 +15,10 @@
   --mp-accent: var(--red-hot, var(--hero-accent, #e0122f));
 
   position: fixed;
-  left: clamp(14px, 1.6vw, 24px);
-  bottom: clamp(14px, 1.6vw, 24px);
+  right: var(--mp-inset);
+  bottom: var(--mp-inset);
   z-index: 55;
-  width: 236px;
+  width: var(--mp-width);
   padding: 8px 10px;
   border-radius: 12px;
   border: 1px solid rgb(255 255 255 / 0.08);
@@ -19,7 +27,7 @@
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
-  transform-origin: left bottom;
+  transform-origin: right bottom;
   will-change: transform;
   user-select: none;
 }
@@ -164,7 +172,7 @@
 }
 
 @media (max-width: 899px) {
-  .mp {
-    width: 200px;
+  :root {
+    --mp-width: 200px;
   }
 }
