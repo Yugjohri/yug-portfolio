@@ -3,6 +3,7 @@ import ProjectsStrip from '../components/projects/ProjectsStrip'
 import About from '../components/story/About'
 import TechStack from '../components/story/TechStack'
 import { useSmoothScroll } from '../lib/useSmoothScroll'
+import StoryThread from '../motion/StoryThread'
 
 /**
  * The Story route -- where the hero's My Story panel leads. Its header, then
@@ -21,6 +22,8 @@ export default function Story() {
       <About />
       <ProjectsStrip />
       <TechStack />
+      {/* last, so its triggers are made after the pins they measure through */}
+      <StoryThread />
     </main>
   )
 }

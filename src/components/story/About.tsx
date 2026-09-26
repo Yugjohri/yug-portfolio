@@ -65,7 +65,7 @@ export default function About() {
       })
 
       // 1. the portrait, uncovered from below, its picture settling as it comes
-      tl.to(q('[data-about-portrait]'), { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.4, ease: 'power2.inOut' }, 0)
+      tl.to(q('[data-about-portrait]'), { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.4, ease: 'power2.inOut' }, 0.22)
       tl.to(q('[data-about-portrait] img'), { scale: 1, duration: 0.62, ease: 'power2.out' }, 0)
       // 2. the introduction, a line at a time
       tl.to(q('[data-about-intro]'), { autoAlpha: 1, y: 0, duration: 0.18, stagger: 0.08 }, 0.16)

@@ -149,3 +149,24 @@ ul {
 .bf-name:focus {
   outline: none;
 }
+
+/* the red thread: the Story's rule, carried (src/motion/thread.ts). Sized and
+   placed every frame it is shown; hidden otherwise. */
+.thread {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 6;
+  width: 0;
+  height: 0;
+  background: var(--red-hot, #e0122f);
+  contain: strict;
+  will-change: transform;
+  pointer-events: none;
+  visibility: hidden;
+}
+/* while the thread stands in for the rule, the rule itself is not drawn --
+   over whatever the header's timeline last set on it */
+.shero__rule[data-thread-holds] {
+  visibility: hidden !important;
+}
