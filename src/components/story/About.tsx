@@ -26,6 +26,9 @@ const INTRO_LEAD = "hi, i'm"
 /** One statement, right of centre. Three lines at the width set in the CSS. */
 const LINE =
   'i design, and i write code. what i care about is making the complex simple — and the simple meaningful.'
+/** The statement's closing words, in the red serif italic: the section's one accent. */
+const LINE_ACCENT = 'the simple meaningful.'
+const ACCENT_FROM = LINE.split(' ').length - LINE_ACCENT.split(' ').length
 
 export default function About() {
   const root = useRef<HTMLElement>(null)
@@ -40,7 +43,8 @@ export default function About() {
 
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-      gsap.set(q('[data-about-intro]'), { autoAlpha: 0, y: 10 })
+      // the introduction rises out of its own lines, as every headline does
+      gsap.set(q('[data-about-intro]'), { yPercent: 115 })
       gsap.set(lineWords, { autoAlpha: 0, y: 8 })
       gsap.set(q('[data-about-corner]'), { autoAlpha: 0 })
       // the portrait is uncovered rather than faded: a clip from its lower edge
@@ -68,7 +72,7 @@ export default function About() {
       tl.to(q('[data-about-portrait]'), { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.4, ease: 'power2.inOut' }, 0.22)
       tl.to(q('[data-about-portrait] img'), { scale: 1, duration: 0.62, ease: 'power2.out' }, 0)
       // 2. the introduction, a line at a time
-      tl.to(q('[data-about-intro]'), { autoAlpha: 1, y: 0, duration: 0.18, stagger: 0.08 }, 0.16)
+      tl.to(q('[data-about-intro]'), { yPercent: 0, duration: 0.2, stagger: 0.08, ease: 'power3.out' }, 0.16)
       // 3. the statement follows, a word at a time, quicker
       tl.to(lineWords, { autoAlpha: 1, y: 0, duration: 0.12, stagger: 0.012 }, 0.34)
       // 4. the corner labels last
@@ -82,7 +86,7 @@ export default function About() {
   return (
     <section className="about" id="about" ref={root} aria-labelledby="about-heading">
       <div className="st-corner st-corner--tl mono" data-about-corner>
-        02 — About
+        <b>01</b> — About
       </div>
       <div className="st-corner st-corner--tr mono" data-about-corner>
         {BRIEF.role} · {BRIEF.location}
@@ -90,11 +94,15 @@ export default function About() {
 
       <div className="about__grid">
         <h2 className="about__intro" id="about-heading">
-          <span className="about__lead" data-about-intro>
-            {INTRO_LEAD}
+          <span className="about__mask">
+            <span className="about__lead" data-about-intro>
+              {INTRO_LEAD}
+            </span>
           </span>
-          <span className="about__name" data-about-intro>
-            {BRIEF.name}
+          <span className="about__mask">
+            <span className="about__name" data-about-intro>
+              {BRIEF.name}
+            </span>
           </span>
         </h2>
 
@@ -103,11 +111,17 @@ export default function About() {
         </figure>
 
         <p className="about__line">
-          {LINE.split(' ').map((w, i) => (
-            <span className="about__pword" key={i} data-about-pword>
-              {w}
-            </span>
-          ))}
+          {LINE.split(' ').map((w, i) =>
+            i >= ACCENT_FROM ? (
+              <em className="about__pword" key={i} data-about-pword>
+                {w}
+              </em>
+            ) : (
+              <span className="about__pword" key={i} data-about-pword>
+                {w}
+              </span>
+            ),
+          )}
         </p>
       </div>
     </section>

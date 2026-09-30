@@ -5,6 +5,7 @@ import { useGSAP } from '@gsap/react'
 import { SLEEVES, type Sleeve } from '../../data/portfolio'
 import { RibbonScene } from './ribbonScene'
 import ProjectDetail, { type DetailOrigin } from './ProjectDetail'
+import StTitle from '../story/StTitle'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -477,6 +478,10 @@ export default function ProjectsStrip() {
       </h2>
 
       <div className="work__pin" ref={pin}>
+        {/* the headline, under the first corner; first in flow for the stacked column */}
+        <div className="work__head">
+          <StTitle as="p" className="st-title--s" text="Things that had to work." accent="had to work." start="top 70%" />
+        </div>
         <div className="work__ribbon" ref={ribbon}>
           {PROJECTS.map((p, i) => (
             <article
@@ -514,8 +519,12 @@ export default function ProjectsStrip() {
           ))}
         </div>
 
-        {/* the four corners: all the UI there is */}
-        <div className="work__corner work__corner--tl mono">Selected work</div>
+        {/* the four corners, and the track the red thread fills as the
+            ribbon runs (StoryThread.tsx) */}
+        <div className="work__corner work__corner--tl mono">
+          <b>03</b> — Projects
+        </div>
+        <div className="work__track" data-work-track aria-hidden="true" />
         <div className="work__corner work__corner--tr mono">
           <b ref={count}>01</b>
           <i> / </i>

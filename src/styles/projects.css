@@ -13,7 +13,7 @@
   --work-line: rgb(255 255 255 / 0.075);
   --work-ease: var(--hero-ease);
   --work-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
-  --work-grotesk: 'Bricolage Grotesque', 'Bricolage Fallback', Inter, 'Inter Fallback', system-ui, sans-serif;
+  --work-grotesk: Inter, 'Inter Fallback', system-ui, sans-serif;
 
   position: relative;
   color: var(--text);
@@ -24,7 +24,7 @@
 
 .work .mono {
   font-family: var(--hero-display);
-  font-size: 11px;
+  font-size: var(--st-mono-size, 11px);
   font-weight: 500;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -67,6 +67,21 @@
   right: calc(var(--mp-inset) + var(--mp-width) + 18px);
   transform: translateY(50%);
 }
+
+/* the section's number, in the accent, as on every Story section */
+.work__corner--tl b { font-weight: 500; color: var(--red-hot, var(--hero-accent)); }
+
+/* the headline, under the first corner; the stacked column shows it in flow */
+.work__head {
+  position: relative;
+  z-index: 3;
+  padding: calc(var(--work-pad) + 2.4rem) var(--work-pad) 0;
+  pointer-events: none;
+}
+/* stacked, the headline already clears the corner */
+.work__head + .work__ribbon { padding-top: 2.5rem; }
+/* the track the thread fills as the ribbon runs: over the caption, bottom-left */
+.work__track { display: none; }
 
 .work__corner--tr b {
   color: var(--text);
@@ -278,6 +293,28 @@
     inset: 0;
     z-index: 0;
     display: block;
+    /* the floor dissolves into the page's ground before the stage's edge, so
+       the section below meets paper, not the cut edge of a grid */
+    -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 97%);
+    mask-image: linear-gradient(to bottom, #000 72%, transparent 97%);
+  }
+
+  .work[data-stage] .work__head {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .work[data-stage] .work__track {
+    position: absolute;
+    z-index: 3;
+    left: var(--work-pad);
+    bottom: calc(var(--work-pad) + 2.1em + 14px);
+    display: block;
+    width: min(44vw, 40rem);
+    height: 2px;
+    background: var(--work-line);
+    font-size: var(--st-mono-size, 11px);
+    pointer-events: none;
   }
 
   /* the scene draws the screens and their titles; the column stays in the

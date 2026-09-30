@@ -208,17 +208,17 @@ export type Role = {
 
 export const ROLES: Role[] = [
   {
-    tag: 'Now',
-    period: 'Jun 2026 —',
+    tag: 'DRDO',
+    period: 'Jun 2026 — Sep 2026',
     org: 'CFEES, DRDO',
     title: 'AI & Full-Stack Engineer Intern · Delhi',
     bullets: [
-      'Sole developer on an inventory system for an air-gapped intranet.',
-      'Offline AI assistant on a locally hosted model, as a per-page widget.',
-      'RBAC with tiered authorization across departments.',
+      'Sole developer of an inventory and approval system for 500+ staff and 10,000+ assets, replacing a paper process.',
+      "Built for DRDO's air-gapped intranet: backend moved off Supabase to local PostgreSQL + Express, still portable back.",
+      'Row-level security across 3 roles, tested against cross-group reads, replays and forged sessions.',
+      'An offline AI assistant on a locally hosted model (Ollama), with no external API calls.',
     ],
-    stack: 'Python · React · Supabase · Ollama',
-    current: true,
+    stack: 'React · Express · PostgreSQL · Supabase · Ollama',
   },
   {
     tag: 'Data',
@@ -238,8 +238,8 @@ export const ROLES: Role[] = [
     org: 'Outlier AI',
     title: 'AI Model Contributor · Remote',
     bullets: [
-      '200+ data samples and 500+ output evaluations a month.',
-      '~18% accuracy gains across iterative fine-tuning cycles.',
+      'Wrote and evaluated GPT training data: 200+ samples and 500+ evaluations a month.',
+      'Contributed to ~18% accuracy gains across iterative fine-tuning cycles.',
       'Rating quality in the top 10% of contributors.',
     ],
     stack: 'GPT evaluation · Prompt engineering',
@@ -273,9 +273,9 @@ export const RECEIPTS: {
   label: string
   hot?: boolean
 }[] = [
-  { value: 500, suffix: '+', label: 'Personnel served' },
-  { value: 60, suffix: '%', label: 'Faster document lookup', hot: true },
-  { value: 70, prefix: '−', suffix: '%', label: 'GPU memory, fine-tuning' },
+  { value: 500, suffix: '+', label: 'Staff on the CFEES system' },
+  { value: 73, suffix: '×', label: 'Measured speedup, Python → Rust / C++', hot: true },
+  { value: 0.905, label: 'Retrieval MRR, over 150 questions' },
 ]
 
 export const NOTES: { n: string; text: string; color: string; rotate: number }[] = [

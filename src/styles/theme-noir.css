@@ -93,7 +93,7 @@
 [data-theme='noir'] .about__statement em,
 [data-theme='noir'] .shero__title em,
 [data-theme='noir'] .shero__word,
-[data-theme='noir'] .proof__value {
+[data-theme='noir'] .proof__value[data-hot] {
   color: var(--red-hot);
 }
 /* The first screen is black, and the gesture wipes it away.

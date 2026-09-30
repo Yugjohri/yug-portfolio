@@ -11,7 +11,16 @@
   --st-line: rgb(255 255 255 / 0.09);
   --st-ease: var(--hero-ease);
   --st-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
-  --st-grotesk: 'Bricolage Grotesque', 'Bricolage Fallback', Inter, 'Inter Fallback', system-ui, sans-serif;
+  /* one sans on the whole Story: Inter. (Bricolage stays on the Brief.) */
+  --st-grotesk: Inter, 'Inter Fallback', system-ui, sans-serif;
+
+  /* The Story's type scale, fluid, shared by every section so a label, a
+     paragraph and a headline are the same size wherever they appear. */
+  --st-mono-size: clamp(11px, 0.3vw + 6px, 13px);
+  --st-body: clamp(16px, 0.35vw + 11px, 21px);
+  --st-lead: clamp(18px, 0.55vw + 10px, 26px);
+  --st-h3: clamp(1.25rem, 1.2vw + 0.45rem, 2.1rem);
+  --st-h2: clamp(2.4rem, 4.2vw, 7rem);
   /* The header's headline face. Inter until there is a licensed Neue Haas
      Grotesk Text webfont; with one, this becomes
      "Neue Haas Grotesk Text Pro", Inter, 'Inter Fallback', Arial, sans-serif. */
@@ -27,7 +36,7 @@
 
 .story .mono {
   font-family: var(--hero-display);
-  font-size: 11px;
+  font-size: var(--st-mono-size);
   font-weight: 500;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -51,8 +60,42 @@
 .st-corner--tl { top: var(--st-pad); left: var(--st-pad); }
 .st-corner--tr { top: var(--st-pad); right: var(--st-pad); }
 /* past the header, the top-right labels sit under the section nav */
-.about .st-corner--tr,
-.stack .st-corner--tr { top: calc(var(--nav-top) + var(--nav-h) + 14px); }
+.story > section:not(.shero) .st-corner--tr,
+.story .stack .st-corner--tr { top: calc(var(--nav-top) + var(--nav-h) + 14px); }
+/* the section's number, in the accent: "01 — About" */
+.st-corner b { font-weight: 500; color: var(--red-hot, var(--hero-accent)); }
+
+/* ---------- The headline every section shares (StTitle.tsx) ----------
+   One sans line, one phrase in the red serif italic. Each word is its own
+   mask, so it can rise out of its own line. */
+.st-title {
+  margin: 0;
+  font-family: var(--st-grotesk);
+  font-size: var(--st-h2);
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  color: var(--text);
+  text-wrap: balance;
+}
+.st-title .st-word {
+  overflow: hidden;
+  /* room for descenders and the italic's lean, taken back so the line keeps its measure */
+  padding: 0 0.08em 0.12em 0;
+  margin: 0 calc(0.24em - 0.08em) -0.12em 0;
+  vertical-align: top;
+}
+.st-title .st-word:last-child { margin-right: -0.08em; }
+.st-title em {
+  font-family: var(--st-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.1em;
+  line-height: 0.93;
+  letter-spacing: -0.01em;
+  color: var(--red-hot, var(--hero-accent));
+}
+.st-title--s { font-size: clamp(1.9rem, 2.6vw, 4.4rem); }
 
 /* a word that can arrive on its own; the reveal is set by the script */
 .st-word {
@@ -77,7 +120,7 @@
   color: var(--text);
 }
 
-/* ---------- 01 Proof: the still screen after the ribbon ---------- */
+/* ---------- 04 Proof: the still screen after the ribbon ---------- */
 
 .proof {
   position: relative;
@@ -85,6 +128,7 @@
   align-items: center;
   min-height: 100dvh;
   padding-block: clamp(6rem, 14vh, 11rem);
+  background: var(--bg);
 }
 
 .proof__inner {
@@ -92,24 +136,14 @@
   flex-direction: column;
   gap: clamp(2.5rem, 6vh, 4.5rem);
 }
+.proof .st-title { max-width: 12ch; }
 
-.proof__thesis {
-  margin: 0;
-  max-width: 11ch;
-  font-family: var(--st-grotesk);
-  font-size: clamp(3rem, 7.6vw, 8.6rem);
-  font-weight: 600;
-  line-height: 0.98;
-  letter-spacing: -0.03em;
-}
-/* the rise is clipped at the word, so it comes up out of its own line */
-.proof .st-word { overflow: hidden; padding-bottom: 0.08em; margin-bottom: -0.08em; }
-
+/* where the thread lands off the ribbon; its red when the thread lets go */
 .proof__rule {
-  height: 1px;
-  background: var(--st-line);
-  transform-origin: left center;
+  height: 2px;
+  background: var(--red-hot, var(--hero-accent));
 }
+.proof__rule[data-thread-holds] { visibility: hidden; }
 
 .proof__receipts {
   display: grid;
@@ -128,13 +162,206 @@
 .proof__value {
   font-family: var(--st-serif);
   font-style: italic;
-  font-size: clamp(3.4rem, 7.2vw, 8rem);
+  font-size: clamp(3.4rem, 7.2vw, 9rem);
   line-height: 0.9;
   letter-spacing: -0.03em;
   color: var(--text);
 }
+/* the one receipt the accent is spent on */
+.proof__value[data-hot] { color: var(--red-hot, var(--hero-accent)); }
 .proof__affix { font-size: 0.62em; vertical-align: 0.22em; margin-inline: 0.04em; }
 .proof__label { margin-top: 0.2rem; }
+
+/* ---------- 02 Experience: the roles, on one rail ---------- */
+
+.exp {
+  position: relative;
+  padding-block: calc(var(--st-pad) + 4.5rem) clamp(5rem, 12vh, 9rem);
+  background: var(--bg);
+}
+.exp__inner {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3rem, 8vh, 6rem);
+}
+
+.exp__rows { position: relative; }
+/* the rail the thread draws down; a hairline until it does */
+.exp__rail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--st-line);
+}
+.exp__rail[data-lit] { background: var(--red-hot, var(--hero-accent)); }
+.exp__rail[data-thread-holds] { background: var(--st-line); }
+
+.exp__list {
+  margin: 0;
+  padding: 0 0 0 clamp(1.5rem, 3vw, 4rem);
+  list-style: none;
+}
+.exp__role {
+  display: grid;
+  grid-template-columns: 13.5em minmax(0, 1.2fr) minmax(0, 1.6fr) minmax(9rem, 0.6fr);
+  gap: 1.25rem clamp(1.5rem, 3vw, 4rem);
+  align-items: start;
+  padding-block: clamp(2rem, 4.5vh, 3.25rem);
+  border-top: 1px solid var(--st-line);
+}
+.exp__role:last-child { border-bottom: 1px solid var(--st-line); }
+
+.exp__when {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 0.45em;
+  white-space: nowrap;
+}
+.exp__now { color: var(--red-hot, var(--hero-accent)); }
+
+.exp__org {
+  margin: 0;
+  font-family: var(--st-grotesk);
+  font-size: var(--st-h3);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  color: var(--text);
+}
+.exp__title {
+  margin: 0.55rem 0 0;
+  font-size: var(--st-body);
+  line-height: 1.45;
+  color: var(--muted);
+}
+.exp__points {
+  margin: 0;
+  padding: 0.3em 0 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: var(--st-body);
+  line-height: 1.5;
+  color: var(--text);
+}
+.exp__points li {
+  position: relative;
+  padding-left: 1.1em;
+}
+.exp__points li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 0.45em;
+  height: 1px;
+  background: var(--muted);
+}
+.exp__stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.45em 0 0;
+  list-style: none;
+  line-height: 1.4;
+  text-align: right;
+}
+
+/* ---------- 06 Contact: where the thread comes to rest ---------- */
+
+.contact {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding-block: calc(var(--st-pad) + 4.5rem) 0;
+  background: var(--bg);
+}
+.contact__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(1.75rem, 4.5vh, 3rem);
+  margin-block: clamp(2rem, 8vh, 6rem) auto;
+}
+.contact__now {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin: 0;
+  font-size: var(--st-body);
+  line-height: 1.5;
+  color: var(--muted);
+}
+.contact__label { color: var(--red-hot, var(--hero-accent)); }
+.contact .st-title { max-width: 16ch; }
+
+.contact__email {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.3em;
+  font-family: var(--st-grotesk);
+  font-size: var(--st-h3);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  text-decoration: none;
+}
+/* the thread's last place; its red when the reader has arrived without it */
+.contact__line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--red-hot, var(--hero-accent));
+  transform-origin: left center;
+  transition: transform 0.5s var(--hero-ease);
+}
+.contact__line[data-thread-holds] { visibility: hidden; }
+.contact__email:hover .contact__line,
+.contact__email:focus-visible .contact__line { transform: scaleX(0.4); }
+.contact__email:focus-visible { outline: none; }
+
+.contact__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.contact__link {
+  font-size: var(--st-body);
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.3s var(--hero-ease);
+}
+.contact__link:hover,
+.contact__link:focus-visible { color: var(--text); outline: none; }
+
+/* the page's foot: clear of the music player in the corner */
+.contact__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2.5rem;
+  align-items: center;
+  margin-top: clamp(4rem, 10vh, 7rem);
+  padding: 1.4rem calc(var(--mp-inset, 16px) + var(--mp-width, 236px) + 2rem) calc(var(--st-pad) + 0.4rem) var(--st-pad);
+  border-top: 1px solid var(--st-line);
+}
+.contact__top {
+  color: inherit;
+  text-decoration: none;
+}
+.contact__top:hover,
+.contact__top:focus-visible { color: var(--text); outline: none; }
 
 /* ---------- 02 About: the person, in one read ---------- */
 
@@ -160,30 +387,44 @@
   padding-bottom: 10.8dvh;
 }
 
-/* left: the lead-in, then the name under it */
+/* left: the lead-in, then the name under it, on the Story's headline scale */
 .about__intro {
   justify-self: start;
-  margin: 0 0 0 15.9vw;
+  margin: 0 0 0 9vw;
   display: flex;
   flex-direction: column;
+  gap: 0.2em;
   font-family: var(--st-grotesk);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.6;
-  letter-spacing: -0.01em;
-}
-.about__lead {
-  color: var(--text);
   font-weight: 500;
 }
-.about__name {
+/* each line its own mask, so it rises out of its own line */
+.about__mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+.about__lead {
+  display: block;
+  font-size: var(--st-lead);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
   color: var(--muted);
 }
+.about__name {
+  display: block;
+  font-size: var(--st-h2);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  color: var(--text);
+  white-space: nowrap;
+}
 
-/* centre: small, alone, and a long way from both */
+/* centre: alone, and a long way from both */
 .about__portrait {
   margin: 0;
-  height: min(26dvh, 13vw);
+  height: min(40dvh, 18vw);
   width: auto;
   aspect-ratio: 2 / 3;
   overflow: hidden;
@@ -199,17 +440,16 @@
   transform-origin: 50% 50%;
 }
 
-/* right: one statement, three lines at this width */
+/* right: one statement, ending on the section's one accent */
 .about__line {
   justify-self: end;
-  /* the reference's width at the reference's viewport; on a smaller screen it
-     stops narrowing, so the statement keeps its three or four lines */
-  width: max(14.2vw, 15rem);
-  margin: 0 16.6vw 0 0;
+  width: min(19vw, 26rem);
+  min-width: 15rem;
+  margin: 0 9vw 0 0;
   font-family: var(--st-grotesk);
-  font-size: 17px;
-  line-height: 1.5;
-  letter-spacing: -0.01em;
+  font-size: var(--st-lead);
+  line-height: 1.42;
+  letter-spacing: -0.012em;
   color: var(--muted);
 }
 /* the statement's words, so each can come up on its own */
@@ -219,6 +459,13 @@
   will-change: transform, opacity;
 }
 .about__pword:last-child { margin-right: 0; }
+em.about__pword {
+  font-family: var(--st-serif);
+  font-style: italic;
+  font-size: 1.12em;
+  line-height: 1;
+  color: var(--red-hot, var(--hero-accent));
+}
 
 /* ---------- superseded: the statement-and-facts About ----------
    The composition this replaced -- a display statement with the portrait
@@ -269,7 +516,9 @@
 /* ---------- narrow ---------- */
 
 @media (max-width: 899px) {
-  .proof__thesis { max-width: none; }
+  .exp__role { grid-template-columns: 1fr; gap: 0.9rem; }
+  .exp__stack { align-items: flex-start; text-align: left; flex-direction: row; flex-wrap: wrap; gap: 0.35rem 1rem; }
+  .contact__foot { padding-right: var(--st-pad); padding-bottom: calc(var(--mp-inset, 16px) + 70px); }
   .proof__receipts { grid-template-columns: 1fr; gap: 1.75rem; }
   .proof__value { font-size: clamp(3rem, 14vw, 5rem); }
 
@@ -289,6 +538,7 @@
     text-align: center;
   }
   .about__portrait { height: min(30dvh, 42vw); }
+  .about__name { white-space: normal; }
   .st-corner--tr { display: none; }
 }
 

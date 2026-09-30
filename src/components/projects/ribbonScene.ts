@@ -722,7 +722,7 @@ function drawLabel(c: CanvasRenderingContext2D, p: Sleeve) {
   const size = h * 0.042
 
   c.fillStyle = '#ffffff'
-  c.font = `500 ${Math.round(size)}px "Bricolage Grotesque", Inter, system-ui, sans-serif`
+  c.font = `500 ${Math.round(size)}px Inter, system-ui, sans-serif`
   c.textBaseline = 'alphabetic'
   c.shadowColor = 'rgba(0,0,0,0.5)'
   c.shadowBlur = 18

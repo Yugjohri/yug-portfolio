@@ -35,9 +35,10 @@ export function rectOf(el: Element, r = 0): Rect {
 }
 
 export type Segment = {
-  /** where the segment runs, as a share of the seam's range */
-  start: number
-  end: number
+  /** where the segment runs, as a share of the seam's range; a function is
+   *  read every frame, for a split that depends on a measured length */
+  start: number | (() => number)
+  end: number | (() => number)
   from: () => Rect | null
   to: () => Rect | null
   ease?: string
@@ -46,12 +47,17 @@ export type Segment = {
 type SeamOptions = {
   trigger: Element
   start: string
-  end: string
+  end: string | (() => number)
   /** the scrub of the timeline the thread rides, so the two playheads are one */
   scrub: number | true
   segments: Segment[]
-  /** called when the thread takes over (true) and gives back (false), in the same frame it shows or hides */
-  onHold?: (holding: boolean) => void
+  /** called when the thread takes over (true) and gives back (false), in the
+   *  same frame it shows or hides; `done` is true when it gives back at the
+   *  end of the seam rather than before its start */
+  onHold?: (holding: boolean, done: boolean) => void
+  /** let go at the end of the range, for the next seam to pick up, rather
+   *  than riding on until the trigger has left the screen */
+  release?: boolean
 }
 
 /** Velocity smear: px of stretch per px of travel a frame, capped at 0.35 of the length along travel; thins up to 30%. */
@@ -66,9 +72,11 @@ const mix = (a: number, b: number, t: number) => a + (b - a) * t
  * Lay the thread along a seam. Returns a kill that removes its trigger and
  * frame work and hides the thread.
  */
-export function seam(el: HTMLElement, { trigger, start, end, scrub, segments, onHold }: SeamOptions) {
-  const parts = [...segments].sort((a, b) => a.start - b.start)
+export function seam(el: HTMLElement, { trigger, start, end, scrub, segments, onHold, release }: SeamOptions) {
+  // in order: a segment's split may be a function, so they are not sorted
+  const parts = segments
   const eases = parts.map((s) => gsap.parseEase(s.ease ?? 'none'))
+  const at = (v: number | (() => number)) => (typeof v === 'function' ? v() : v)
 
   // the playhead: a one-second timeline scrubbed over the range, so its
   // progress is the seam's, lagging exactly as the ridden timeline's does
@@ -84,12 +92,12 @@ export function seam(el: HTMLElement, { trigger, start, end, scrub, segments, on
   let lastP = -1
   let last: { x: number; y: number; t: number } | null = null
 
-  const hide = () => {
+  const hide = (done = false) => {
     el.style.visibility = 'hidden'
     last = null
     if (holding) {
       holding = false
-      onHold?.(false)
+      onHold?.(false, done)
     }
   }
 
@@ -97,6 +105,11 @@ export function seam(el: HTMLElement, { trigger, start, end, scrub, segments, on
     const p = tl.progress()
     if (!zone.isActive && p === lastP && !holding) return
     lastP = p
+    // a seam that hands on lets go the moment its range is run
+    if (release && p >= 1) {
+      hide(true)
+      return
+    }
     // before the seam, the thread is not needed: whatever it would take over is itself
     if (p <= 0 || !zone.isActive) {
       if (p <= 0 || zone.progress >= 1) {
@@ -107,15 +120,17 @@ export function seam(el: HTMLElement, { trigger, start, end, scrub, segments, on
 
     // --- read
     let i = parts.length - 1
-    while (i > 0 && p < parts[i].start) i--
+    while (i > 0 && p < at(parts[i].start)) i--
     const seg = parts[i]
+    const s0 = at(seg.start)
+    const s1 = at(seg.end)
     const a = seg.from()
     const b = seg.to()
     if (!a || !b) {
       hide()
       return
     }
-    const t = eases[i](clamp01((p - seg.start) / (seg.end - seg.start || 1)))
+    const t = eases[i](clamp01((p - s0) / (s1 - s0 || 1)))
     const x = mix(a.x, b.x, t)
     const y = mix(a.y, b.y, t)
     let w = mix(a.w, b.w, t)
@@ -154,7 +169,7 @@ export function seam(el: HTMLElement, { trigger, start, end, scrub, segments, on
     s.visibility = 'visible'
     if (!holding) {
       holding = true
-      onHold?.(true)
+      onHold?.(true, false)
     }
   }
 

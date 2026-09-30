@@ -12,8 +12,8 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
  * header, and comes in as the header's gesture completes -- the lockup has
  * settled by then -- and goes again when the reader scrolls back into it.
  *
- * The sections are read from the page, in order: About, Projects, Stack, and
- * Experience too if the page ever has one. The one in view is marked.
+ * The sections are read from the page, in order: About, Experience,
+ * Projects, Stack, Contact. The one in view is marked.
  * Below 768px the pill is a single "Index" button that opens the same links.
  */
 
@@ -22,6 +22,7 @@ const SECTIONS: { id: string; label: string }[] = [
   { id: 'experience', label: 'Experience' },
   { id: 'projects', label: 'Projects' },
   { id: 'stack', label: 'Stack' },
+  { id: 'contact', label: 'Contact' },
 ]
 
 /** where in the header's gesture the nav arrives: the lockup has settled */
@@ -78,19 +79,25 @@ export default function StoryNav() {
             },
       )
 
-      // which section is in view
-      for (const { id } of links) {
-        const section = document.getElementById(id)
-        if (!section) continue
-        ScrollTrigger.create({
-          trigger: section,
-          start: 'top center',
-          end: 'bottom center',
-          onToggle: (self) => {
-            if (self.isActive) setActive(id)
-          },
+      // which section is in view: the last one whose top has passed the
+      // middle of the screen. Read from the scroll position every update,
+      // rather than from each section's enter and leave, so a jump across
+      // several sections still lands on the right one. A pinned section is
+      // measured by its spacer, which is where its length really is.
+      const sections = links
+        .map(({ id }) => document.getElementById(id))
+        .filter((el): el is HTMLElement => !!el)
+        .map((el) => (el.parentElement?.classList.contains('pin-spacer') ? el.parentElement : el))
+      const pick = () => {
+        const mid = window.innerHeight / 2
+        let at: string | null = null
+        sections.forEach((el, i) => {
+          if (el.getBoundingClientRect().top <= mid) at = links[i].id
         })
+        setActive(at)
       }
+      ScrollTrigger.create({ start: 0, end: 'max', onUpdate: pick, onRefresh: pick })
+      pick()
     },
     { dependencies: [links], scope: root, revertOnUpdate: true },
   )

@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { TECH } from '../../data/portfolio'
 import { TECH_LOGOS, type TechLogo } from '../../data/techLogos'
+import StTitle from './StTitle'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -53,11 +54,15 @@ const LANE = { r: 0.035, y: 0.05 }
 const BANK_DEG = 16
 const PITCH_DEG = 10
 /** Scroll pixels per pixel of travel along the path. */
-const SCROLL_RATE = 0.36
+const SCROLL_RATE = 0.3
+/** How many cards are already on screen when the pin takes hold, and still on
+ *  screen when it lets go: the section never opens or closes on an empty frame. */
+const HELD = 4
 /** The pointer's lean on the whole space, degrees at the edge. */
 const LEAN_DEG = 3
 
-const STATEMENT = ['i', 'pick', 'boring', 'on', 'purpose.']
+const STATEMENT = 'i pick boring on purpose.'
+const STATEMENT_ACCENT = 'boring on purpose.'
 
 const TAU = Math.PI * 2
 const DEG = 180 / Math.PI
@@ -172,7 +177,6 @@ export default function TechStack() {
       if (!rootEl || !spaceEl || !ringEl) return
 
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      const words = gsap.utils.toArray<HTMLElement>('[data-stack-word]', rootEl)
       const cards = gsap.utils
         .toArray<HTMLElement>('[data-stack-card]', ringEl)
         .filter((el) => getComputedStyle(el).display !== 'none')
@@ -255,17 +259,51 @@ export default function TechStack() {
         spaceEl.style.transform = `rotateX(${-lean.y * LEAN_DEG}deg) rotateY(${lean.x * LEAN_DEG}deg)`
       }
 
-      // ---------------------------------------------------------- the words
-      // where along the scroll the statement should come and go: when the
-      // first card is round at the back, and when the last card is on its
-      // way out. Ratios of path lengths, so they hold at any width.
-      const textIn = () => path.marks.backMid / span()
-      const textOut = () => (path.marks.loopEnd + (n + 1) * dims.gap) / span()
+      // ------------------------------------------------- the visible stretch
+      // The path runs out past both edges of the screen, so the stream's own
+      // ends are empty frames. The pin covers only the stretch where cards are
+      // on screen: it starts with the first few already in, and lets go with
+      // the last few still there. Found by walking the path once, in the
+      // perspective the cards are drawn in.
+      const window_ = { p0: 0, p1: 1 }
+      const findWindow = () => {
+        const persp = parseFloat(getComputedStyle(spaceEl).perspective) || 1000
+        const onScreen = (s: number) => {
+          const q = path.point(path.angleAt(s))
+          const z = q.z * dims.W
+          if (z >= persp - 1) return false
+          const x = (q.x * dims.W * persp) / (persp - z)
+          return Math.abs(x) < dims.W / 2
+        }
+        const steps = 600
+        let sIn = 0
+        let sOut = path.total
+        for (let k = 0; k <= steps; k++) {
+          const s = (path.total * k) / steps
+          if (onScreen(s)) {
+            sIn = s
+            break
+          }
+        }
+        for (let k = steps; k >= 0; k--) {
+          const s = (path.total * k) / steps
+          if (onScreen(s)) {
+            sOut = s
+            break
+          }
+        }
+        const lead = Math.min(HELD, n - 1) * dims.gap
+        const p0 = (sIn + lead) / span()
+        const p1 = (sOut + (n - 1) * dims.gap - lead) / span()
+        window_.p0 = gsap.utils.clamp(0, 1, p0)
+        window_.p1 = gsap.utils.clamp(window_.p0 + 0.1, 1, p1)
+      }
+      findWindow()
+      flow.p = window_.p0
 
       if (reduced) {
         // a still: the stream half way through, the statement up
         flow.p = 0.5
-        gsap.set(words, { autoAlpha: 1, filter: 'blur(0px)', y: 0 })
         place()
         const ro = new ResizeObserver(() => {
           measure()
@@ -275,10 +313,9 @@ export default function TechStack() {
         return () => ro.disconnect()
       }
 
-      gsap.set(words, { autoAlpha: 0, filter: 'blur(14px)', y: 18 })
-
-      // one scrubbed timeline, 0..1 over the pin: the stream's travel, and the
-      // statement's arrival and departure placed along it
+      // one scrubbed timeline over the pin: the stream's travel through the
+      // visible stretch. The statement is a headline like every other
+      // section's (StTitle): it is up before the pin, and stays.
       const tl = gsap.timeline({
         defaults: { ease: 'none' },
         scrollTrigger: {
@@ -286,27 +323,19 @@ export default function TechStack() {
           pin: true,
           start: 'top top',
           // on a tall narrow screen the width is small, so the height sets the pace
-          end: () => `+=${Math.round(span() * Math.max(dims.W, dims.H * 0.9) * SCROLL_RATE)}`,
+          end: () =>
+            `+=${Math.round(span() * (window_.p1 - window_.p0) * Math.max(dims.W, dims.H * 0.9) * SCROLL_RATE)}`,
           scrub: 0.6,
           anticipatePin: 1,
           invalidateOnRefresh: true,
           onRefresh: () => {
             measure()
+            findWindow()
             place()
           },
         },
       })
-      tl.to(flow, { p: 1, duration: 1, onUpdate: place }, 0)
-      tl.to(
-        words,
-        { autoAlpha: 1, filter: 'blur(0px)', y: 0, duration: 0.07, stagger: 0.018, ease: 'power2.out' },
-        textIn(),
-      )
-      tl.to(
-        words,
-        { autoAlpha: 0, filter: 'blur(10px)', y: -14, duration: 0.06, stagger: 0.01, ease: 'power2.in' },
-        textOut(),
-      )
+      tl.fromTo(flow, { p: () => window_.p0 }, { p: () => window_.p1, duration: 1, onUpdate: place }, 0)
       place()
 
       const onMove = (e: PointerEvent) => {
@@ -345,17 +374,19 @@ export default function TechStack() {
 
   return (
     <section className="stack" id="stack" ref={root} aria-labelledby="stack-heading">
-      <div className="st-corner st-corner--tl mono">03 — Stack</div>
+      <div className="st-corner st-corner--tl mono">
+        <b>05</b> — Stack
+      </div>
       <div className="st-corner st-corner--tr mono">{TECH.length} tools</div>
 
       <div className="stack__space" ref={space}>
-        <h2 className="stack__statement" id="stack-heading">
-          {STATEMENT.map((w, i) => (
-            <span className="st-word" key={w} data-stack-word>
-              {i >= 2 ? <em>{w}</em> : <span>{w}</span>}
-            </span>
-          ))}
-        </h2>
+        <StTitle
+          className="stack__statement"
+          id="stack-heading"
+          text={STATEMENT}
+          accent={STATEMENT_ACCENT}
+          start="top bottom"
+        />
 
         <div className="stack__ring" ref={ring} aria-hidden="true">
           {TECH.map((t) => {
