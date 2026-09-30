@@ -11,18 +11,18 @@
   --st-line: rgb(255 255 255 / 0.09);
   --st-ease: var(--hero-ease);
   --st-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
-  --st-grotesk: 'Bricolage Grotesque', Inter, system-ui, sans-serif;
+  --st-grotesk: 'Bricolage Grotesque', 'Bricolage Fallback', Inter, 'Inter Fallback', system-ui, sans-serif;
   /* The header's headline face. Inter until there is a licensed Neue Haas
      Grotesk Text webfont; with one, this becomes
-     "Neue Haas Grotesk Text Pro", Inter, Arial, sans-serif. */
-  --st-display: Inter, Arial, sans-serif;
+     "Neue Haas Grotesk Text Pro", Inter, 'Inter Fallback', Arial, sans-serif. */
+  --st-display: Inter, 'Inter Fallback', Arial, sans-serif;
   /* the section nav's place, which the top-right labels below it read */
   --nav-top: clamp(12px, 0.9vw, 20px);
   --nav-h: clamp(40px, 3.05vw, 46px);
 
   color: var(--text);
   background: var(--bg);
-  font-family: Inter, system-ui, sans-serif;
+  font-family: Inter, 'Inter Fallback', system-ui, sans-serif;
 }
 
 .story .mono {

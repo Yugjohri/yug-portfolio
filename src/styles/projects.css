@@ -13,12 +13,12 @@
   --work-line: rgb(255 255 255 / 0.075);
   --work-ease: var(--hero-ease);
   --work-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
-  --work-grotesk: 'Bricolage Grotesque', Inter, system-ui, sans-serif;
+  --work-grotesk: 'Bricolage Grotesque', 'Bricolage Fallback', Inter, 'Inter Fallback', system-ui, sans-serif;
 
   position: relative;
   color: var(--text);
   background: var(--bg);
-  font-family: Inter, system-ui, sans-serif;
+  font-family: Inter, 'Inter Fallback', system-ui, sans-serif;
   isolation: isolate;
 }
 

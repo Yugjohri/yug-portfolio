@@ -18,7 +18,7 @@
   position: fixed;
   inset: 0;
   z-index: 60;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: Inter, 'Inter Fallback', system-ui, sans-serif;
   color: var(--pd-ink);
 }
 
@@ -71,7 +71,7 @@
 .pd__title {
   margin: 0;
   max-width: 12ch;
-  font-family: 'Bricolage Grotesque', Inter, system-ui, sans-serif;
+  font-family: 'Bricolage Grotesque', 'Bricolage Fallback', Inter, 'Inter Fallback', system-ui, sans-serif;
   font-size: clamp(1.9rem, 3vw, 3.4rem);
   font-weight: 600;
   line-height: 1;

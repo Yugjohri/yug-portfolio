@@ -16,7 +16,7 @@
   position: relative;
   min-height: 100dvh;
   color: var(--bf-ink);
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: Inter, 'Inter Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
   isolation: isolate;
   overflow-x: clip;
 }

@@ -1,0 +1,10 @@
+Fonts served from /fonts/ -- Latin subsets, woff2, as distributed by Google Fonts.
+All are licensed under the SIL Open Font License, Version 1.1:
+https://openfontlicense.org  (full text: https://scripts.sil.org/OFL)
+
+anton-latin-v27.woff2                  Anton                 Copyright 2020 The Anton Project Authors (https://github.com/googlefonts/AntonFont)
+bricolage-grotesque-latin-v9.woff2     Bricolage Grotesque   Copyright 2022 The Bricolage Grotesque Project Authors (https://github.com/ateliertriay/bricolage)
+instrument-serif-latin-v5.woff2        Instrument Serif      Copyright 2022 The Instrument Serif Project Authors (https://github.com/Instrument/instrument-serif)
+instrument-serif-italic-latin-v5.woff2 Instrument Serif Italic (same project)
+inter-latin-v20.woff2                  Inter                 Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)
+jetbrains-mono-latin-v24.woff2         JetBrains Mono        Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
