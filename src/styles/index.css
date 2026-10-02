@@ -172,3 +172,9 @@ ul {
 .shero__rule[data-thread-holds] {
   visibility: hidden !important;
 }
+
+/* the Suspense fallback while a route's chunk loads: just the route's ground */
+.route-wait {
+  min-height: 100dvh;
+  background: var(--bg);
+}

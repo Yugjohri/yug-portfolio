@@ -7,6 +7,7 @@ import { HeroSource } from './heroSource'
 import { AsciiRenderer } from './asciiRenderer'
 import { grade } from '../../theme'
 import { LINKS } from '../../data/brief'
+import { loadBrief, loadStory } from '../../routes'
 import { routeTransition, type BandShape } from '../../motion/routeTransition.ts'
 import { EASE, TONE } from '../../motion/tokens'
 
@@ -546,9 +547,16 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
           data-dimmed={hovered !== null && hovered !== key ? '' : undefined}
           className="hero__panel"
           onClick={(event) => select(event, key, href)}
-          onMouseEnter={() => setHovered(key)}
+          onMouseEnter={() => {
+            setHovered(key)
+            void (key === 'story' ? loadStory : loadBrief)()
+          }}
+          onPointerDown={() => void (key === 'story' ? loadStory : loadBrief)()}
           onMouseLeave={() => setHovered(null)}
-          onFocus={() => setHovered(key)}
+          onFocus={() => {
+            setHovered(key)
+            void (key === 'story' ? loadStory : loadBrief)()
+          }}
           onBlur={() => setHovered(null)}
         >
           <div className="hero__inner" data-hero-shift>

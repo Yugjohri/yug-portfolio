@@ -229,3 +229,5 @@ sized like the reference's. To restore it with the black hole, set
 letter-spacing: -0.038em;` and its narrow-screen rule to
 `clamp(2.6rem, 12vw, 5rem)`.
 
+
+The Story header's previous clip (`old header.mp4`, 12.7 MB) is kept outside the app in `../media originals/`; nothing references it.
