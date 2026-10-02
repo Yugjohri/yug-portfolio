@@ -194,6 +194,11 @@
   transition: color 0.25s;
 }
 .bf-top a:hover { color: var(--bf-ink); }
+.bf-top__end {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
 .bf-top__story {
   display: inline-flex;
   align-items: center;

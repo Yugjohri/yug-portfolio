@@ -283,3 +283,42 @@
     transition: none;
   }
 }
+
+/* ---------- the Resume pill ----------
+   Fixed top-right, in the music player's material and the Story nav's type,
+   on the row of the top-right panel's dot and just left of it. It takes the
+   pointer only inside its own box. */
+.hero__resume {
+  position: fixed;
+  z-index: 4;
+  top: calc(2rem + 3px);
+  right: calc(2rem + 6px + 12px);
+  translate: 0 -50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: clamp(40px, 3.05vw, 46px);
+  padding: 0 16px;
+  border-radius: 6px;
+  border: var(--plate-border);
+  background: rgb(var(--plate-rgb) / var(--plate-alpha));
+  backdrop-filter: var(--plate-blur);
+  -webkit-backdrop-filter: var(--plate-blur);
+  box-shadow: var(--plate-shadow);
+  color: var(--plate-ink);
+  font-family: Inter, 'Inter Fallback', Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1;
+  text-decoration: none;
+}
+.hero__resume span { opacity: 0.62; transition: opacity 0.3s var(--hero-ease); }
+.hero__resume:hover span,
+.hero__resume:focus-visible span { opacity: 1; }
+.hero__resume:focus-visible { outline: 2px solid var(--hero-accent); outline-offset: 2px; }
+@media (min-width: 768px) {
+  .hero__resume {
+    top: calc(3rem + 3px);
+    right: calc(3rem + 6px + 12px);
+  }
+}

@@ -44,6 +44,8 @@ export const LINKS = {
   linkedin: 'https://www.linkedin.com/',
   site: 'https://yugjohri.me/',
   phone: '+91 99582 71560',
+  /** the resume, served from public/ */
+  resume: '/yug-johri-resume.pdf',
 }
 
 export const SKILLS: { group: string; items: string[] }[] = [

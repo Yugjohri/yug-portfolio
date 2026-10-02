@@ -6,6 +6,7 @@ import { useGSAP } from '@gsap/react'
 import { HeroSource } from './heroSource'
 import { AsciiRenderer } from './asciiRenderer'
 import { grade } from '../../theme'
+import { LINKS } from '../../data/brief'
 import { routeTransition, type BandShape } from '../../motion/routeTransition.ts'
 import { EASE, TONE } from '../../motion/tokens'
 
@@ -119,6 +120,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
   const preRef = useRef<HTMLPreElement>(null)
   const colorRef = useRef<HTMLDivElement>(null)
   const veilRef = useRef<HTMLDivElement>(null)
+  const resumeRef = useRef<HTMLAnchorElement>(null)
   const panelEls = useRef<Partial<Record<PanelKey, HTMLAnchorElement | null>>>({})
   const busy = useRef(false)
   const stage = useRef<Stage | null>(null)
@@ -369,6 +371,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
         }
         // 1. anticipation: the hole draws in by about 3%, and lets go of the cursor
         tl.call(st.release, undefined, 0)
+        if (resumeRef.current) tl.to(resumeRef.current, { autoAlpha: 0, duration: 0.3, ease: 'power2.in' }, 0)
         tl.to(source, { zoom: 2.58, duration: 0.12, ease: 'power2.out' }, 0)
         // 2. the dive
         tl.to(
@@ -430,6 +433,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
           tl.to(other, { autoAlpha: 0, xPercent: 2, duration: 0.3, ease: 'power2.in' }, 0)
         }
         tl.call(st.release, undefined, 0)
+        if (resumeRef.current) tl.to(resumeRef.current, { autoAlpha: 0, duration: 0.3, ease: 'power2.in' }, 0)
         tl.to(
           drain,
           {
@@ -526,6 +530,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
     if (veilRef.current) {
       tl.to(veilRef.current, { autoAlpha: 1, duration: 0.3, ease: 'power2.inOut' }, 0.14)
     }
+    if (resumeRef.current) tl.to(resumeRef.current, { autoAlpha: 0, duration: 0.3, ease: 'power2.in' }, 0)
   }, [go, diveTo, drainTo])
 
   return (
@@ -573,6 +578,10 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
 
       <div className="hero__divider" aria-hidden="true" />
       <div className="hero__veil" ref={veilRef} aria-hidden="true" />
+      {/* the resume, beside the top panel's dot -- which reads as its indicator */}
+      <a className="hero__resume" ref={resumeRef} href={LINKS.resume} target="_blank" rel="noopener">
+        Resume <span aria-hidden="true">↗</span>
+      </a>
     </div>
   )
 }

@@ -315,9 +315,14 @@ export default function BriefRead() {
               </a>
             ))}
           </div>
-          <Link className="bf-top__story" to="/story">
-            My Story <span aria-hidden="true">→</span>
-          </Link>
+          <div className="bf-top__end">
+            <a className="bf-top__story" href={LINKS.resume} target="_blank" rel="noopener">
+              Resume <span aria-hidden="true">↗</span>
+            </a>
+            <Link className="bf-top__story" to="/story">
+              My Story <span aria-hidden="true">→</span>
+            </Link>
+          </div>
         </nav>
 
         {/* The hero block owns the first screen, so About is always left just
