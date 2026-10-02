@@ -225,6 +225,13 @@ export default function ProjectsStrip() {
         rootEl.setAttribute('data-stage', '')
         stage.current = { scene, pinEl, corners: gsap.utils.toArray<HTMLElement>('.work__corner', pinEl) }
         if (import.meta.env.DEV) (window as unknown as { __ribbon?: RibbonScene }).__ribbon = scene
+        // the clips buffer and play only while the stage is within a viewport of the screen
+        ScrollTrigger.create({
+          trigger: rootEl,
+          start: 'top bottom+=100%',
+          end: 'bottom top-=100%',
+          onToggle: (self) => scene.setNear(self.isActive),
+        })
 
         // speed is smoothed on its own so the sheet eases into and out of its
         // deformation instead of twitching with every wheel notch

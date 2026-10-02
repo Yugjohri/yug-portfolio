@@ -974,6 +974,25 @@ export class RibbonScene {
     card.size = [w, h]
   }
 
+  /** Whether the stage is within a viewport of the screen. Clips buffer and
+   *  play only while it is: a card can be "on screen" along the ribbon while
+   *  the whole ribbon is still far down the page. */
+  private near = false
+
+  /** The stage came within a viewport of the screen (true) or left it (false). */
+  setNear(on: boolean) {
+    this.near = on
+    if (on) {
+      this.cards.forEach((card) => {
+        const video = card.video
+        if (!video || video.preload === 'auto') return
+        video.preload = 'auto'
+        video.load()
+      })
+    }
+    this.syncVideo(performance.now())
+  }
+
   /** Fill a card: its clip, its artwork, or the drawn title card. */
   private paint(card: Card) {
     const { project } = card
@@ -984,10 +1003,10 @@ export class RibbonScene {
       video.muted = true
       video.loop = true
       video.playsInline = true
-      video.autoplay = true
-      // buffered before the card reaches the edge of the view, so it is
-      // already running by the time it is on screen rather than starting there
-      video.preload = 'auto'
+      // Idle until the stage is near (warm()), then buffered before a card
+      // reaches the edge of the view, so it is already running by the time it
+      // is on screen. Played only while on screen (syncVideo).
+      video.preload = 'none'
       video.crossOrigin = 'anonymous'
       card.video = video
       // until the first frame arrives the poster (or the card) shows
@@ -1568,7 +1587,7 @@ export class RibbonScene {
   private syncVideo(now = 0) {
     this.cards.forEach((card) => {
       if (!card.video) return
-      const want = card.onScreen
+      const want = card.onScreen && this.near
       if (want && (!card.live || (card.video.paused && now - card.kickedAt > 400))) {
         const video = card.video
         card.live = true
@@ -1781,7 +1800,7 @@ export class RibbonScene {
     // the caption still follows the middle card; the clips follow the set
     this.nearest = nearest
     if (castChanged) this.syncVideo(performance.now())
-    else if (this.cards.some((c) => c.video && c.onScreen && (!c.live || c.video.paused))) {
+    else if (this.near && this.cards.some((c) => c.video && c.onScreen && (!c.live || c.video.paused))) {
       this.syncVideo(performance.now())
     }
 

@@ -290,7 +290,7 @@ export default function BriefRead() {
   return (
     <main className="brief" ref={root}>
       <div className="brief__bg" aria-hidden="true">
-        <video className="brief__bg-video" src={briefWallpaper} muted loop autoPlay playsInline preload="auto" />
+        <video className="brief__bg-video" src={briefWallpaper} poster="/brief-wallpaper-poster.jpg" muted loop autoPlay playsInline preload="auto" />
       </div>
       <div className="brief__grid" aria-hidden="true" />
       <canvas className="brief__grain" ref={grain} aria-hidden="true" />
