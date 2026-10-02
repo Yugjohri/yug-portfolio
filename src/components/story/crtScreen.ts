@@ -487,7 +487,19 @@ export class CrtScreen {
 
     if (!videoSrc) return
     const video = document.createElement('video')
-    video.src = videoSrc
+    // An .mp4 is offered with its .webm sibling first (same picture, smaller),
+    // the mp4 the fallback for a browser that cannot play WebM.
+    const webm = videoSrc.endsWith('.mp4') ? videoSrc.slice(0, -4) + '.webm' : null
+    if (webm) {
+      for (const [src, type] of [[webm, 'video/webm'], [videoSrc, 'video/mp4']]) {
+        const source = document.createElement('source')
+        source.src = src
+        source.type = type
+        video.appendChild(source)
+      }
+    } else {
+      video.src = videoSrc
+    }
     video.muted = true
     video.loop = true
     video.playsInline = true
@@ -618,6 +630,7 @@ export class CrtScreen {
     if (this.video) {
       this.video.pause()
       this.video.removeAttribute('src')
+      this.video.replaceChildren()
       this.video.load()
     }
     gl.deleteTexture(this.tex)

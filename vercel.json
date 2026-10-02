@@ -11,7 +11,7 @@
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
-      "source": "/(story-header.mp4|brief-wallpaper-poster.jpg|portrait.webp|yug-johri-resume.pdf)",
+      "source": "/(story-header.mp4|story-header.webm|story-header-poster.jpg|brief-wallpaper-poster.jpg|portrait.webp|yug-johri-resume.pdf)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
     },
     {

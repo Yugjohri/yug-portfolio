@@ -80,7 +80,7 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
 
     // 'lit' reads the footage as it is; the ember grade that pulled it toward
     // crimson is still in the shader, unused
-    const screen = new CrtScreen({ videoSrc, posterSrc: '/portrait.webp', grade: 'lit' })
+    const screen = new CrtScreen({ videoSrc, posterSrc: '/story-header-poster.jpg', grade: 'lit' })
     if (!screen.supported) {
       screen.dispose()
       return

@@ -6,6 +6,8 @@
 # Unhashed media in public/ (the header clip, posters, the resume): a day.
 /*.mp4
   Cache-Control: public, max-age=86400
+/*.webm
+  Cache-Control: public, max-age=86400
 /*.jpg
   Cache-Control: public, max-age=86400
 /*.webp
