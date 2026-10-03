@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import gsap from 'gsap'
 import type { ProjectMedia, Sleeve } from '../../data/portfolio'
 import { PopupSurface } from './popupSurface'
+import { PROJECT_AUDIO } from '../../motion/projectAudio'
 
 /**
  * A project, opened.
@@ -70,6 +71,23 @@ const RADIUS = 24
 const FLIGHT_S = 0.95
 /** Closing runs the same timeline backward, a little quicker. */
 const CLOSE_SCALE = 1.2
+/** Opening and closing both run 15 % faster than the authored timings. */
+const SPEED = 1 / 0.85
+/** How far the photo, the type and the close button travel up as they fade in. */
+const RISE_MEDIA = 64
+const RISE_TYPE = 36
+/** The close button's stylesheet eases its transform for the hover; while the timeline drives it, that would drag. */
+const holdClose = (el: HTMLElement | null) => el && gsap.set(el, { transition: 'background-color 0.3s ease' })
+const releaseClose = (el: HTMLElement | null) => el && gsap.set(el, { clearProps: 'transform,transition' })
+
+const announce = (on: boolean) => window.dispatchEvent(new CustomEvent(PROJECT_AUDIO, { detail: on }))
+/** Whether a playing element has any sound to give (the browsers each say it their own way). */
+const hasAudio = (v: HTMLVideoElement) => {
+  const m = v as HTMLVideoElement & { mozHasAudio?: boolean; webkitAudioDecodedByteCount?: number; audioTracks?: { length: number } }
+  return !!(m.mozHasAudio || (m.webkitAudioDecodedByteCount ?? 0) > 0 || (m.audioTracks?.length ?? 0) > 0)
+}
+const SOUND_IN_S = 1.2
+const SOUND_OUT_S = 0.35
 
 /** The title card the ribbon draws, here in CSS: the same plate the screen shows. */
 function Plate({ project }: { project: Sleeve }) {
@@ -115,6 +133,10 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
   const lead = useRef<HTMLDivElement>(null)
   const stream = useRef<HTMLDivElement>(null)
   const closeBtn = useRef<HTMLButtonElement>(null)
+  const soundBtn = useRef<HTMLButtonElement>(null)
+  /** the clip's sound: on as the project opens, until the toggle or the close takes it off */
+  const [sound, setSound] = useState(true)
+  const volume = useRef<gsap.core.Tween | null>(null)
   const tl = useRef<gsap.core.Timeline | null>(null)
   const closing = useRef(false)
 
@@ -164,9 +186,13 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
         flight.progress(fly.p, v)
       }
       step()
+      holdClose(closeBtn.current)
       const timeline = gsap.timeline({
         paused: true,
-        onComplete: () => closeBtn.current?.focus({ preventScroll: true }),
+        onComplete: () => {
+          releaseClose(closeBtn.current)
+          closeBtn.current?.focus({ preventScroll: true })
+        },
         onReverseComplete: onClosed,
       })
       timeline.to(fly, { p: 1, duration: FLIGHT_S, ease: 'power3.inOut', onUpdate: step }, 0)
@@ -174,8 +200,12 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
       // and only rises into its place once the panel has established itself
       // -- after the paper is down -- so the rise is seen, slow and small,
       // and reads as the content settling rather than as a separate move.
-      timeline.fromTo(leadEl, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.4, ease: 'power1.inOut' }, 0.45)
-      timeline.fromTo(leadEl, { y: 64 }, { y: 0, duration: 1.15, ease: 'power3.out' }, FLIGHT_S - 0.05)
+      timeline.fromTo(
+        leadEl,
+        { autoAlpha: 0, y: RISE_MEDIA },
+        { autoAlpha: 1, y: 0, duration: 1.0, ease: 'power3.out' },
+        0.5,
+      )
       timeline.fromTo(
         sheetEl,
         { backgroundColor: clear, boxShadow: 'none' },
@@ -184,8 +214,8 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
       )
       timeline.fromTo(
         info,
-        { autoAlpha: 0, y: 22 },
-        { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.07, ease: 'power3.out' },
+        { autoAlpha: 0, y: RISE_TYPE },
+        { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.07, ease: 'power3.out' },
         FLIGHT_S - 0.12,
       )
       if (rest.length) {
@@ -198,11 +228,11 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
       }
       timeline.fromTo(
         closeBtn.current,
-        { autoAlpha: 0, scale: 0.5 },
-        { autoAlpha: 1, scale: 1, duration: 0.45, ease: 'back.out(2.2)' },
+        { autoAlpha: 0, y: RISE_TYPE },
+        { autoAlpha: 1, y: 0, duration: 0.7, ease: 'power3.out' },
         FLIGHT_S + 0.08,
       )
-      timeline.play()
+      timeline.timeScale(SPEED).play()
       tl.current = timeline
 
       // The pictures answer the hand as the ribbon's screens did: the same
@@ -215,7 +245,10 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
         if (!surface?.supported) return
         const r = sheetEl.getBoundingClientRect()
         surface.resize(r.width, r.height, r.left, r.top)
+        surface.rerasterize()
       }
+      // a hovered link changes its ink: the surface redraws that block while it transitions
+      const onOver = (e: PointerEvent) => surface?.touch(e.target as Element)
       const tick = (_t: number, deltaMs: number) => surface?.render(Math.min(deltaMs, 50) / 1000)
       const onMove = (e: PointerEvent) => surface?.stir(e.clientX, e.clientY)
       const onLeave = () => surface?.stir(null)
@@ -230,10 +263,15 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
           glItems.push(fig)
           surface.add(m, fig)
         })
+        // the type too: every block down the left, and the closing card of the stream
+        info.forEach((el) => surface.addText(el))
+        streamEl.querySelectorAll<HTMLElement>('.pd__specs').forEach((el) => surface.addText(el))
         place()
         gsap.ticker.add(tick)
         sheetEl.addEventListener('pointermove', onMove)
         sheetEl.addEventListener('pointerleave', onLeave)
+        sheetEl.addEventListener('pointerover', onOver)
+        sheetEl.addEventListener('pointerout', onOver)
       }
 
       // the sheet's frame follows the window; the card under it follows the sheet
@@ -250,6 +288,8 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
           gsap.ticker.remove(tick)
           sheetEl.removeEventListener('pointermove', onMove)
           sheetEl.removeEventListener('pointerleave', onLeave)
+          sheetEl.removeEventListener('pointerover', onOver)
+          sheetEl.removeEventListener('pointerout', onOver)
           glItems.forEach((fig) => fig.removeAttribute('data-gl-item'))
           surface.canvas.remove()
           surface.dispose()
@@ -296,6 +336,7 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
     }
     apply()
 
+    holdClose(closeBtn.current)
     const timeline = gsap.timeline({
       paused: true,
       onComplete: () => {
@@ -305,18 +346,19 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
         gsap.set(flyEl, { autoAlpha: 0 })
         gsap.set(bodyEl, { clearProps: 'width,height' })
         gsap.set(sheetEl, { clearProps: 'left,top,width,height,borderRadius' })
+        releaseClose(closeBtn.current)
         closeBtn.current?.focus({ preventScroll: true })
       },
       onReverseComplete: onClosed,
     })
     timeline.to(box, { p: 1, duration: OPEN_S, ease: 'expo.inOut', onUpdate: apply }, 0)
     timeline.fromTo(scrim.current, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.55, ease: 'power2.out' }, 0)
-    timeline.fromTo(info, { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.55, stagger: 0.05, ease: 'power3.out' }, 0.42)
-    timeline.fromTo(closeBtn.current, { autoAlpha: 0, scale: 0.5 }, { autoAlpha: 1, scale: 1, duration: 0.45, ease: 'back.out(2.2)' }, 0.55)
+    timeline.fromTo(info, { autoAlpha: 0, y: RISE_TYPE }, { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.05, ease: 'power3.out' }, 0.42)
+    timeline.fromTo(closeBtn.current, { autoAlpha: 0, y: RISE_TYPE }, { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power3.out' }, 0.55)
     if (rest.length) {
-      timeline.fromTo(rest, { autoAlpha: 0, y: 34 }, { autoAlpha: 1, y: 0, duration: 0.55, stagger: 0.06, ease: 'power3.out' }, 0.5)
+      timeline.fromTo(rest, { autoAlpha: 0, y: RISE_MEDIA }, { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.06, ease: 'power3.out' }, 0.5)
     }
-    timeline.play()
+    timeline.timeScale(SPEED).play()
     tl.current = timeline
 
     return () => {
@@ -337,12 +379,22 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
     if (!timeline || closing.current || !sheetEl || !bodyEl || !flyEl || !leadEl || !streamEl) return
     closing.current = true
     onCloseStart()
+    // the sound goes as the panel does
+    const v = leadVideo()
+    if (v && !v.muted) {
+      volume.current?.kill()
+      const level = { v: v.volume }
+      volume.current = gsap.to(level, { v: 0, duration: SOUND_OUT_S, ease: 'power1.in', onUpdate: () => { v.volume = level.v } })
+    }
+    if (soundBtn.current) gsap.to(soundBtn.current, { autoAlpha: 0, duration: 0.2 })
+    // the button fades back down with the type, driven by the timeline again
+    holdClose(closeBtn.current)
     // the stream returns to its top so the plate is where the motion left it;
     // then the flown plate takes over again and the motion runs backward
     streamEl.scrollTop = 0
     if (origin.flight) {
       // from the stage: the same timeline backward hands the panel back to the card
-      timeline.timeScale(CLOSE_SCALE).reverse()
+      timeline.timeScale(CLOSE_SCALE * SPEED).reverse()
       return
     }
     if (timeline.progress() === 1) {
@@ -352,6 +404,63 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
       gsap.set(flyEl, { autoAlpha: 1 })
     }
     timeline.reverse()
+  }
+
+  // ---------------------------------------------------------------- the sound
+  // The clip in the stream (not the flying copy, which stays silent) plays with
+  // its sound as the project opens -- the click that opened it is the gesture
+  // the browser asks for -- easing up from silence. If the browser still says
+  // no, it plays on muted and the toggle shows it off.
+  const leadVideo = () => lead.current?.querySelector('video') ?? null
+  useEffect(() => {
+    const v = leadVideo()
+    if (!v) return
+    const level = { v: 0 }
+    v.volume = 0
+    v.muted = false
+    let told = false
+    // the music steps aside only once the clip is heard to have sound
+    const check = () => {
+      if (told || v.muted || v.currentTime < 0.25) return
+      if (hasAudio(v)) {
+        told = true
+        announce(true)
+      }
+      v.removeEventListener('timeupdate', check)
+    }
+    v.addEventListener('timeupdate', check)
+    let live = true
+    v.play().catch((err: DOMException) => {
+      // only a refusal falls back to muted; an interrupted start (a pause, a
+      // remount) is not one, and a run already cleaned up has no say
+      if (!live || err?.name !== 'NotAllowedError') return
+      v.muted = true
+      setSound(false)
+      void v.play().catch(() => {})
+    })
+    volume.current = gsap.to(level, { v: 1, duration: SOUND_IN_S, ease: 'power1.out', onUpdate: () => { v.volume = level.v } })
+    return () => {
+      live = false
+      volume.current?.kill()
+      v.removeEventListener('timeupdate', check)
+      v.muted = true
+      v.pause()
+      if (told) announce(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const toggleSound = () => {
+    const v = leadVideo()
+    if (!v) return
+    volume.current?.kill()
+    const on = v.muted
+    v.muted = !on
+    if (on) {
+      v.volume = 1
+      void v.play().catch(() => {})
+    }
+    setSound(on)
   }
 
   // Escape closes; the page's own scroll keys are swallowed while it is open,
@@ -411,6 +520,13 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
                 {project.emoji}
               </span>
             </div>
+            {project.points?.length ? (
+              <ul className="pd__points" data-pd-rise>
+                {project.points.map((pt) => (
+                  <li key={pt}>{pt}</li>
+                ))}
+              </ul>
+            ) : null}
             {!project.repo && !project.live ? (
               <p className="pd__note mono" data-pd-rise>
                 Internal system — no public repository
@@ -450,6 +566,26 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
         <div className="pd__fly" ref={fly} aria-hidden="true">
           <Lead project={project} />
         </div>
+
+        {project.video ? (
+          <button
+            className="pd__sound"
+            ref={soundBtn}
+            type="button"
+            onClick={toggleSound}
+            aria-label={sound ? 'Mute the video' : 'Play the video with sound'}
+            aria-pressed={!sound}
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M2 5.5h2.6L8.5 2.5v11L4.6 10.5H2v-5Z" />
+              {sound ? (
+                <path className="pd__sound-wave" d="M11 5.8a3 3 0 0 1 0 4.4M11.2 3a5.6 5.6 0 0 1 0 10" />
+              ) : (
+                <path className="pd__sound-wave" d="M10.2 6.4l3.6 3.6m0-3.6-3.6 3.6" />
+              )}
+            </svg>
+          </button>
+        ) : null}
 
         <button className="pd__close" ref={closeBtn} type="button" onClick={close} aria-label="Close project">
           <span aria-hidden="true" />

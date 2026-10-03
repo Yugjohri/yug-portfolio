@@ -66,6 +66,10 @@
   padding: var(--pd-pad);
   padding-right: calc(var(--pd-pad) * 0.6);
   min-width: 0;
+  /* the points can run past the sheet on a short screen: the column scrolls on its own */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 
 .pd__title {
@@ -277,6 +281,76 @@
   outline: none;
 }
 
+/* what was done, point by point: under the links, a step quieter than the summary */
+.pd__points {
+  margin: 2rem 0 0;
+  padding: 0;
+  max-width: 34em;
+  list-style: none;
+  font-size: clamp(0.85rem, 0.92vw, 0.98rem);
+  line-height: 1.55;
+  color: var(--pd-ink);
+}
+.pd__points li {
+  position: relative;
+  padding-left: 1.1em;
+  opacity: 0.78;
+}
+.pd__points li + li { margin-top: 0.6rem; }
+.pd__points li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.68em;
+  width: 0.4em;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--pd-accent);
+}
+
+/* the clip's sound, beside the close button: on as the project opens */
+.pd__sound {
+  position: absolute;
+  top: clamp(1rem, 2vw, 1.75rem);
+  right: calc(clamp(1rem, 2vw, 1.75rem) + 56px + 10px);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.86);
+  color: var(--pd-ink);
+  cursor: pointer;
+  box-shadow: 0 2px 14px rgb(0 0 0 / 0.12);
+  animation: pd-sound-in 0.45s 0.6s both cubic-bezier(0.22, 1, 0.36, 1);
+  transition: background-color 0.3s var(--pd-ease), color 0.3s var(--pd-ease), transform 0.3s var(--pd-ease);
+}
+.pd__sound svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+.pd__sound .pd__sound-wave {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.pd__sound:hover,
+.pd__sound:focus-visible {
+  background: var(--pd-accent);
+  color: #fff;
+  transform: scale(1.06);
+  outline: none;
+}
+@keyframes pd-sound-in {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+
 /* ---------- narrow: one column, the sheet itself scrolls ---------- */
 
 @media (max-width: 899px) {
@@ -309,6 +383,13 @@
     top: 12px;
     right: 12px;
   }
+  .pd__sound {
+    width: 44px;
+    height: 44px;
+    top: 64px;
+    right: 12px;
+  }
+  .pd__info { overflow: visible; }
 }
 
 /* ---------- the page's veil, for a project opened from the stage ----------
@@ -344,4 +425,24 @@
 }
 .pd__item[data-gl-item] > .pd__media-item {
   opacity: 0;
+}
+/* the type, drawn by the same canvas: the element keeps its layout, its links
+   and its selection, but its ink is the canvas' (popupSurface.addText) */
+.pd [data-gl-text],
+.pd [data-gl-text] * {
+  color: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  text-shadow: none !important;
+}
+.pd [data-gl-raster],
+.pd [data-gl-raster] * {
+  transition: none !important;
+}
+.pd [data-gl-text] .pd__emoji {
+  opacity: 0;
+}
+.pd [data-gl-text] ::selection {
+  color: transparent;
+  background: rgb(208 52 44 / 0.22);
 }

@@ -7,6 +7,7 @@
 
 .story {
   --st-pad: clamp(1.5rem, 3.2vw, 3.25rem);
+  --about-ground: #0f0b0c;
   --st-col: 1360px;
   --st-line: rgb(255 255 255 / 0.09);
   --st-ease: var(--hero-ease);
@@ -26,8 +27,9 @@
      "Neue Haas Grotesk Text Pro", Inter, 'Inter Fallback', Arial, sans-serif. */
   --st-display: Inter, 'Inter Fallback', Arial, sans-serif;
   /* the section nav's place, which the top-right labels below it read */
-  --nav-top: clamp(12px, 0.9vw, 20px);
-  --nav-h: clamp(40px, 3.05vw, 46px);
+  /* the fixed header's link line (SiteHeader): section labels sit under it */
+  --nav-top: var(--st-pad);
+  --nav-h: 28px;
 
   color: var(--text);
   background: var(--bg);
@@ -60,7 +62,9 @@
 .st-corner--tl { top: var(--st-pad); left: var(--st-pad); }
 .st-corner--tr { top: var(--st-pad); right: var(--st-pad); }
 /* past the header, the top-right labels sit under the section nav */
+.story > section:not(.shero) .st-corner--tl,
 .story > section:not(.shero) .st-corner--tr,
+.story .stack .st-corner--tl,
 .story .stack .st-corner--tr { top: calc(var(--nav-top) + var(--nav-h) + 14px); }
 /* the section's number, in the accent: "01 — About" */
 .st-corner b { font-weight: 500; color: var(--red-hot, var(--hero-accent)); }
@@ -370,7 +374,11 @@
   /* pinned for the reveal: exactly one screen, the composition inside it */
   height: 100dvh;
   overflow: hidden;
-  background: var(--bg);
+  /* the dark ground the header's walls close in, so the page carries straight on */
+  background: var(--about-ground);
+  --text: #f1ebe8;
+  --muted: #a39aa0;
+  color: var(--text);
 }
 
 /* Three points against the whole frame, not a column: the introduction left
@@ -697,13 +705,130 @@ em.about__pword {
   letter-spacing: -0.015em;
 }
 
+/* ---------- the header: fixed for the whole page (SiteHeader.tsx) ----------
+   After the reference: the sections spread across the top in the accent,
+   two before the signature and three after it. The mark starts compact over
+   the first screen's glass and grows to its full size as the gesture closes
+   it away (a scrubbed scale, origin at its top). */
+.shead {
+  position: fixed;
+  top: var(--st-pad);
+  left: var(--st-pad);
+  right: var(--st-pad);
+  z-index: 55;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: clamp(1.5rem, 4vw, 5rem);
+  pointer-events: none;
+}
+.shead > * { pointer-events: auto; }
+.shead__side {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 1.6em;
+}
+.shead a:not(.shead__mark) {
+  font-family: Inter, 'Inter Fallback', system-ui, sans-serif;
+  font-size: clamp(11px, calc(1vw - 2px), 15px);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--red-hot, var(--hero-accent));
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+  transition: background-size 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.shead a:not(.shead__mark):hover,
+.shead a:not(.shead__mark):focus-visible,
+.shead a[aria-current='true'] {
+  background-size: 100% 1px;
+  outline: none;
+}
+/* the signature, a mask in the accent so it reads on the black first screen and the cream after */
+.shead__mark {
+  display: block;
+  width: clamp(64px, 6.4vw, 112px);
+  aspect-ratio: 292 / 274;
+  margin-top: -0.9rem;
+  transform-origin: 50% 0;
+  background: var(--red-hot, var(--hero-accent));
+  -webkit-mask: url('/yug-johri-mark.png') center / contain no-repeat;
+  mask: url('/yug-johri-mark.png') center / contain no-repeat;
+  transition: rotate 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.shead__mark:hover,
+.shead__mark:focus-visible {
+  rotate: -5deg;
+  outline: none;
+}
+/* the open-to-work dot rides beside Contact */
+.shead .sstatus {
+  position: relative;
+  top: auto;
+  left: auto;
+  translate: none;
+  margin-left: -0.75rem;
+  z-index: auto;
+}
+.shead .sstatus__tip { left: auto; right: 0; translate: 0 -4px; }
+.shead .sstatus__tip[data-shown] { translate: 0 0; }
+.shead__menu,
+.shead__sheet { display: none; }
+@media (max-width: 767px) {
+  /* a phone: the mark, and a Menu that opens the links */
+  .shead { grid-template-columns: 1fr auto 1fr; }
+  .shead__side { visibility: hidden; }
+  .shead::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(var(--st-pad) + 64px);
+    z-index: -1;
+    background: linear-gradient(var(--bg) 62%, rgb(0 0 0 / 0));
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+  }
+  .shead[data-solid]::before { opacity: 1; }
+  .shead__mark { margin-top: -0.4rem; }
+  .shead__menu {
+    display: block;
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    padding: 0.4rem 0;
+    border: 0;
+    background: none;
+    font: 500 13px/1.6 Inter, 'Inter Fallback', system-ui, sans-serif;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--red-hot, var(--hero-accent));
+    cursor: pointer;
+  }
+  .shead__sheet:not([hidden]) {
+    display: grid;
+    grid-column: 1 / -1;
+    justify-items: end;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+    padding: 1rem 1.1rem;
+    border-radius: 12px;
+    background: rgb(var(--plate-rgb, 20 19 14) / 0.9);
+  }
+}
+
 /* the two definitions, and the rule the strip becomes between them */
 /* The name's two halves, set as display type: upright serif at the scale the
    reference sets its own pair (168px on a 2560px window, 6.6vw), one line
    high. The lockup is as wide as the finished "Yug -- Johri", so the rule
    between the halves comes out short, as the reference's does. */
 .shero__lockup {
-  --shero-word: clamp(3.4rem, 6.6vw, 11rem);
+  --shero-word: clamp(4.4rem, 9.2vw, 15rem);
+  --shero-meta: clamp(11px, 0.85vw, 15px);
   position: absolute;
   left: 50%;
   top: 50%;
@@ -711,7 +836,7 @@ em.about__pword {
   display: flex;
   align-items: flex-start;
   gap: clamp(1rem, 1.6vw, 2.5rem);
-  width: min(46vw, 1500px);
+  width: min(64vw, 1900px);
   translate: -50% -50%;
   will-change: transform;
 }
@@ -720,42 +845,327 @@ em.about__pword {
   flex: 0 0 auto;
   flex-direction: column;
   gap: 0.7rem;
-  width: auto;
+  width: max-content;
   will-change: transform, opacity;
 }
 .shero__def--r {
   align-items: flex-end;
   text-align: right;
 }
-.shero__meta { opacity: 0.75; }
+.shero__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 0;
+  min-width: 100%;
+  font-family: Inter, 'Inter Fallback', system-ui, sans-serif;
+  font-size: var(--shero-meta);
+  font-weight: 500;
+  line-height: 1.55;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--red-hot, var(--hero-accent));
+}
 .shero__word {
   font-family: var(--st-serif);
   font-style: normal;
   font-weight: 400;
   font-size: var(--shero-word);
   line-height: 1;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.035em;
   white-space: nowrap;
   color: var(--text);
 }
+/* the surname in the page's accent: the red serif italic its headlines use */
+.shero__word--accent {
+  font-style: italic;
+  letter-spacing: -0.025em;
+  padding-right: 0.08em; /* the italic's overhang stays inside the line */
+  color: var(--red-hot, var(--hero-accent));
+}
 .shero__meaning {
-  margin: 0.2rem 0 0;
-  max-width: clamp(15.5rem, 17vw, 24rem);
-  font-family: var(--hero-display);
-  font-size: 10px;
+  margin: 0.35rem 0 0;
+  width: clamp(16rem, 21vw, 30rem);
+  font-family: Inter, 'Inter Fallback', system-ui, sans-serif;
+  font-size: clamp(12px, 0.98vw, 17px);
   font-weight: 500;
-  line-height: 1.55;
-  letter-spacing: 0.1em;
+  line-height: 1.22;
+  letter-spacing: 0.015em;
   text-transform: uppercase;
-  color: var(--muted);
+  text-align: justify;
+  text-align-last: left;
+  hyphens: none;
+  color: var(--text);
+}
+.shero__def--r .shero__meaning {
+  text-align-last: right;
 }
 /* the rule sits on the words' middle: below the meta line and half a word down */
 .shero__rule {
   flex: 1;
-  height: 2px;
-  margin-top: calc(11px * 1.55 + 0.7rem + var(--shero-word) * 0.55);
+  height: clamp(5px, 0.45vw, 9px);
+  /* the bar settles short of flat (StoryHero's BAR_TURN, 80deg), so the rule keeps its tilt */
+  rotate: -10deg;
+  margin-top: calc(var(--shero-meta) * 1.55 + 0.7rem + var(--shero-word) * 0.55);
   background: var(--text);
   transform-origin: 50% 50%;
+}
+
+/* the bar shades to the accent as it turns: a red layer over the picture, faded in by the gesture */
+.shero__tint {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: var(--red-hot, var(--hero-accent));
+  opacity: 0;
+  pointer-events: none;
+}
+/* the walls that close the header: the left half from the top, the right
+   half from the bottom, on the About section's own dark ground */
+.shero__wall {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 5;
+  width: 50.2%;
+  background: var(--about-ground);
+  will-change: transform;
+  /* placed off-screen by the gesture (StoryHero); hidden until it has */
+  visibility: hidden;
+}
+.shero__wall--l { left: 0; }
+.shero__wall--r { right: 0; }
+.shero[data-still] .shero__wall { display: none; }
+
+/* ---------- About (AboutPanel.tsx) ----------
+   After the reference, on its own (for now, a lighter) ground. The screen is
+   two halves with a gutter at the centre -- the line the header's walls split
+   on: the text block (eyebrow, heading, paragraphs) centred in the left half,
+   the stack centred in the right half. The walls carry copies of its first
+   screen; the real section is shown in their place the moment they land. */
+.story {
+  --ap-accent: #e2531f;
+  --ap-ground: #f4f1ea;
+}
+.shero__wall { overflow: hidden; background: var(--ap-ground); }
+/* a copy in a wall: a screen's size, lined up with the screen */
+.shero__wall .apanel {
+  position: absolute;
+  top: 0;
+  width: calc(100% / 0.502);
+  height: 100%;
+}
+.shero__wall--l .apanel { left: 0; }
+.shero__wall--r .apanel { right: 0; }
+.shero__wall .apanel__sheet {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+/* the real section: a screen higher than its place, so its top meets the
+   top of the screen as the walls land; over the header, shown from then on */
+.about-shift {
+  position: relative;
+  z-index: 6;
+  margin-top: -100dvh;
+}
+.apanel--section {
+  position: relative;
+  background: var(--ap-ground);
+  visibility: hidden;
+}
+.apanel--section[data-shown] { visibility: visible; }
+.apanel--section .apanel__sheet { position: relative; }
+.apanel__sheet {
+  /* a screen tall (it pins); the content starts clear of the nav and the mark */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  padding: 150px 0 64px;
+  background: var(--ap-ground);
+}
+.apanel__wrap {
+  /* g: half the centre gutter. b: the text block's width, a share of the left
+     half (centre minus the gutter), within bounds */
+  --ap-g: clamp(70px, 4.6vw, 110px);
+  --ap-b: clamp(380px, calc((50vw - var(--ap-g)) * 0.68), 600px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+}
+.apanel__half--l {
+  /* the text block sits a little lower than the stack beside it */
+  padding-top: clamp(56px, 7.5vh, 110px);
+  padding-right: var(--ap-g);
+  display: grid;
+  justify-items: center;
+}
+.apanel__half--r { padding-left: var(--ap-g); }
+.apanel__left {
+  /* the paragraphs' width, or the heading's if that is wider (it is set at
+     the stack's size); the block is centred in the half either way */
+  width: fit-content;
+  min-width: var(--ap-b);
+  max-width: 100%;
+}
+.apanel__body, .apanel__coda { max-width: var(--ap-b); }
+.apanel__eyebrow {
+  margin: 0 0 22px;
+  /* the header's links' size and cut */
+  font: 500 clamp(11px, calc(1vw - 2px), 15px)/1 Inter, 'Inter Fallback', system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ap-accent);
+}
+.apanel__heading {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  /* sized from the block's width (the longest line is ~13.8em), plus 2px */
+  /* the stack's statement's size on screen (StackOrbit sets --ap-type); the
+     old width-based size until it has */
+  font-size: var(--ap-type, calc(min(calc(var(--ap-b) / 13.8), 50px) + 2px));
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  color: var(--text);
+}
+.apanel__l1 {
+  font-family: Inter, 'Inter Fallback', system-ui, sans-serif;
+  font-weight: 600;
+}
+.apanel__l2 {
+  font-family: var(--st-serif);
+  font-weight: 400;
+}
+.apanel__u {
+  font-style: italic;
+  font-size: 1.05em;
+  text-decoration: underline;
+  text-decoration-color: var(--ap-accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.16em;
+  text-decoration-skip-ink: none;
+}
+.apanel__rule { display: none; }
+.apanel__body {
+  margin-top: clamp(32px, 4.6vh, 56px);
+  font-family: Inter, 'Inter Fallback', system-ui, sans-serif;
+  font-size: clamp(16px, 0.66vw, 17px);
+  line-height: 1.8;
+  color: rgb(26 22 24 / 0.78);
+}
+.apanel__body p { margin: 0 0 18px; }
+.apanel__body p:last-child { margin-bottom: 0; }
+/* a short desktop screen: the paragraphs a touch tighter, so the note still ends on it */
+@media (min-width: 900px) and (max-height: 940px) {
+  .apanel__body { margin-top: 30px; line-height: 1.62; }
+  .apanel__body p { margin-bottom: 13px; }
+  .apanel__coda { margin-top: 14px; }
+}
+/* the closing note: the paragraphs' voice, a step quieter, set off by a short accent rule */
+.apanel__coda {
+  margin: 18px 0 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--ap-accent);
+  font-family: Inter, 'Inter Fallback', system-ui, sans-serif;
+  font-size: clamp(15px, 0.62vw, 16px);
+  line-height: 1.7;
+  color: rgb(26 22 24 / 0.62);
+}
+.apanel__side { position: relative; min-width: 0; display: flow-root; }
+
+/* the stack: its old full-screen stage, scaled into the right half as one
+   piece (StackOrbit sizes and places it, level with the first paragraph).
+   No box: its area reaches well above and below (negative margins and the
+   same padding) and fades softly at its sides, so the cards fade in and out
+   there instead of being cut, and nothing is drawn left of the gutter */
+.orbit {
+  --orbit-bleed: 260px;
+  position: relative;
+  width: 100%;
+  margin: calc(-1 * var(--orbit-bleed)) 0 calc(-1 * var(--orbit-bleed));
+  padding: var(--orbit-bleed) 0;
+  box-sizing: content-box;
+  /* the stream runs on past the screen's edge: cut it there (sideways only,
+     so the cards above and below still show), or the page scrolls sideways */
+  overflow-x: clip;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 90px, #000 calc(100% - 110px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 90px, #000 calc(100% - 110px), transparent 100%);
+}
+.orbit__stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+/* the soft shadow on the floor under the statement */
+.orbit__floor {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: 68%;
+  height: 20%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(40 32 24 / 0.3), rgb(40 32 24 / 0.12) 60%, transparent);
+  filter: blur(40px);
+  opacity: 0;
+  pointer-events: none;
+}
+.orbit .stack__card { cursor: pointer; }
+/* desktop: the cards, logos and statement drawn about 2.2x their old size (stage units) */
+@media (min-width: 900px) {
+  .orbit .stack__card {
+    left: -120px;
+    top: -70px;
+    width: 240px;
+    height: 140px;
+  }
+  .orbit .stack__logo { font-size: 98px; }
+  .orbit .stack__statement { font-size: 84px; max-width: 12ch; }
+}
+/* the label over the card under the hand */
+.orbit__tip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.story .orbit__tip.mono {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgb(18 18 18 / 0.88);
+  color: #f4f1ea;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  translate: -50% -100%;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.story .orbit__tip.mono[data-on] { opacity: 1; }
+
+@media (max-width: 899px) {
+  /* narrow: the walls are the top and bottom halves, each closing the same way */
+  .shero__wall { width: 100%; height: 50.2%; }
+  .shero__wall--l { top: 0; bottom: auto; }
+  .shero__wall--r { top: auto; bottom: 0; }
+  .shero__wall .apanel { width: 100%; height: calc(100% / 0.502); }
+  .shero__wall--l .apanel { top: 0; left: 0; }
+  .shero__wall--r .apanel { top: auto; bottom: 0; left: 0; right: auto; }
+  /* a phone: one column -- eyebrow, heading, the stack, then the text */
+  .apanel__sheet { padding: 84px 0 48px; justify-content: flex-start; }
+  .apanel__wrap { grid-template-columns: 1fr; padding: 0 6vw; }
+  .apanel__half, .apanel__left { display: contents; }
+  .apanel__eyebrow { order: 1; }
+  .apanel__heading { order: 2; white-space: normal; font-size: clamp(26px, 7vw, 34px); }
+  .apanel__side { order: 3; margin: 28px 0 8px; }
+  .apanel__body { order: 4; margin-top: 20px; font-size: 15px; }
+  .apanel__coda { order: 5; font-size: 14px; }
+  .orbit { -webkit-mask-image: none; mask-image: none; }
 }
 
 /* reduced motion: no gesture -- the picture, the line, then the definitions */
@@ -799,9 +1209,10 @@ em.about__pword {
   }
   .shero__lede--l { top: calc(var(--crt-top) + var(--crt-h) + 3dvh); }
   .shero__lede--r { bottom: 11dvh; }
-  .shero__lockup { width: 88vw; --shero-word: clamp(2.6rem, 11vw, 3.4rem); }
+  .shero__lockup { width: 88vw; --shero-word: clamp(3rem, 13vw, 4.6rem); }
   .shero__def { width: 38%; }
-  .shero__meaning { max-width: none; }
+  .shero__meaning { width: auto; font-size: 10px; line-height: 1.3; }
+  .shero { --shero-meta: 10px; }
 }
 
 /* a phone: the glass takes 87.2% of the width, as the reference's does below 768 */

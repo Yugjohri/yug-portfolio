@@ -5,6 +5,7 @@ import { useGSAP } from '@gsap/react'
 import { SplitText } from 'gsap/SplitText'
 import { CrtScreen } from './crtScreen'
 import { BRIEF } from '../../data/brief'
+import AboutPanel from './AboutPanel'
 import { routeTransition, whenSettled } from '../../motion/routeTransition.ts'
 import { BEAT, EASE } from '../../motion/tokens'
 
@@ -37,19 +38,36 @@ const ACCENT_AT = HEADLINE_1.lastIndexOf(HEADLINE_ACCENT)
 /** The name, split across the two panels, each half with its line from the Brief's own copy. */
 const DEFINITIONS = [
   {
-    word: 'think',
+    word: 'Yug',
     meaning:
       'i start by assuming it is wrong. a cheap habit, and it has saved me more than once.',
   },
   {
-    word: 'build',
+    word: 'Johri',
     meaning:
       'then i take things out until it stops surprising me. surprise is good company everywhere except production.',
   },
 ]
 
+/** The small labels that stand at either end above each word (the reference's "MEANING: … VV"). */
+const META: [string, string][] = [
+  ['Meaning:', 'YJ'],
+  [BRIEF.role.split(' ')[0], BRIEF.role.split(' ').slice(1).join(' ')],
+]
+/** The strip's thickness as the mask closes and it turns: a share of the width, within bounds. */
+const stripPx = (_w: number) => 48
+/** How far the bar turns: short of flat, as the reference's does -- it settles as a "/" and the rule keeps that tilt (story.css). */
+const BAR_TURN = 80
+
 /** How far the reader scrolls through the gesture, as viewport heights. */
-const PIN_LENGTH = 2.6
+/** The gesture's timeline runs 0..TL_TOTAL; everything up to the walls happens by 0.88, as it always
+ *  did, and the walls take the long tail (0.88..1.30), so they follow the hand over a good stretch of
+ *  scroll and can be stopped half way. One timeline unit is still 3.4 screen heights of scroll. */
+export const TL_TOTAL = 1.3
+export const PIN_LENGTH = 3.4 * TL_TOTAL
+/** Where in the gesture the bar starts and stops turning (the header's mark grows over the same span). */
+export const TURN_FROM = 0.4
+export const TURN_TO = 0.7
 
 type StoryHeroProps = {
   /** Optional looping clip for the screen. Without one it shows the still. */
@@ -62,6 +80,9 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
   const media = useRef<HTMLDivElement>(null)
   const lockup = useRef<HTMLDivElement>(null)
   const rule = useRef<HTMLDivElement>(null)
+  const tint = useRef<HTMLDivElement>(null)
+  const wallL = useRef<HTMLDivElement>(null)
+  const wallR = useRef<HTMLDivElement>(null)
   const title = useRef<HTMLHeadingElement>(null)
   /** 0..1 through the gesture, read by the render loop to know when to stop */
   const progress = useRef(0)
@@ -187,7 +208,7 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
         // its offsetLeft (which is the centre it is translated back from).
         const spread = Math.max(0, (w - lockupEl.offsetWidth) / 2 - pad)
         return {
-          stripX: ((w - 40) / 2 / w) * 100,
+          stripX: ((w - stripPx(w)) / 2 / w) * 100,
           barX: ((w - ruleThick) / 2 / w) * 100,
           barY: ((h - ruleLen) / 2 / h) * 100,
           dy: ruleCy - h / 2,
@@ -237,33 +258,58 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
       //    flat before the handover to the rule at 0.72. clip-path works in
       //    the frame's own box, before the rotation, so a thin, short
       //    *vertical* strip is what turns into the horizontal bar.
-      tl.fromTo(frameEl, { rotate: 0 }, { rotate: 90, duration: 0.3, ease: 'power2.inOut', immediateRender: false }, 0.4)
-      // explicit about where it starts (the strip), so a refresh mid-gesture
-      // can never make it interpolate from the open frame
-      tl.fromTo(
-        frameEl,
-        { clipPath: strip, y: 0 },
-        {
-          clipPath: () => {
-            const g = geometry()
-            return `inset(${g.barY}% ${g.barX}% ${g.barY}% ${g.barX}%)`
-          },
-          y: () => geometry().dy,
-          duration: 0.36,
-          ease: 'power2.inOut',
-          immediateRender: false,
-        },
-        0.4,
-      )
+      tl.fromTo(frameEl, { rotate: 0 }, { rotate: BAR_TURN, duration: TURN_TO - TURN_FROM, ease: 'power2.inOut', immediateRender: false }, TURN_FROM)
+      // The strip shortens with the turn but keeps its full weight -- a long,
+      // thick bar is what turns, the reference's -- and it is short enough to
+      // sit between the words by the time it settles. It only thins as it
+      // collapses (4.), in one movement with its shortening.
+      // (explicit about where they start, so a refresh mid-gesture can never
+      // make it interpolate from the open frame)
+      const bar = { len: 0, thick: 0 }
+      const clipBar = () => {
+        const g = geometry()
+        const x = g.stripX + (g.barX - g.stripX) * bar.thick
+        const y = g.barY * bar.len
+        frameEl.style.clipPath = `inset(${y}% ${x}% ${y}% ${x}%)`
+      }
+      tl.fromTo(bar, { len: 0 }, { len: 1, duration: 0.3, ease: 'power2.inOut', immediateRender: false, onUpdate: clipBar }, 0.4)
+      tl.fromTo(frameEl, { y: 0 }, { y: () => geometry().dy, duration: 0.36, ease: 'power2.inOut', immediateRender: false }, 0.4)
       // the words close in on the rule from either side
       tl.to(defs, { x: 0, duration: 0.36, ease: 'power2.inOut' }, 0.4)
       // 3. the strip becomes the rule: a crossfade at the moment they coincide
-      tl.to(frameEl, { autoAlpha: 0, duration: 0.06 }, 0.72)
-      tl.fromTo(ruleEl, { scaleX: 0.96, autoAlpha: 0 }, { scaleX: 1, autoAlpha: 1, duration: 0.06 }, 0.7)
+      // the bar shades from black through deep red to the accent as it turns
+      if (tint.current) tl.fromTo(tint.current, { opacity: 0 }, { opacity: 1, duration: 0.22, ease: 'power1.inOut' }, 0.5)
+      tl.to(frameEl, { autoAlpha: 0, duration: 0.04 }, 0.755)
+      // the rule takes over at the strip's weight (scaled up across its line)
+      const weight = () => stripPx(rootEl.clientWidth) / Math.max(2, ruleEl.offsetHeight)
+      tl.fromTo(ruleEl, { scaleX: 0.96, scaleY: weight, autoAlpha: 0 }, { scaleX: 1, scaleY: weight, autoAlpha: 1, duration: 0.05 }, 0.74)
 
-      // 4. the lockup eases up a little and settles; the ribbon then rises over
-      //    it in flow when the pin lets go -- the reference's films do the same
-      tl.to(lockupEl, { scale: 0.82, yPercent: -18, duration: 0.2, ease: 'power2.inOut' }, 0.8)
+      // 4. the red line draws in from both ends while the words close on it,
+      //    until the name stands as one line: "Yug Johri"
+      const closeBy = () => {
+        const gap = parseFloat(getComputedStyle(lockupEl).columnGap) || 24
+        return (ruleEl.offsetWidth + gap) / 2
+      }
+      // One progress for both, on one curve: the line's length shrinks exactly as
+      // fast as the gap between the words closes, so it is always shorter than
+      // the gap -- it never crosses the type -- and it reaches nothing as they meet.
+      const COLLAPSE = { at: 0.775, dur: 0.105, ease: 'sine.inOut' }
+      // and its weight goes on the same progress: it thins as it converges, to nothing
+      tl.to(ruleEl, { scaleX: 0, scaleY: 0, duration: COLLAPSE.dur, ease: COLLAPSE.ease }, COLLAPSE.at)
+      tl.to(defs[0], { x: () => closeBy(), duration: COLLAPSE.dur, ease: COLLAPSE.ease }, COLLAPSE.at)
+      tl.to(defs[1], { x: () => -closeBy(), duration: COLLAPSE.dur, ease: COLLAPSE.ease }, COLLAPSE.at)
+
+      // 5. the walls: the left half comes down from the top, the right half up
+      //    from the bottom, each carrying its half of About, so the section is
+      //    whole the moment they meet -- nothing left to scroll for.
+      if (wallL.current && wallR.current) {
+        // y is pinned to 0 so only the percentage moves them (a remount must not read a stale offset)
+        gsap.set(wallL.current, { y: 0, yPercent: -100, visibility: 'visible' })
+        gsap.set(wallR.current, { y: 0, yPercent: 100, visibility: 'visible' })
+        const WALLS = { at: 0.88, dur: TL_TOTAL - 0.88, ease: 'sine.inOut' }
+        tl.fromTo(wallL.current, { y: 0, yPercent: -100 }, { y: 0, yPercent: 0, duration: WALLS.dur, ease: WALLS.ease }, WALLS.at)
+        tl.fromTo(wallR.current, { y: 0, yPercent: 100 }, { y: 0, yPercent: 0, duration: WALLS.dur, ease: WALLS.ease }, WALLS.at)
+      }
     },
     { scope: root },
   )
@@ -401,12 +447,11 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
 
   return (
     <section className="shero" id="story-top" ref={root} aria-label="My story">
-      <div className="st-corner st-corner--tl mono">{BRIEF.name}</div>
-      <div className="st-corner st-corner--tr mono">My Story</div>
 
       {/* the picture and the line: one layer, masked as one */}
       <div className="shero__frame" ref={frame}>
         <div className="shero__screen" ref={media} aria-hidden="true" />
+        <div className="shero__tint" ref={tint} aria-hidden="true" />
         <h1 className="shero__title" ref={title}>
           {ACCENT_AT < 0 ? (
             HEADLINE_1
@@ -423,16 +468,31 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
       </div>
 
       {/* the two definitions, with the rule the strip becomes between them */}
+      {/* the walls that close the header carry About: each a copy of the panel's
+          first screen, clipped to its half, so it is split while they travel and
+          whole when they meet; the real section takes over in place as they land */}
+      <div className="shero__wall shero__wall--l" ref={wallL} aria-hidden="true">
+        <AboutPanel variant="copy" />
+      </div>
+      <div className="shero__wall shero__wall--r" ref={wallR} aria-hidden="true">
+        <AboutPanel variant="copy" />
+      </div>
       <div className="shero__lockup" ref={lockup}>
         <div className="shero__def" data-shero-def>
-          <span className="mono shero__meta">01 — Meaning</span>
+          <span className="shero__meta">
+            <span>{META[0][0]}</span>
+            <span>{META[0][1]}</span>
+          </span>
           <span className="shero__word">{DEFINITIONS[0].word}</span>
           <p className="shero__meaning">{DEFINITIONS[0].meaning}</p>
         </div>
         <div className="shero__rule" ref={rule} aria-hidden="true" />
         <div className="shero__def shero__def--r" data-shero-def>
-          <span className="mono shero__meta">02 — Practice</span>
-          <span className="shero__word">{DEFINITIONS[1].word}</span>
+          <span className="shero__meta">
+            <span>{META[1][0]}</span>
+            <span>{META[1][1]}</span>
+          </span>
+          <span className="shero__word shero__word--accent">{DEFINITIONS[1].word}</span>
           <p className="shero__meaning">{DEFINITIONS[1].meaning}</p>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { TRACKS } from '../data/music'
+import { PROJECT_AUDIO } from '../motion/projectAudio'
 
 /**
  * A small player, fixed to the page's bottom-right corner.
@@ -74,6 +75,26 @@ export default function MusicPlayer() {
       el.removeEventListener('play', onPlay)
       el.removeEventListener('pause', onPause)
     }
+  }, [])
+
+  // a project's clip with sound: the music pauses for it and comes back after
+  useEffect(() => {
+    let paused = false
+    const onProject = (e: Event) => {
+      const el = audio.current
+      if (!el) return
+      if ((e as CustomEvent<boolean>).detail) {
+        if (!el.paused) {
+          paused = true
+          el.pause()
+        }
+      } else if (paused) {
+        paused = false
+        void el.play().catch(() => setPlaying(false))
+      }
+    }
+    window.addEventListener(PROJECT_AUDIO, onProject)
+    return () => window.removeEventListener(PROJECT_AUDIO, onProject)
   }, [])
 
   // a track change keeps playing if it was playing

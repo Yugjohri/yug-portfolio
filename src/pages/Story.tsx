@@ -1,18 +1,16 @@
 import StoryHero from '../components/story/StoryHero'
 import ProjectsStrip from '../components/projects/ProjectsStrip'
-import About from '../components/story/About'
-import TechStack from '../components/story/TechStack'
 import Experience from '../components/story/Experience'
 import Proof from '../components/story/Proof'
 import Contact from '../components/story/Contact'
 import { useSmoothScroll } from '../lib/useSmoothScroll'
-import StoryThread from '../motion/StoryThread'
-import StoryNav, { StoryStatus } from '../components/story/StoryNav'
+import SiteHeader from '../components/story/SiteHeader'
+import AboutPanel from '../components/story/AboutPanel'
 
 /**
  * The Story route -- where the hero's My Story panel leads. Its header, then
  * 01 about, 02 experience, 03 the ribbon, 04 proof, 05 the stack, 06 contact.
- * One red thread runs through all of them (StoryThread).
+ * (The red thread that once ran between them, StoryThread, is retired.)
  */
 export default function Story() {
   useSmoothScroll()
@@ -20,16 +18,13 @@ export default function Story() {
   return (
     <main className="story">
       <StoryHero videoSrc="/story-header.mp4" />
-      <About />
+      {/* About: carried in by the header's walls, then the real section takes over in place */}
+      <AboutPanel variant="section" />
       <Experience />
       <ProjectsStrip />
       <Proof />
-      <TechStack />
       <Contact />
-      <StoryNav />
-      <StoryStatus />
-      {/* last, so its triggers are made after the pins they measure through */}
-      <StoryThread />
+      <SiteHeader />
     </main>
   )
 }

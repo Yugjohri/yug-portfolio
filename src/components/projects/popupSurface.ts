@@ -85,14 +85,17 @@ void main() {
   vec2 q = abs(vUv * sz - sz * 0.5) - (sz * 0.5 - uRadius);
   float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - uRadius;
   float a = clamp(0.5 - d, 0.0, 1.0) * uAlpha;
+  a *= tex.a;
   gl_FragColor = vec4(tex.rgb * a, a);
 }
 `
 
 type Item = {
-  media: HTMLImageElement | HTMLVideoElement
+  media: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement
   /** the figure the panel reveals: its opacity and visibility are the picture's */
   frame: HTMLElement
+  /** a text block: drawn from a raster of `el`, flows with the field but does not tip */
+  text?: { el: HTMLElement; pad: number; dirtyUntil: number }
   tex: WebGLTexture
   size: [number, number]
   loaded: boolean
@@ -238,7 +241,7 @@ export class PopupSurface {
     if (!gl) return
     this.width = Math.max(1, width)
     this.height = Math.max(1, height)
-    this.dpr = Math.min(window.devicePixelRatio || 1, 1.5)
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2)
     this.canvas.width = Math.round(this.width * this.dpr)
     this.canvas.height = Math.round(this.height * this.dpr)
     if (!this.surfaceOn) return
@@ -273,6 +276,135 @@ export class PopupSurface {
     })
   }
 
+  /**
+   * A block of the panel's type, drawn here so the hand's fluid moves it with
+   * the pictures. The element is rasterised -- its own boxes (fills, borders,
+   * radii) and every word where the browser laid it out -- and the element is
+   * then marked so the stylesheet makes its ink transparent: it keeps its
+   * layout, its links and its selection, and this draws what it would have.
+   */
+  addText(el: HTMLElement, frame: HTMLElement = el) {
+    if (!this.gl) return
+    const item: Item = {
+      media: document.createElement('canvas'),
+      frame,
+      tex: this.texture(),
+      size: [16, 10],
+      loaded: false,
+      plate: { tx: 0, ty: 0, x: 0, y: 0, vx: 0, vy: 0, lift: 0, liftV: 0 },
+      text: { el, pad: 16, dirtyUntil: 0 },
+    }
+    this.items.push(item)
+    this.rasterize(item)
+  }
+
+  /** Redraw every text block (the panel was resized, so the type reflowed). */
+  rerasterize() {
+    this.items.forEach((it) => it.text && this.rasterize(it))
+  }
+
+  /** A text block changed state (a link is hovered): redraw it while its transition runs. */
+  touch(target: Element | null) {
+    if (!target) return
+    const now = performance.now()
+    this.items.forEach((it) => {
+      if (it.text && it.text.el.contains(target)) it.text.dirtyUntil = now + 400
+    })
+  }
+
+  private rasterize(item: Item) {
+    const t = item.text
+    if (!t) return
+    const el = t.el
+    const canvas = item.media as HTMLCanvasElement
+    // read the real ink: unmark for the measurement (no paint happens in between),
+    // with transitions held off so the computed colours are the settled ones
+    el.setAttribute('data-gl-raster', '')
+    el.removeAttribute('data-gl-text')
+    const r = el.getBoundingClientRect()
+    const dpr = this.dpr
+    const W = Math.max(1, Math.ceil((r.width + 2 * t.pad) * dpr))
+    const H = Math.max(1, Math.ceil((r.height + 2 * t.pad) * dpr))
+    if (canvas.width !== W) canvas.width = W
+    if (canvas.height !== H) canvas.height = H
+    const ctx = canvas.getContext('2d')!
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.clearRect(0, 0, W, H)
+    ctx.setTransform(dpr, 0, 0, dpr, (t.pad - r.left) * dpr, (t.pad - r.top) * dpr)
+
+    // boxes: the element and its descendants, in document order
+    const boxes = [el, ...Array.from(el.querySelectorAll<HTMLElement>('*'))]
+    for (const b of boxes) {
+      const cs = getComputedStyle(b)
+      const bg = cs.backgroundColor
+      const bw = parseFloat(cs.borderTopWidth) || 0
+      const bc = cs.borderTopColor
+      const hasBg = bg && !/rgba?\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\)|transparent/.test(bg)
+      const hasBorder = bw > 0 && cs.borderTopStyle !== 'none' && !/,\s*0\s*\)$|transparent/.test(bc)
+      if (!hasBg && !hasBorder) continue
+      const br = b.getBoundingClientRect()
+      const rad = Math.min(parseFloat(cs.borderTopLeftRadius) || 0, br.height / 2, br.width / 2)
+      ctx.beginPath()
+      ctx.roundRect(br.left, br.top, br.width, br.height, rad)
+      if (hasBg) {
+        ctx.fillStyle = bg
+        ctx.fill()
+      }
+      if (hasBorder) {
+        ctx.beginPath()
+        ctx.roundRect(br.left + bw / 2, br.top + bw / 2, br.width - bw, br.height - bw, Math.max(0, rad - bw / 2))
+        ctx.lineWidth = bw
+        ctx.strokeStyle = bc
+        ctx.stroke()
+      }
+    }
+
+    // words, each where the browser put it
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+    const range = document.createRange()
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const node = n as Text
+      const parent = node.parentElement
+      if (!parent || !node.data.trim()) continue
+      const cs = getComputedStyle(parent)
+      ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
+      ;(ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = cs.letterSpacing === 'normal' ? '0px' : cs.letterSpacing
+      ctx.fillStyle = cs.color
+      ctx.textBaseline = 'alphabetic'
+      const upper = cs.textTransform === 'uppercase'
+      const re = /\S+/g
+      let m: RegExpExecArray | null
+      while ((m = re.exec(node.data))) {
+        range.setStart(node, m.index)
+        range.setEnd(node, m.index + m[0].length)
+        const rects = range.getClientRects()
+        if (!rects.length) continue
+        const word = upper ? m[0].toUpperCase() : m[0]
+        // a word the browser broke across lines: draw it piecewise by character
+        if (rects.length > 1) {
+          for (let i = 0; i < m[0].length; i++) {
+            range.setStart(node, m.index + i)
+            range.setEnd(node, m.index + i + 1)
+            const cr = range.getBoundingClientRect()
+            const ch = upper ? m[0][i].toUpperCase() : m[0][i]
+            const asc = ctx.measureText(ch).fontBoundingBoxAscent
+            ctx.fillText(ch, cr.left, cr.top + asc)
+          }
+          continue
+        }
+        const wr = rects[0]
+        const asc = ctx.measureText(word).fontBoundingBoxAscent
+        ctx.fillText(word, wr.left, wr.top + asc)
+      }
+    }
+    range.detach()
+    el.setAttribute('data-gl-text', '')
+    getComputedStyle(el).color // settle the re-mark while transitions are still off
+    el.removeAttribute('data-gl-raster')
+    item.loaded = false
+    item.size = [W, H]
+  }
+
   // ----------------------------------------------------------------- hand
 
   /** The hand, viewport px, or null when it has left the panel. */
@@ -297,9 +429,14 @@ export class PopupSurface {
 
   /** Where an item's element is, canvas px, and how visible its figure is. */
   private boxOf(item: Item) {
-    const r = item.media.getBoundingClientRect()
     const fs = item.frame.style
     const alpha = fs.visibility === 'hidden' ? 0 : fs.opacity === '' ? 1 : parseFloat(fs.opacity)
+    if (item.text) {
+      const r = item.text.el.getBoundingClientRect()
+      const p = item.text.pad
+      return { x: r.left - p - this.origin.x, y: r.top - p - this.origin.y, w: r.width + 2 * p, h: r.height + 2 * p, alpha }
+    }
+    const r = item.media.getBoundingClientRect()
     return { x: r.left - this.origin.x, y: r.top - this.origin.y, w: r.width, h: r.height, alpha }
   }
 
@@ -308,7 +445,11 @@ export class PopupSurface {
     const m = item.media
     let w = 0
     let h = 0
-    if (m instanceof HTMLVideoElement) {
+    if (m instanceof HTMLCanvasElement) {
+      if (item.loaded) return
+      w = m.width
+      h = m.height
+    } else if (m instanceof HTMLVideoElement) {
       if (m.readyState < 2) return
       w = m.videoWidth
       h = m.videoHeight
@@ -337,7 +478,7 @@ export class PopupSurface {
     if (this.stirTarget) {
       const { x, y } = this.stirTarget
       boxes.forEach((b, i) => {
-        if (hit < 0 && b.alpha > 0.01 && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
+        if (hit < 0 && !this.items[i].text && b.alpha > 0.01 && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
           hit = i
           hu = (x - b.x) / b.w
           hv = (y - b.y) / b.h
@@ -387,8 +528,10 @@ export class PopupSurface {
       const b = boxes[i]
       // only what is on the canvas, and shown
       if (b.alpha <= 0.001 || b.y > this.height || b.y + b.h < 0 || b.w < 1 || b.h < 1) return
+      if (it.text && it.text.dirtyUntil > performance.now()) this.rasterize(it)
       if (it.media instanceof HTMLVideoElement || !it.loaded) this.upload(it)
       if (!it.loaded) return
+      gl.uniform1f(u('uRadius'), it.text ? 0 : RADIUS_PX)
       // the ribbon's plate at this picture's scale: its reach is its own width
       const persp = Math.max(b.w, b.h)
       gl.bindTexture(gl.TEXTURE_2D, it.tex)
@@ -476,7 +619,10 @@ export class PopupSurface {
     const gl = this.gl
     if (!gl) return
     gsap.killTweensOf(this.hand)
-    this.items.forEach((it) => gl.deleteTexture(it.tex))
+    this.items.forEach((it) => {
+      gl.deleteTexture(it.tex)
+      it.text?.el.removeAttribute('data-gl-text')
+    })
     this.items = []
     gl.getExtension('WEBGL_lose_context')?.loseContext()
   }

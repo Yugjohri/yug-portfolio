@@ -97,6 +97,10 @@ export default function ProjectsStrip() {
   const count = useRef<HTMLElement>(null)
   const caption = useRef<HTMLDivElement>(null)
   const hint = useRef<HTMLDivElement>(null)
+  const pill = useRef<HTMLDivElement>(null)
+  const arrows = useRef<HTMLDivElement>(null)
+  const pillMove = useRef<((e: PointerEvent, pressed: boolean) => void) | null>(null)
+  const pillLeave = useRef<(() => void) | null>(null)
 
   // ------------------------------------------------------- the opened project
   // One panel at a time: `busy` holds from the click until the panel has
@@ -269,28 +273,12 @@ export default function ProjectsStrip() {
           scene.progress = place.scroll + place.hand
         }
 
-        const trigger = ScrollTrigger.create({
-          trigger: pinEl,
-          pin: true,
-          start: 'top top',
-          end: () => `+=${Math.round(scene.loopPx() * SCROLL_RATE)}`,
-          scrub: true,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-          onRefresh: (self) => {
-            measure()
-            place.scroll = self.progress
-            apply()
-            render()
-          },
-          onUpdate: (self) => {
-            place.scroll = self.progress
-            apply()
-            const t = Math.tanh(self.getVelocity() / VEL_NORM)
-            pushV(t * Math.abs(t))
-            if (hint.current) hint.current.style.opacity = self.progress > 0.02 ? '0' : ''
-          },
-        })
+        // The page scrolls straight past: the section is one screen and is not
+        // pinned, so the scroll no longer moves the ribbon. The hand does --
+        // drag and throw, the edge arrows, a trackpad's sideways swipe, the keys.
+        measure()
+        apply()
+
         // The scene renders on the ticker whenever any of it is on screen --
         // not only while pinned: the sheet keeps relaxing after the scroll
         // stops, and the cursor has to work when the page has landed exactly
@@ -350,16 +338,18 @@ export default function ProjectsStrip() {
           drag.downX = drag.lastX = e.clientX
           drag.lastT = e.timeStamp
           pinEl.setPointerCapture(e.pointerId)
-          pinEl.style.cursor = 'grabbing'
+          pinEl.style.cursor = 'none'
           scene.press(true)
+          gsap.killTweensOf(place)
         }
         // the hand stirs the surface over the stage whether or not it is dragging
         const onMove = (e: PointerEvent) => {
           const r = pinEl.getBoundingClientRect()
           scene.stir(e.clientX - r.left, e.clientY - r.top)
           scene.hold(e.clientX - r.left, e.clientY - r.top)
+          pillMove.current?.(e, drag.on)
           if (!drag.on) {
-            pinEl.style.cursor = 'grab'
+            pinEl.style.cursor = (e.target as HTMLElement).closest('a, button') ? '' : 'none'
             return
           }
           const dx = e.clientX - drag.lastX
@@ -379,13 +369,14 @@ export default function ProjectsStrip() {
           if (!drag.on) return
           drag.on = false
           if (pinEl.hasPointerCapture(e.pointerId)) pinEl.releasePointerCapture(e.pointerId)
-          pinEl.style.cursor = 'grab'
+          pinEl.style.cursor = 'none'
           // a hand that paused before letting go throws nothing
           if (e.timeStamp - drag.lastT > 90) drag.v = 0
           if (Math.abs(drag.v) > FLING_STOP) gsap.ticker.add(fling)
           else pushV(0)
         }
         const onLeave = () => {
+          pillLeave.current?.()
           scene.stir(null)
           scene.hold(null)
           if (!drag.on) pinEl.style.cursor = ''
@@ -412,8 +403,104 @@ export default function ProjectsStrip() {
         pinEl.addEventListener('pointercancel', onUp)
         pinEl.addEventListener('pointerleave', onLeave)
         pinEl.addEventListener('click', onClick)
-        // the wheel takes over from a throw
-        pinEl.addEventListener('wheel', stopFling, { passive: true })
+
+        // ------------------------------------------------- glide to a neighbour
+        // Card i stands in front at progress i/N; a glide moves the hand's
+        // share to the next or previous one along the shorter way, eased, and
+        // bends the sheet with its speed as a drag does.
+        const N = cards.length
+        const glide = (dir: 1 | -1) => {
+          stopFling()
+          gsap.killTweensOf(place)
+          const target = (Math.round(place.hand * N) + dir) / N
+          const from = place.hand
+          gsap.to(place, {
+            hand: target,
+            duration: 0.85,
+            ease: 'power3.inOut',
+            onUpdate: () => {
+              apply()
+              const v = ((place.hand - from) / 0.85) * scene.loopPx()
+              bend(Math.abs(v) > 1 ? v * 0.6 : 0)
+            },
+            onComplete: () => {
+              place.hand -= Math.floor(place.hand)
+              apply()
+              pushV(0)
+            },
+          })
+        }
+        const arrowEls = arrows.current ? gsap.utils.toArray<HTMLButtonElement>('button', arrows.current) : []
+        const arrowClick = arrowEls.map((_, i) => () => glide(i === 0 ? -1 : 1))
+        arrowEls.forEach((el, i) => el.addEventListener('click', arrowClick[i]))
+
+        // a trackpad's sideways swipe (or shift + wheel) moves the ribbon; the
+        // page keeps every vertical scroll
+        const onWheel = (e: WheelEvent) => {
+          const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.shiftKey ? e.deltaY : 0
+          if (!dx) {
+            stopFling()
+            return
+          }
+          e.preventDefault()
+          e.stopPropagation()
+          stopFling()
+          gsap.killTweensOf(place)
+          nudge(-dx)
+          bend(-dx * 30)
+          gsap.delayedCall(0.12, () => pushV(0))
+        }
+        pinEl.addEventListener('wheel', onWheel, { passive: false })
+
+        // the arrow keys, while anything in the section has focus
+        const onKey = (e: KeyboardEvent) => {
+          if (e.key === 'ArrowRight') glide(1)
+          else if (e.key === 'ArrowLeft') glide(-1)
+          else return
+          e.preventDefault()
+        }
+        rootEl.addEventListener('keydown', onKey)
+
+        // the Drag pill follows the hand over the stage, in place of the cursor
+        // GSAP moves the wrapper; the face keeps its own CSS translate and scale
+        const pillEl = pill.current
+        const pillFace = pillEl?.firstElementChild ?? null
+        const pillX = pillEl ? gsap.quickTo(pillEl, 'x', { duration: 0.28, ease: 'power3.out' }) : null
+        const pillY = pillEl ? gsap.quickTo(pillEl, 'y', { duration: 0.28, ease: 'power3.out' }) : null
+        const onEnter = (e: PointerEvent) => {
+          if (!pillEl) return
+          const r = pinEl.getBoundingClientRect()
+          gsap.set(pillEl, { x: e.clientX - r.left, y: e.clientY - r.top })
+        }
+        pinEl.addEventListener('pointerenter', onEnter)
+        pillMove.current = (e: PointerEvent, pressed: boolean) => {
+          if (!pillEl || !pillX || !pillY) return
+          const r = pinEl.getBoundingClientRect()
+          pillX(e.clientX - r.left)
+          pillY(e.clientY - r.top)
+          const overControl = !!(e.target as HTMLElement).closest('a, button')
+          pillFace?.toggleAttribute('data-on', !overControl)
+          pillFace?.toggleAttribute('data-pressed', pressed)
+        }
+        pillLeave.current = () => pillFace?.removeAttribute('data-on')
+
+        // the first time the section arrives, the ribbon shows it moves: a
+        // third of a card along and back, and the arrows pulse once
+        const nudgeIn = ScrollTrigger.create({
+          trigger: rootEl,
+          start: 'top 45%',
+          once: true,
+          onEnter: () => {
+            if (drag.on) return
+            const from = place.hand
+            gsap
+              .timeline({ onUpdate: apply })
+              .to(place, { hand: from + 0.33 / N, duration: 0.55, ease: 'power2.inOut', onUpdate: () => bend(900) })
+              .to(place, { hand: from, duration: 0.9, ease: 'back.out(2)', onUpdate: () => bend(-600), onComplete: () => pushV(0) })
+            arrows.current?.setAttribute('data-pulse', '')
+            gsap.delayedCall(1.6, () => arrows.current?.removeAttribute('data-pulse'))
+          },
+        })
 
         const ro = new ResizeObserver(() => {
           measure()
@@ -427,8 +514,13 @@ export default function ProjectsStrip() {
           stage.current = null
           gsap.ticker.remove(render)
           ScrollTrigger.removeEventListener('scrollEnd', settle)
-          trigger.kill()
           visible.kill()
+          nudgeIn.kill()
+          gsap.killTweensOf(place)
+          pinEl.removeEventListener('wheel', onWheel)
+          pinEl.removeEventListener('pointerenter', onEnter)
+          rootEl.removeEventListener('keydown', onKey)
+          arrowEls.forEach((el, i) => el.removeEventListener('click', arrowClick[i]))
           ro.disconnect()
           stopFling()
           window.removeEventListener('pointermove', track)
@@ -438,7 +530,6 @@ export default function ProjectsStrip() {
           pinEl.removeEventListener('pointercancel', onUp)
           pinEl.removeEventListener('pointerleave', onLeave)
           pinEl.removeEventListener('click', onClick)
-          pinEl.removeEventListener('wheel', stopFling)
           pinEl.style.cursor = ''
           scene.canvas.remove()
           scene.dispose()
@@ -541,7 +632,26 @@ export default function ProjectsStrip() {
           {`${PROJECTS[0]?.org ?? ''} — ${PROJECTS[0]?.metrics[0] ?? ''}`}
         </div>
         <div className="work__corner work__corner--br mono" ref={hint} aria-hidden="true">
-          Scroll
+          Drag
+        </div>
+
+        {/* the edge arrows, each with a small grab mark, and the Drag pill that follows the hand */}
+        <div className="work__arrows" ref={arrows}>
+          {(['prev', 'next'] as const).map((d) => (
+            <button key={d} type="button" className={`work__arrow work__arrow--${d}`} aria-label={d === 'prev' ? 'Previous project' : 'Next project'}>
+              <svg className="work__grab" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11.5V5a1.5 1.5 0 0 1 3 0v6.5M14 11.5V6.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-.5a6 6 0 0 1-5.2-3L3.8 14.4a1.5 1.5 0 0 1 2.4-1.8L8 15" />
+              </svg>
+              <span className="work__arrow-disc" aria-hidden="true">
+                {d === 'prev' ? '\u2039' : '\u203A'}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="work__pill-pos" ref={pill} aria-hidden="true">
+          <div className="work__pill mono">
+            <span>&larr;</span> Drag <span>&rarr;</span>
+          </div>
         </div>
       </div>
 

@@ -7,7 +7,7 @@
 // The project clips, referenced where they live (../project mockup vids, beside
 // the app) rather than copied in. Vite serves them in development and bundles
 // them for a build.
-import inventoryClip from '../../../project mockup vids/Employeeinventorymanagementsystemvid.mp4'
+import inventoryClip from '../../../project mockup vids/EIM launch film.mp4'
 import ragClip from '../../../project mockup vids/RAG AI mockup vid.mp4'
 import qloraClip from '../../../project mockup vids/frontier price predict mockup vid.mp4'
 import portClip from '../../../project mockup vids/pythonrust.mp4'
@@ -33,6 +33,8 @@ export type Sleeve = {
   body: string
   /** One to three sentences: what the detail panel says under the title. */
   summary: string
+  /** What was done, point by point, as the résumé puts it: listed in the detail panel under the summary. */
+  points?: string[]
   /** One small mark for the kind of work it is. */
   emoji: string
   metrics: string[]
@@ -63,12 +65,20 @@ export const SLEEVES: Sleeve[] = [
     title: 'Employee inventory management system',
     capLines: ['Employee inventory', 'management system'],
     body:
-      'Sole developer replacing a paper approval workflow that took days to weeks. A per-page AI assistant runs on a locally hosted open-source model — no external API calls, because the network is air-gapped. Multi-level authentication with role-based access and tiered authorization across departments.',
+      'Sole developer replacing a paper approval workflow that took days to weeks. It runs entirely offline on local PostgreSQL and Express and makes no outbound network requests at all. Three roles (administrator, group IT coordinator, employee) are enforced by PostgreSQL row-level security, so hiding a menu item is never the only lock. Repair and new-item requests go to an admin for approval, and staff records bulk-import from CSV, with a dry run first.',
     summary:
-      'An air-gapped inventory and approvals system for a defence lab, with a per-page AI assistant on a locally hosted model — no call ever leaves the network.',
+      'An air-gapped inventory and approvals system for a defence lab. It runs with no internet at all, and the database itself decides who sees what.',
+    points: [
+      "Sole developer of an inventory and approval system replacing a paper process that took days to weeks, for 500+ staff and 10,000+ assets.",
+      "Built it for DRDO's air-gapped intranet, moving the backend off Supabase to local PostgreSQL + Express.",
+      "Kept it portable: the same backend still runs on Supabase by changing one connection string.",
+      "Enforced access control with PostgreSQL row-level security across 3 roles, tested against cross-group reads, replays and forged sessions.",
+      "Built an offline AI assistant on a locally hosted open-source model (Ollama), with no external API calls.",
+    ],
     emoji: '🔒',
     metrics: ['500+ personnel', '10k+ assets', 'Zero outbound calls'],
-    tags: ['Python', 'React', 'PostgreSQL / Supabase', 'Ollama', 'RBAC'],
+    tags: ['React', 'Express', 'PostgreSQL', 'Row-level security', 'RBAC'],
+    repo: 'https://github.com/Yugjohri/Employee-Inventory-Management-Drdo',
     video: inventoryClip,
     jx: -2,
     jr: 0.5,
@@ -83,6 +93,10 @@ export const SLEEVES: Sleeve[] = [
       'An end-to-end retrieval system that ingests company documents and answers domain-specific questions, cutting lookup time by roughly 60%. Vector embeddings with semantic retrieval keep every response grounded in verified source data rather than the model’s memory.',
     summary:
       'A retrieval system that ingests company documents and answers questions from them, with every response grounded in a cited source.',
+    points: [
+      "Answers questions over 76 company documents and shows the sources behind every answer.",
+      "Benchmarked on 150 questions (MRR 0.905); query rewriting + re-ranking let free local embeddings match OpenAI's paid ones, 5x faster.",
+    ],
     emoji: '🔎',
     metrics: ['−60% lookup time', 'Cited answers', 'Local + API'],
     tags: ['LangChain', 'FAISS', 'ChromaDB', 'OpenAI API'],
@@ -101,6 +115,13 @@ export const SLEEVES: Sleeve[] = [
       'A QLoRA fine-tune that predicts product prices from free text, reaching accuracy competitive with GPT-4 on the task. 4-bit quantization through PEFT/LoRA cut GPU memory by about 70% — the whole training run fits on consumer hardware.',
     summary:
       'A QLoRA fine-tune that prices products from free text, trained in 4-bit on a single consumer GPU and competitive with GPT-4 on the task.',
+    points: [
+      "Predicts a product's price from its description, comparing fine-tuned, frontier and from-scratch models.",
+      "Fine-tuned Llama 3.2 3B (4-bit QLoRA) to $39.85 mean error, beating GPT-5.1 ($44.74), Claude Sonnet 4.5 ($47.10) and Gemini 3 Pro.",
+      "Also fine-tuned GPT-4.1 nano ($75.91) before OpenAI closed self-serve fine-tuning in May 2026.",
+      "Matched that result ($38.61) on a 16 GB RTX 5070 Ti by fitting training built for an 80 GB A100 into 16 GB.",
+      "Separately, a 289M-parameter network trained from scratch beat prompted GPT-4.1 nano by 27%.",
+    ],
     emoji: '🧠',
     metrics: ['−70% GPU memory', '4-bit quantized', 'GPT-4 accuracy peer'],
     tags: ['PyTorch', 'QLoRA', 'Hugging Face', 'PEFT'],
@@ -119,6 +140,11 @@ export const SLEEVES: Sleeve[] = [
       'Specialized agents scan listings, read pricing trends and notify users when something is worth buying. Structured tool-use and inter-agent memory keep the coordination reliable instead of chatty.',
     summary:
       'Specialised agents that scan listings, read pricing trends and say when something is worth buying — coordinated through structured tool use and shared memory.',
+    points: [
+      "Autonomous system that scans online deal feeds every 5 minutes, estimates each product's true value and push-notifies the best bargain.",
+      "A GPT-5.1 planner calls tools to run 6 agents: a deal scanner, 3 pricing models, an ensemble and a notifier.",
+      "The pricing ensemble (RAG + fine-tuned Llama served on Modal + neural net) cut error to $29.90, beating GPT-5.1 alone ($44.74).",
+    ],
     emoji: '🤖',
     metrics: ['Agent-to-agent memory', 'Structured tool use'],
     tags: ['Multi-agent', 'Python', 'Tool calling'],
@@ -136,6 +162,13 @@ export const SLEEVES: Sleeve[] = [
       'Churn, customer segmentation and demand forecasting wired into incremental ETL and dashboards used daily by Sales, Ops and Finance. Ad-hoc validation scripts became a reusable data-integrity framework.',
     summary:
       'Churn, segmentation and demand models wired into incremental ETL and the dashboards Sales, Ops and Finance read every day.',
+    points: [
+      "Built three predictive models (customer churn, segmentation, and demand forecasting) and integrated them into business reporting.",
+      "Built incremental ETL pipelines with staging layers and slowly changing dimensions to preserve historical data.",
+      "Wrote Python validation scripts and generalized them into reusable data-integrity frameworks, replacing manual QA.",
+      "Optimized SQL queries and refresh logic via execution plans, join order, indexing, and aggregate tables.",
+      "Delivered Power BI dashboards used daily by Sales, Operations, and Finance, with row-level security and drill-through.",
+    ],
     emoji: '📊',
     metrics: ['3 models shipped', 'Daily use', 'Reusable QA framework'],
     tags: ['Pandas', 'SQL', 'Power BI', 'Power Query'],
@@ -152,6 +185,10 @@ export const SLEEVES: Sleeve[] = [
       'An LLM ports a Python program to Rust or C++. Both versions are compiled and executed in a sandbox on the same machine, so the speedup is measured rather than estimated — and the outputs are compared, because a fast translation that changes the answer is a broken one.',
     summary:
       'An LLM translates Python to Rust or C++; both are compiled and run in a sandbox, so the speedup is measured and the answers are checked.',
+    points: [
+      "An LLM rewrites a Python program in Rust or C++, then compiles and runs both, comparing output to prove the translation is correct.",
+      "61–73x measured speedups with byte-identical output; untrusted code runs sandboxed with resource limits.",
+    ],
     emoji: '⚙️',
     metrics: ['Measured speedup', 'Output-checked', 'GPT-OSS 120B'],
     tags: ['LLM translation', 'Rust', 'C++', 'Sandboxed execution'],
@@ -170,30 +207,32 @@ export type Tech = {
   category: string
   /** Its logo in techLogos.ts, where a reliable one exists; without one the card keeps its type. */
   logo?: string
+  /** Its official site, opened in a new tab from the stack in About. */
+  url: string
 }
 
 /** Only what the work above actually used. Order is the order round the ring. */
 export const TECH: Tech[] = [
-  { name: 'Python', mark: 'PY', category: 'Language', logo: 'python' },
-  { name: 'C++', mark: 'C+', category: 'Language', logo: 'cplusplus' },
-  { name: 'Java', mark: 'JV', category: 'Language', logo: 'java' },
-  { name: 'PyTorch', mark: 'PT', category: 'Deep learning', logo: 'pytorch' },
-  { name: 'React', mark: 'RE', category: 'Interface', logo: 'react' },
-  { name: 'OpenAI API', mark: 'OA', category: 'Models', logo: 'openai' },
-  { name: 'LangChain', mark: 'LC', category: 'Retrieval', logo: 'langchain' },
-  { name: 'PostgreSQL', mark: 'PG', category: 'Database', logo: 'postgresql' },
-  { name: 'Hugging Face', mark: 'HF', category: 'Models', logo: 'huggingface' },
-  { name: 'TypeScript', mark: 'TS', category: 'Language', logo: 'typescript' },
-  { name: 'JavaScript', mark: 'JS', category: 'Language', logo: 'javascript' },
-  { name: 'Supabase', mark: 'SB', category: 'Backend', logo: 'supabase' },
-  { name: 'Node.js', mark: 'NO', category: 'Runtime', logo: 'nodedotjs' },
-  { name: 'Ollama', mark: 'OL', category: 'Local models', logo: 'ollama' },
-  { name: 'Docker', mark: 'DK', category: 'Deployment', logo: 'docker' },
-  { name: 'Git', mark: 'GT', category: 'Version control', logo: 'git' },
-  { name: 'Pandas', mark: 'PD', category: 'Data', logo: 'pandas' },
-  { name: 'NumPy', mark: 'NP', category: 'Data', logo: 'numpy' },
-  { name: 'GSAP', mark: 'GS', category: 'Motion', logo: 'gsap' },
-  { name: 'Unreal Engine', mark: 'UE', category: 'Real-time 3D', logo: 'unrealengine' },
+  { name: 'Python', mark: 'PY', category: 'Language', logo: 'python' , url: 'https://www.python.org/' },
+  { name: 'C++', mark: 'C+', category: 'Language', logo: 'cplusplus' , url: 'https://isocpp.org/' },
+  { name: 'Java', mark: 'JV', category: 'Language', logo: 'java' , url: 'https://dev.java/' },
+  { name: 'PyTorch', mark: 'PT', category: 'Deep learning', logo: 'pytorch' , url: 'https://pytorch.org/' },
+  { name: 'React', mark: 'RE', category: 'Interface', logo: 'react' , url: 'https://react.dev/' },
+  { name: 'OpenAI API', mark: 'OA', category: 'Models', logo: 'openai' , url: 'https://platform.openai.com/' },
+  { name: 'LangChain', mark: 'LC', category: 'Retrieval', logo: 'langchain' , url: 'https://www.langchain.com/' },
+  { name: 'PostgreSQL', mark: 'PG', category: 'Database', logo: 'postgresql' , url: 'https://www.postgresql.org/' },
+  { name: 'Hugging Face', mark: 'HF', category: 'Models', logo: 'huggingface' , url: 'https://huggingface.co/' },
+  { name: 'TypeScript', mark: 'TS', category: 'Language', logo: 'typescript' , url: 'https://www.typescriptlang.org/' },
+  { name: 'JavaScript', mark: 'JS', category: 'Language', logo: 'javascript' , url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript' },
+  { name: 'Supabase', mark: 'SB', category: 'Backend', logo: 'supabase' , url: 'https://supabase.com/' },
+  { name: 'Node.js', mark: 'NO', category: 'Runtime', logo: 'nodedotjs' , url: 'https://nodejs.org/' },
+  { name: 'Ollama', mark: 'OL', category: 'Local models', logo: 'ollama' , url: 'https://ollama.com/' },
+  { name: 'Docker', mark: 'DK', category: 'Deployment', logo: 'docker' , url: 'https://www.docker.com/' },
+  { name: 'Git', mark: 'GT', category: 'Version control', logo: 'git' , url: 'https://git-scm.com/' },
+  { name: 'Pandas', mark: 'PD', category: 'Data', logo: 'pandas' , url: 'https://pandas.pydata.org/' },
+  { name: 'NumPy', mark: 'NP', category: 'Data', logo: 'numpy' , url: 'https://numpy.org/' },
+  { name: 'GSAP', mark: 'GS', category: 'Motion', logo: 'gsap' , url: 'https://gsap.com/' },
+  { name: 'Unreal Engine', mark: 'UE', category: 'Real-time 3D', logo: 'unrealengine' , url: 'https://www.unrealengine.com/' },
 ]
 
 export type Role = {

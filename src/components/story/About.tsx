@@ -21,14 +21,14 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
  */
 
 /** Two short lines, left of centre: the lead-in, then the name under it. */
-const INTRO_LEAD = "hi, i'm"
+export const INTRO_LEAD = "hi, i'm"
 
 /** One statement, right of centre. Three lines at the width set in the CSS. */
-const LINE =
+export const LINE =
   'i design, and i write code. what i care about is making the complex simple — and the simple meaningful.'
 /** The statement's closing words, in the red serif italic: the section's one accent. */
-const LINE_ACCENT = 'the simple meaningful.'
-const ACCENT_FROM = LINE.split(' ').length - LINE_ACCENT.split(' ').length
+export const LINE_ACCENT = 'the simple meaningful.'
+export const ACCENT_FROM = LINE.split(' ').length - LINE_ACCENT.split(' ').length
 
 export default function About() {
   const root = useRef<HTMLElement>(null)

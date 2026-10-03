@@ -26,8 +26,8 @@ import { GRADE_ID, INK, INK_DEEP, PAPER, type Grade } from '../../theme'
 
 /** Cell pitch, CSS px. Opened up past the reference's 6 device px so each
  *  mark is ~5% larger and still keeps a little more ground around it. */
-const CELL_CSS = 3.45
-const CELL_MIN_PX = 5.4
+const CELL_CSS = 4.6
+const CELL_MIN_PX = 7.2
 
 /** The characters a cell can be. Dense and holed, so every mark reads as a
  *  small ring rather than a dot or a block; ordered light to dark. */
@@ -53,14 +53,14 @@ const BULGE_BOTTOM = 0.14
 const FISHEYE = 0.22
 
 /** Colour: how far the picture is pulled toward grey, and its overall level. */
-const SATURATION = 0.7
-const EXPOSURE = 0.88
-const BLOOM = 0.55
+const SATURATION = 0.76
+const EXPOSURE = 0.84
+const BLOOM = 0.48
 /** How much of the neighbouring cells each cell's colour takes: the picture
  *  goes soft, as a tube's does, instead of every cell reading its own pixel. */
-const SOFTEN = 0.5
+const SOFTEN = 0.62
 /** Phosphor spill: the picture, wide-blurred, lit faintly in the gaps. */
-const HALO = 0.06
+const HALO = 0.045
 /** Falloff toward the edges of the glass. */
 const VIGNETTE = 0.28
 
@@ -256,6 +256,9 @@ void main() {
   vec3 near = (pic(readUv + vec2(cellStep.x, 0.0)) + pic(readUv - vec2(cellStep.x, 0.0))
              + pic(readUv + vec2(0.0, cellStep.y)) + pic(readUv - vec2(0.0, cellStep.y))) * 0.25;
   col = mix(col, near, uSoften);
+  /* a few levels per channel, as a low-resolution tube shows: the picture
+     reads as lit dots rather than as a photograph */
+  col = floor(col * 9.0 + 0.5) / 9.0;
 
   /* --- the mark: a dense glyph, chosen by value, inked in the picture's colour */
   float luma = dot(col, vec3(0.299, 0.587, 0.114));

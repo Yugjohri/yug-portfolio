@@ -178,3 +178,11 @@ ul {
   min-height: 100dvh;
   background: var(--bg);
 }
+
+/* never a sideways scroll: nothing on the site is meant to be reached that way.
+   clip (not hidden) so the page makes no scroll container of its own and the
+   pinned sections still pin */
+html,
+body {
+  overflow-x: clip;
+}
