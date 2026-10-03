@@ -23,8 +23,12 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
  * hand-over from the walls to the section is exact.
  *
  * Each card opens its technology's site in a new tab (TECH[].url in
- * data/portfolio.ts); a small label names the card under the hand. A soft
- * shadow on the floor under the statement comes up as the stream starts.
+ * data/portfolio.ts); a small label names the card under the hand.
+ *
+ * The stream starts empty: when the pin takes hold the first card is at the
+ * left edge, and the cards come in one by one as the scroll carries them. The
+ * statement (and the soft shadow on the floor under it) only rises once a few
+ * cards are already round the loop.
  *
  * The stream's path is described in the comments of the original section
  * (git history: TechStack.tsx); the geometry below is unchanged.
@@ -39,8 +43,9 @@ const BANK_DEG = 16
 const PITCH_DEG = 10
 /** Scroll pixels per pixel of travel along the path (of the full-size stage, as before). */
 const SCROLL_RATE = 0.3
-/** Cards already in when the pin takes hold, and still in when it lets go. */
-const HELD = 4
+/** The statement rises once this many cards have come in, over this many more. */
+const STATEMENT_AFTER = 2.5
+const STATEMENT_OVER = 1.5
 const LEAN_DEG = 3
 /** Desktop: the stage's own width (it is scaled to the column), so the stream keeps the old section's proportions. */
 const STAGE_W = 1440
@@ -146,6 +151,7 @@ export default function StackOrbit({ mode, pin }: Props) {
       const spaceEl = space.current
       const ringEl = ring.current
       const floorEl = floor.current
+      const statementEl = stageEl?.querySelector<HTMLElement>('.stack__statement') ?? null
       const tipEl = tip.current
       if (!rootEl || !stageEl || !spaceEl || !ringEl || !floorEl || !tipEl) return
 
@@ -294,11 +300,22 @@ export default function StackOrbit({ mode, pin }: Props) {
           el.style.zIndex = String(Math.round((p.z + 1) * 100))
         }
         spaceEl.style.transform = `rotateX(${-lean.y * LEAN_DEG}deg) rotateY(${lean.x * LEAN_DEG}deg)`
+        // the statement, and its shadow, rise once a few cards are in
+        const entered = (head - win.sIn) / Math.max(1e-6, dims.gap)
+        const q = gsap.utils.clamp(0, 1, (entered - STATEMENT_AFTER) / STATEMENT_OVER)
+        const e = q * q * (3 - 2 * q)
+        if (statementEl) {
+          statementEl.style.opacity = e.toFixed(3)
+          statementEl.style.transform = `translate3d(0, ${((1 - e) * 46).toFixed(1)}px, 0)`
+          statementEl.style.filter = e < 1 ? `blur(${((1 - e) * 10).toFixed(1)}px)` : ''
+        }
+        floorEl.style.opacity = e.toFixed(3)
       }
 
-      // the visible stretch: the pin starts with a few cards already in and
-      // lets go with the last few still there (the stage's edges are the column's)
-      const win = { p0: 0, p1: 1 }
+      // the visible stretch: the pin starts with the stream empty -- its first
+      // card at the left edge -- and lets go once the last has left
+      // (the stage's edges are the column's)
+      const win = { p0: 0, p1: 1, sIn: 0 }
       const findWindow = () => {
         const persp = parseFloat(getComputedStyle(spaceEl).perspective) || 1000
         const onScreen = (s: number) => {
@@ -325,8 +342,9 @@ export default function StackOrbit({ mode, pin }: Props) {
             break
           }
         }
-        const lead = Math.min(HELD, n - 1) * dims.gap
-        win.p0 = gsap.utils.clamp(0, 1, (sIn + lead) / span())
+        // half a card's spacing short of the edge, so the first card is wholly out of sight when the pin takes hold
+        win.sIn = Math.max(0, sIn - dims.gap * 0.5)
+        win.p0 = gsap.utils.clamp(0, 1, win.sIn / span())
         // the pin lets go only once the last card has left: the page moves on with the column empty
         win.p1 = gsap.utils.clamp(win.p0 + 0.1, 1, (sOut + (n - 1) * dims.gap + 0.02) / span())
       }
@@ -346,7 +364,6 @@ export default function StackOrbit({ mode, pin }: Props) {
       if (mode === 'still' || reduced || !pin?.current) {
         // the first frame of the live stack (or, reduced, a still half way through)
         flow.p = reduced ? 0.5 : win.p0
-        if (reduced) floorEl.style.opacity = '1'
         place()
         return () => ro.disconnect()
       }
@@ -372,8 +389,6 @@ export default function StackOrbit({ mode, pin }: Props) {
         },
       })
       tl.fromTo(flow, { p: () => win.p0 }, { p: () => win.p1, duration: 1, onUpdate: place }, 0)
-      // the shadow under the statement comes up as the stream starts
-      tl.fromTo(floorEl, { opacity: 0 }, { opacity: 1, duration: 0.14, ease: 'power1.out' }, 0)
       place()
 
       // the lean answers the hand, as before

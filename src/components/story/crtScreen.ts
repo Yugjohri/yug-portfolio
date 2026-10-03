@@ -49,8 +49,11 @@ const TUBE_H = 0.8
 const BULGE_SIDE = 0.035
 const BULGE_TOP = 0.13
 const BULGE_BOTTOM = 0.14
-/** The picture's own curve inside the glass. */
-const FISHEYE = 0.22
+/** The picture's own curve inside the glass. 0: read flat, one to one. Any
+ *  curve stretches the sides past the picture's edge, where the read is
+ *  clamped and the edge pixels smear (the left and right warp). The tube's
+ *  bowed outline is its own shape (TUBE_* / BULGE_*), not this. */
+const FISHEYE = 0
 
 /** Colour: how far the picture is pulled toward grey, and its overall level. */
 const SATURATION = 0.76
@@ -130,15 +133,21 @@ float hash(vec2 p) {
   return fract(p.x * p.y);
 }
 
-/* cover fit, biased up the source so a tall picture is read at the subject */
+/* The picture fills the tube, not the canvas: the tube only takes 93-96.5 %
+   of the canvas' width and 80-94 % of its height, so fitting the picture to
+   the canvas lost its edges outside the glass. Here canvas uv is mapped to the
+   tube's bounding box (its widest and tallest reach) and the picture is
+   cover-fitted to that box, centred, with no extra zoom -- what is cut is only
+   the sliver the two shapes' ratios differ by, and the bowed corners. */
 vec2 cover(vec2 uv) {
-  float pr = uRes.x / uRes.y;
+  vec2 box = vec2(${(TUBE_W + BULGE_SIDE).toFixed(3)}, ${(TUBE_H + Math.max(BULGE_TOP, BULGE_BOTTOM)).toFixed(3)});
+  uv = (uv - 0.5) / box + 0.5;
+  float pr = (uRes.x * box.x) / (uRes.y * box.y);
   float ir = uTexSize.x / uTexSize.y;
   vec2 o = uv;
   if (pr > ir) {
     float s = pr / ir;
     o.y = uv.y / s + (1.0 - 1.0 / s) * 0.5;
-    o.y = o.y * 0.92 - 0.055;
   } else {
     float s = ir / pr;
     o.x = uv.x / s + (1.0 - 1.0 / s) * 0.5;

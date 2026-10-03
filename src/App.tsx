@@ -3,6 +3,7 @@ import { Route, Routes, useLocation } from 'react-router-dom'
 import Home from './pages/Home'
 import { loadBrief, loadStory } from './routes'
 import MusicPlayer from './components/MusicPlayer'
+import ClickSpark from './components/ClickSpark'
 import RouteTransition from './motion/RouteTransition.tsx'
 import { applyTheme } from './theme'
 
@@ -38,6 +39,8 @@ export default function App() {
       <RouteTransition />
       {/* on every route, in the corner; tracks in data/music.ts */}
       <MusicPlayer />
+      {/* a spark at every click, over everything */}
+      <ClickSpark />
     </>
   )
 }

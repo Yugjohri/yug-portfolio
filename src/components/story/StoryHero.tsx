@@ -72,9 +72,11 @@ export const TURN_TO = 0.7
 type StoryHeroProps = {
   /** Optional looping clip for the screen. Without one it shows the still. */
   videoSrc?: string
+  /** The still shown until the clip plays (and instead of it, without one). */
+  posterSrc?: string
 }
 
-export default function StoryHero({ videoSrc }: StoryHeroProps) {
+export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.jpg' }: StoryHeroProps) {
   const root = useRef<HTMLElement>(null)
   const frame = useRef<HTMLDivElement>(null)
   const media = useRef<HTMLDivElement>(null)
@@ -101,7 +103,7 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
 
     // 'lit' reads the footage as it is; the ember grade that pulled it toward
     // crimson is still in the shader, unused
-    const screen = new CrtScreen({ videoSrc, posterSrc: '/story-header-poster.jpg', grade: 'lit' })
+    const screen = new CrtScreen({ videoSrc, posterSrc, grade: 'lit' })
     if (!screen.supported) {
       screen.dispose()
       return
@@ -170,7 +172,7 @@ export default function StoryHero({ videoSrc }: StoryHeroProps) {
       screen.dispose()
       tubeLine.current = 0
     }
-  }, [videoSrc])
+  }, [videoSrc, posterSrc])
 
   // ------------------------------------------------------------ the gesture
   useGSAP(

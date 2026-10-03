@@ -186,3 +186,17 @@ html,
 body {
   overflow-x: clip;
 }
+
+/* click sparks (components/ClickSpark.tsx): a fixed layer over everything, never in the way */
+.click-spark-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  overflow: hidden;
+}
+.click-spark {
+  position: absolute;
+  overflow: visible;
+  stroke: var(--click-spark-color, var(--red-hot, #e0122f));
+}
