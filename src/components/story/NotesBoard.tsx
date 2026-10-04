@@ -233,6 +233,62 @@ export default function NotesBoard() {
     b.addEventListener('pointercancel', up)
   }
 
+  /** docked, the blank note can be dragged over the small board too: where it
+   *  is let go is where it will be pinned (and where it waits on the open board) */
+  const dockOff = useRef({ x: 0, y: 0 })
+  const onDockDown = (e: React.PointerEvent<HTMLLIElement>) => {
+    if (e.button !== 0) return
+    const t = e.target as HTMLElement
+    if (t.closest('button, input')) return
+    const el = e.currentTarget
+    const b = board.current!
+    const inText = !!t.closest('textarea')
+    const start = { px: e.clientX, py: e.clientY, ox: dockOff.current.x, oy: dockOff.current.y }
+    let dragging = !inText
+    const bound = () => {
+      // the note's resting box (without the drag), to keep it on the board
+      const r = el.getBoundingClientRect()
+      const br = b.getBoundingClientRect()
+      return { r, br, rest: { left: r.left - dockOff.current.x, top: r.top - dockOff.current.y } }
+    }
+    const move = (ev: PointerEvent) => {
+      const mx = ev.clientX - start.px
+      const my = ev.clientY - start.py
+      if (!dragging) {
+        if (Math.hypot(mx, my) < 6) return
+        dragging = true
+        ;(t as HTMLTextAreaElement).blur()
+        window.getSelection()?.removeAllRanges()
+      }
+      ev.preventDefault()
+      el.setPointerCapture(ev.pointerId)
+      b.dataset.dragging = 'note'
+      const { r, br, rest } = bound()
+      const x = clamp(br.left - rest.left, br.right - r.width - rest.left, start.ox + mx)
+      const y = clamp(br.top - rest.top, br.bottom - r.height - rest.top, start.oy + my)
+      dockOff.current = { x, y }
+      el.style.translate = `${x}px ${y}px`
+    }
+    const up = () => {
+      el.removeEventListener('pointermove', move)
+      el.removeEventListener('pointerup', up)
+      el.removeEventListener('pointercancel', up)
+      delete b.dataset.dragging
+      if (!dragging) return
+      // its place on the board: the note's top-left, through the docked view
+      const r = el.getBoundingClientRect()
+      const br = b.getBoundingClientRect()
+      const v = view.current
+      draftAt.current = {
+        x: clamp(0, WORLD.w - NOTE, (r.left - br.left - v.x) / v.s),
+        y: clamp(0, WORLD.h - NOTE, (r.top - br.top - v.y) / v.s),
+      }
+    }
+    el.addEventListener('pointermove', move)
+    el.addEventListener('pointerup', up)
+    el.addEventListener('pointercancel', up)
+  }
+
   // ------------------------------------------------------------- pinning
   const { contextSafe } = useGSAP({ scope: board })
   const drop = contextSafe((id: string) => {
@@ -273,6 +329,7 @@ export default function NotesBoard() {
       data-note={where === 'board' ? 'new' : undefined}
       data-note-draft={where === 'board' ? '' : undefined}
       data-note-docked={where === 'docked' ? '' : undefined}
+      onPointerDown={where === 'docked' ? onDockDown : undefined}
       style={
         where === 'board'
           ? ({ left: 0, top: 0, transform: `translate(${draftAt.current.x}px, ${draftAt.current.y}px)`, '--tilt': '0deg' } as React.CSSProperties)
@@ -282,7 +339,7 @@ export default function NotesBoard() {
       <span className="note__pin" aria-hidden="true" />
       <form className="note__form" onSubmit={submit}>
         <label className="note__label mono" htmlFor={`note-text-${where}`}>
-          {where === 'board' ? 'your note · drag me' : 'your note'}
+          your note · drag me
         </label>
         <textarea
           id={`note-text-${where}`}

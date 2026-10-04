@@ -1791,7 +1791,8 @@ em.about__pword {
   width: 210px;
   min-height: 0;
   rotate: 2deg;
-  cursor: default;
+  cursor: move;
+  touch-action: none;
   pointer-events: auto;
 }
 @media (max-width: 699px) {
