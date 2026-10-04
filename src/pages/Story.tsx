@@ -2,6 +2,7 @@ import StoryHero from '../components/story/StoryHero'
 import ProjectsStrip from '../components/projects/ProjectsStrip'
 import Experience from '../components/story/Experience'
 import Contact from '../components/story/Contact'
+import RunningBand from '../components/story/RunningBand'
 import { useSmoothScroll } from '../lib/useSmoothScroll'
 import { useSectionTransitions } from '../motion/sectionTransitions'
 import SiteHeader from '../components/story/SiteHeader'
@@ -24,6 +25,8 @@ export default function Story() {
       <AboutPanel variant="section" />
       <Experience />
       <ProjectsStrip />
+      {/* a breath between the work and the invitation */}
+      <RunningBand />
       <Contact />
       <SiteHeader />
     </main>

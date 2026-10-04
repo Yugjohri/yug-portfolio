@@ -1045,9 +1045,27 @@ em.about__pword {
    screen; the real section is shown in their place the moment they land. */
 .story {
   --ap-accent: #e2531f;
-  --ap-ground: #f4f1ea;
+  /* the page's own cream: the walls are told apart by their edges (below), not by a lighter ground */
+  --ap-ground: var(--bg);
 }
 .shero__wall { overflow: hidden; background: var(--ap-ground); }
+/* each wall's leading edge -- the left's bottom (it comes down), the right's
+   top (it comes up): a thin red line along it and a soft shadow off it, so
+   the walls read against the same cream as they close */
+.shero__wall::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  height: 2px;
+  background: var(--red-hot, #bc0202);
+  pointer-events: none;
+}
+.shero__wall--l::after { bottom: 0; }
+.shero__wall--r::after { top: 0; }
+.shero__wall--l { box-shadow: 0 18px 40px -6px rgb(20 12 8 / 0.28); }
+.shero__wall--r { box-shadow: 0 -18px 40px -6px rgb(20 12 8 / 0.28); }
 /* a copy in a wall: a screen's size, lined up with the screen */
 .shero__wall .apanel {
   position: absolute;
@@ -1983,4 +2001,37 @@ em.about__pword {
   z-index: 1;
   /* room to breathe between the two */
   padding-top: calc(var(--st-pad) + 4.5rem + 14vh);
+}
+
+/* ---------- the running band between Projects and Contact (RunningBand.tsx) ---------- */
+.rband {
+  position: relative;
+  overflow: hidden;
+  padding-block: clamp(4rem, 12vh, 8rem);
+  background: var(--bg);
+  border-block: 1px solid var(--st-line);
+}
+.rband__track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+}
+.rband__run { display: flex; flex: none; }
+.rband__word {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding-right: 0.5em;
+  font-family: Anton, 'Arial Narrow', Impact, sans-serif;
+  font-size: clamp(3.5rem, 11vw, 10rem);
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: max(1.5px, 0.012em) var(--red-hot, #bc0202);
+}
+.rband__sep {
+  font-size: 0.42em;
+  color: var(--red-hot, #bc0202);
+  -webkit-text-stroke: 0;
 }
