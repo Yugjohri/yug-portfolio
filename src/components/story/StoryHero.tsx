@@ -339,6 +339,18 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
         const WALLS = { at: 0.88, dur: TL_TOTAL - 0.88, ease: 'sine.inOut' }
         tl.fromTo(wallL.current, { y: 0, yPercent: -100 }, { y: 0, yPercent: 0, duration: WALLS.dur, ease: WALLS.ease }, WALLS.at)
         tl.fromTo(wallR.current, { y: 0, yPercent: 100 }, { y: 0, yPercent: 0, duration: WALLS.dur, ease: WALLS.ease }, WALLS.at)
+        // About assembles as the walls close (the left half; the right is the stack's):
+        // its heading's lines rise out of their masks, one after the other, and the
+        // paragraphs come up from nothing to their faint resting state -- all with
+        // the scroll, so stopping part way leaves it part built, and back undoes it
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          const walls = [wallL.current, wallR.current]
+          const lines = walls.flatMap((w) => gsap.utils.toArray<HTMLElement>('[data-ap-line]', w))
+          const words = walls.flatMap((w) => gsap.utils.toArray<HTMLElement>('.apanel__body, .apanel__coda', w))
+          const span = WALLS.dur
+          tl.fromTo(lines, { yPercent: 140 }, { yPercent: 0, duration: span * 0.42, ease: 'power3.out', stagger: span * 0.12 }, WALLS.at + span * 0.22)
+          tl.fromTo(words, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: span * 0.4, ease: 'power2.out', stagger: span * 0.06 }, WALLS.at + span * 0.45)
+        }
         // their edges (the red line and the shadow) fade out over the last stretch,
         // so they are gone as the walls meet and About takes over -- not cut at once
         const EDGE = 0.16

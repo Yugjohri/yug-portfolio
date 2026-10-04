@@ -1162,12 +1162,7 @@ em.about__pword {
   padding-bottom: 0.24em;
   margin-bottom: -0.24em;
 }
-.apanel__rise {
-  display: block;
-  /* waiting wholly below its mask: past the line's own height and the room the
-     mask leaves under it for the underline (at 105% the letters' tops showed in it) */
-  transform: translateY(140%);
-}
+.apanel__rise { display: block; }
 /* the paragraphs' words, faint until the scroll lights them */
 .apanel__w { opacity: 0.26; }
 @media (prefers-reduced-motion: reduce) {

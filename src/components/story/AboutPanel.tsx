@@ -39,7 +39,7 @@ function Panel({ live, pin }: { live: boolean; pin?: React.RefObject<HTMLElement
         <div className="apanel__half apanel__half--l">
           <div className="apanel__left">
             <p className="apanel__eyebrow">{ABOUT_PANEL.eyebrow}</p>
-            {/* each line rises out of its own mask as the section lands (osmo's masked line reveal) */}
+            {/* each line rises out of its own mask as the walls close (osmo's masked line reveal, driven by StoryHero) */}
             <h2 className="apanel__heading" id={live ? 'about-heading' : undefined}>
               <span className="apanel__mask">
                 <span className="apanel__l1 apanel__rise" data-ap-line>
@@ -98,24 +98,16 @@ export default function AboutPanel({ variant }: { variant: 'copy' | 'section' })
     const el = section.current
     if (variant !== 'section' || !el) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const lines = gsap.utils.toArray<HTMLElement>('[data-ap-line]', el)
     const words = gsap.utils.toArray<HTMLElement>('[data-ap-word]', el)
-    // the heading's lines wait under their masks (as the walls' copies show them) and rise as it lands
-    // (GSAP takes over the CSS's offset, so the two never add up)
-    if (!reduced) gsap.set(lines, { y: 0, yPercent: 140 })
-    const rise = gsap.timeline({ paused: true }).to(lines, { yPercent: 0, duration: 1.1, ease: 'expo.out', stagger: 0.12 })
+    // The heading has already risen on the walls (StoryHero drives the copies'
+    // lines with the walls' own travel), so the real section shows it in place.
     // shown from the moment its top reaches the top of the screen (the walls' landing)
     ScrollTrigger.create({
       trigger: el,
       start: 'top top+=1',
       end: 'max',
       refreshPriority: -1,
-      onToggle: (self) => {
-        el.toggleAttribute('data-shown', self.isActive)
-        if (reduced) return
-        if (self.isActive) rise.play()
-        else rise.pause(0)
-      },
+      onToggle: (self) => el.toggleAttribute('data-shown', self.isActive),
     })
     if (reduced) return
     // the words light up across the stack's run (its pin, StackOrbit's 'about-stack'),
