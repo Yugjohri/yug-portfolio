@@ -1267,6 +1267,31 @@ export class RibbonScene {
     return l.loop / l.unit
   }
 
+  /**
+   * The places card i is on screen. The loop wraps at half its length either
+   * side of the middle; on a wide screen that point is inside the view, so a
+   * card crossing it is drawn at both ends at once -- otherwise, for a moment,
+   * the end it had just left stood empty. k is which loop the copy is on.
+   */
+  private copies(i: number, l: ReturnType<RibbonScene['layout']>, W: number) {
+    const x = this.cardX(i, l)
+    const out: { x: number; k: number }[] = []
+    for (const k of [0, -1, 1]) {
+      const c = x + k * l.loop
+      if (Math.abs(c) < W + l.cw) out.push({ x: c, k })
+    }
+    return out
+  }
+
+  /** The copy last found under the pointer (which loop it is on), so a click opens from where it is seen. */
+  private pick: { i: number; k: number } | null = null
+
+  /** Card i's centre x: the copy under the pointer if that is this card, its wrapped place otherwise. */
+  private placeX(i: number, l: ReturnType<RibbonScene['layout']>) {
+    const x = this.cardX(i, l)
+    return this.pick && this.pick.i === i ? x + this.pick.k * l.loop : x
+  }
+
   /** Card i's centre x for the current progress, wrapped so the strip has no ends. */
   private cardX(i: number, l: ReturnType<RibbonScene['layout']>) {
     const shift = this.progress * l.loop
@@ -1324,8 +1349,7 @@ export class RibbonScene {
   }
 
   /** Where a point of card i's surface (in its uv) lands on screen. */
-  private surface(i: number, u: number, v: number, l: ReturnType<RibbonScene['layout']>, W: number, D: number) {
-    const cx = this.cardX(i, l)
+  private surface(i: number, u: number, v: number, l: ReturnType<RibbonScene['layout']>, W: number, D: number, cx = this.placeX(i, l)) {
     // the point under the pointer sits on the stamp's floor, which is pressed in,
     // and the plate is tipped and lifted as the shader has it
     const pl = this.plate(this.cards[i], l)
@@ -1369,19 +1393,18 @@ export class RibbonScene {
     const W = this.halfW
     const D = W * SHEET_DEPTH * (1 + SHEET_VEL_DEPTH * this.velocity)
     for (let i = 0; i < this.cards.length; i++) {
-      const cx = this.cardX(i, l)
-      if (Math.abs(cx) > W + l.cw) continue
-      const tl = this.surface(i, 0, 1, l, W, D)
-      const br = this.surface(i, 1, 0, l, W, D)
+     for (const { x: cx, k } of this.copies(i, l, W)) {
+      const tl = this.surface(i, 0, 1, l, W, D, cx)
+      const br = this.surface(i, 1, 0, l, W, D, cx)
       const pad = 0.08
       let u = (px - tl.x) / (br.x - tl.x)
       let v = 1 - (py - tl.y) / (br.y - tl.y)
       if (u < -pad || u > 1 + pad || v < -pad || v > 1 + pad) continue
       const e = 0.01
-      for (let k = 0; k < 3; k++) {
-        const p0 = this.surface(i, u, v, l, W, D)
-        const pu = this.surface(i, u + e, v, l, W, D)
-        const pv = this.surface(i, u, v + e, l, W, D)
+      for (let n = 0; n < 3; n++) {
+        const p0 = this.surface(i, u, v, l, W, D, cx)
+        const pu = this.surface(i, u + e, v, l, W, D, cx)
+        const pv = this.surface(i, u, v + e, l, W, D, cx)
         const a = (pu.x - p0.x) / e
         const b = (pv.x - p0.x) / e
         const c = (pu.y - p0.y) / e
@@ -1394,7 +1417,9 @@ export class RibbonScene {
         v += (-c * ex + a * ey) / det
       }
       if (u < 0 || u > 1 || v < 0 || v > 1) continue
+      this.pick = { i, k }
       return { index: i, u, v }
+     }
     }
     return { index: -1, u: 0, v: 0 }
   }
@@ -1738,8 +1763,10 @@ export class RibbonScene {
         nearestX = Math.abs(x)
         nearest = i
       }
-      const onScreen = Math.abs(x) < W + l.cw
-      if (onScreen) order.push({ i, x })
+      // every copy on screen (both ends while it crosses the wrap); an opened card only where it was opened from
+      const seen = i === this.opened ? [{ x: this.placeX(i, l) }] : this.copies(i, l, W)
+      const onScreen = seen.length > 0
+      for (const c of seen) order.push({ i, x: c.x })
       const card = this.cards[i]
       if (card.onScreen !== onScreen) {
         card.onScreen = onScreen
@@ -1751,7 +1778,7 @@ export class RibbonScene {
     order.sort((a, b) => b.x - a.x)
     if (this.opened >= 0) {
       const k = order.findIndex((o) => o.i === this.opened)
-      const [o] = k >= 0 ? order.splice(k, 1) : [{ i: this.opened, x: this.cardX(this.opened, l) }]
+      const [o] = k >= 0 ? order.splice(k, 1) : [{ i: this.opened, x: this.placeX(this.opened, l) }]
       order.push(o)
     }
 
