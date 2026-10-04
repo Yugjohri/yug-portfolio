@@ -62,13 +62,37 @@ export function useSectionTransitions() {
       about.appendChild(veil)
       added.push(veil)
       const stack = () => ScrollTrigger.getById('about-stack')
+      // About eases back and fades into the page's own ground as it is covered,
+      // so it is already gone when Experience reaches the top (a dark veil left
+      // a last strip that vanished at once)
+      const sheet = about.querySelector<HTMLElement>('.apanel__sheet')
+      if (sheet) {
+        made.push(
+          gsap.fromTo(
+            sheet,
+            { scale: 1, yPercent: 0 },
+            {
+              scale: 0.94,
+              yPercent: -3,
+              ease: 'none',
+              scrollTrigger: {
+                trigger: about,
+                start: () => (stack()?.end ?? 0) - layeredHoldPx(),
+                end: () => stack()?.end ?? 1,
+                scrub: true,
+                invalidateOnRefresh: true,
+              },
+            },
+          ),
+        )
+      }
       made.push(
         gsap.fromTo(
           veil,
           { opacity: 0 },
           {
-            opacity: 0.55,
-            ease: 'none',
+            opacity: 1,
+            ease: 'power1.in',
             scrollTrigger: {
               trigger: about,
               start: () => (stack()?.end ?? 0) - layeredHoldPx(),

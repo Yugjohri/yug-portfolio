@@ -1987,7 +1987,8 @@ em.about__pword {
   position: absolute;
   inset: 0;
   z-index: 20;
-  background: #0a0809;
+  /* the page's own ground: About fades into it as Experience covers it */
+  background: var(--bg);
   opacity: 0;
   pointer-events: none;
 }
