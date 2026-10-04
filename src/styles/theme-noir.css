@@ -25,6 +25,21 @@
   --red: #bc0202;
   --red-hot: #bc0202;
   --red-deep: #830000;
+
+  /* (2026-10-05) The accent turned to the black hole's orange, a family of
+     them, each the lightest that reads where it is used (on the #e9e5de cream):
+       --red-hot  #b83d0b  the default accent: labels, links, small type (4.5:1)
+       --accent-display #d4500a  large display type and marks (3.4:1, headings only)
+       --red      #c2410c  fills with white type on them (white 5.2:1)
+       --red-deep #8a2e06  hovers, presses, the selection
+       --red-signal #ff6a1a  small bright marks, and type over the black first screen (7.3:1)
+     The names stay (every stylesheet reads them); to go back to the reds,
+     delete this block. */
+  --red: #c2410c;
+  --red-hot: #b83d0b;
+  --accent-display: #d4500a;
+  --red-deep: #8a2e06;
+  --red-signal: #ff6a1a;
   --red-signal: #ff0000;
   --click-spark-color: var(--red-signal);
 
@@ -79,8 +94,8 @@
 }
 [data-theme='noir'] .work__stat {
   background:
-    radial-gradient(110% 80% at 100% 0%, rgb(188 2 2 / 0.2), transparent 58%),
-    radial-gradient(70% 55% at 0% 100%, rgb(131 0 0 / 0.38), transparent 62%),
+    radial-gradient(110% 80% at 100% 0%, rgb(212 80 10 / 0.22), transparent 58%),
+    radial-gradient(70% 55% at 0% 100%, rgb(138 46 6 / 0.4), transparent 62%),
     linear-gradient(#1a1214, #0f0b0c 65%, #080607);
 }
 [data-theme='noir'] .work__go:hover,
@@ -95,8 +110,8 @@
   background: var(--red-deep);
 }
 @keyframes work-pulse-signal {
-  0% { box-shadow: 0 0 0 0 rgb(255 0 0 / 0.45); }
-  100% { box-shadow: 0 0 0 18px rgb(255 0 0 / 0); }
+  0% { box-shadow: 0 0 0 0 rgb(255 106 26 / 0.45); }
+  100% { box-shadow: 0 0 0 18px rgb(255 106 26 / 0); }
 }
 [data-theme='noir'] .work__arrows[data-pulse] .work__arrow-disc {
   animation-name: work-pulse-signal;
@@ -178,7 +193,7 @@
   background: var(--red-signal);
 }
 [data-theme='noir'] .sstatus:focus-visible .sstatus__dot {
-  box-shadow: 0 0 0 3px rgb(255 0 0 / 0.3);
+  box-shadow: 0 0 0 3px rgb(255 106 26 / 0.3);
 }
 /* About: the accent the rest of the page has (it was an orange of its own);
    the closing note's rule in oxblood */
@@ -268,3 +283,24 @@
 [data-theme='noir'] .bf-tile:hover {
   border-color: rgb(224 18 47 / 0.45);
 }
+
+/* ---------- the brighter orange, for what is set large ---------- */
+[data-theme='noir'] .st-title em,
+[data-theme='noir'] .shero__word,
+[data-theme='noir'] .about__statement em {
+  color: var(--accent-display);
+}
+[data-theme='noir'] .shead__mark,
+[data-theme='noir'] .shero__rule,
+[data-theme='noir'] .shero__tint {
+  background: var(--accent-display);
+}
+[data-theme='noir'] .xp__name--hollow,
+[data-theme='noir'] .rband__word {
+  -webkit-text-stroke-color: var(--accent-display);
+}
+[data-theme='noir'] .rband__sep { color: var(--accent-display); }
+[data-theme='noir'] .nboard__title path { stroke: var(--accent-display); }
+/* Yug's own note: white type on the fill orange */
+[data-theme='noir'] .note--now { --paper: var(--red); }
+[data-theme='noir'] .note__pin { background: radial-gradient(circle at 35% 35%, #ffa66b, var(--red-deep) 70%); }

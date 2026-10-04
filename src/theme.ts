@@ -38,10 +38,10 @@ export const grade = (): Grade => {
  *  theme stylesheets. */
 export const PAPER = { r: 1, g: 1, b: 1 }
 export const INK = THEME === 'noir'
-  ? { r: 0.784, g: 0.063, b: 0.18 } // #c8102e
+  ? { r: 0.831, g: 0.314, b: 0.039 } // #d4500a, the black hole's orange
   : { r: 0.878, g: 0.07, b: 0.184 } // #e0122f
 export const INK_DEEP = THEME === 'noir'
-  ? { r: 0.353, g: 0.035, b: 0.07 } // #5a0912
+  ? { r: 0.541, g: 0.18, b: 0.024 } // #8a2e06
   : { r: 0.478, g: 0.039, b: 0.102 } // #7a0a1a
 
 /** Dress <html> for a route: the base tokens for 'dark', an attribute for the rest. */

@@ -77,7 +77,7 @@ export default function ContactGlass({ lines, below, above }: Props) {
       lines.forEach((line, i) => {
         const size = sizes[i] * fit
         c.font = `400 ${size}px ${family}`
-        c.fillStyle = i === lines.length - 1 ? css(host, '--red-hot', '#bc0202') : css(host, '--text', '#1a1618')
+        c.fillStyle = i === lines.length - 1 ? (css(host, '--accent-display', '') || css(host, '--red-hot', '#bc0202')) : css(host, '--text', '#1a1618')
         y += (size * gap) / 2
         c.fillText(line, left, y)
         y += (size * gap) / 2

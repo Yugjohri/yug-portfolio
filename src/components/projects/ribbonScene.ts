@@ -657,13 +657,13 @@ function drawTitleCard(c: CanvasRenderingContext2D, p: Sleeve) {
   // black-and-red: the two glows are the palette's crimson and oxblood; else the original's orange and blue
   const noir = THEME === 'noir'
   const warm = c.createRadialGradient(w, 0, 0, w, 0, w * 0.75)
-  warm.addColorStop(0, noir ? 'rgba(188,2,2,0.2)' : 'rgba(255,170,65,0.14)')
-  warm.addColorStop(1, noir ? 'rgba(188,2,2,0)' : 'rgba(255,170,65,0)')
+  warm.addColorStop(0, noir ? 'rgba(212,80,10,0.22)' : 'rgba(255,170,65,0.14)')
+  warm.addColorStop(1, noir ? 'rgba(212,80,10,0)' : 'rgba(255,170,65,0)')
   c.fillStyle = warm
   c.fillRect(0, 0, w, h)
   const cool = c.createRadialGradient(0, h, 0, 0, h, w * 0.55)
-  cool.addColorStop(0, noir ? 'rgba(131,0,0,0.38)' : 'rgba(121,164,255,0.12)')
-  cool.addColorStop(1, noir ? 'rgba(131,0,0,0)' : 'rgba(121,164,255,0)')
+  cool.addColorStop(0, noir ? 'rgba(138,46,6,0.4)' : 'rgba(121,164,255,0.12)')
+  cool.addColorStop(1, noir ? 'rgba(138,46,6,0)' : 'rgba(121,164,255,0)')
   c.fillStyle = cool
   c.fillRect(0, 0, w, h)
 
