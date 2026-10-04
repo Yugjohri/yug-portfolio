@@ -44,7 +44,7 @@ export default function ContactGlass({ lines, below, above }: Props) {
       c.setTransform(dpr, 0, 0, dpr, 0, 0)
       c.fillStyle = css(host, '--bg', '#e9e5de')
       c.fillRect(0, 0, w, h)
-      c.textAlign = 'center'
+      c.textAlign = 'left'
       c.textBaseline = 'middle'
       const family = 'Anton, "Arial Narrow", Impact, sans-serif'
       const base = 100
@@ -64,24 +64,25 @@ export default function ContactGlass({ lines, below, above }: Props) {
       const pad = Math.max(16, h * 0.03)
       const top = edge(below, 'bottom', 0) + pad
       const bottom = edge(above, 'top', h * 0.6) - pad
-      const maxW = w * 0.9
-      // the knot reaches about a fifth of the words' height past them, above and
-      // below: the words take ~70% of the room, so the knot stays in it too
-      const maxH = Math.max(40, (bottom - top) * 0.7)
+      // set from the same left edge as the details under it (the email, the links)
+      const inner = section?.querySelector<HTMLElement>('.contact__inner')
+      const left = inner ? Math.max(0, inner.offsetLeft - host.offsetLeft) : w * 0.05
+      const maxW = Math.min(w * 0.9, w - left - w * 0.03)
+      const maxH = Math.max(40, bottom - top)
       c.font = `400 ${base}px ${family}`
       const sizes = lines.map((l) => base * (maxW / Math.max(1, c.measureText(l).width)))
       const total = sizes.reduce((s, z) => s + z * gap, 0)
       const fit = Math.min(1, maxH / total)
-      let y = top + (bottom - top - total * fit) / 2
+      let y = top + (maxH - total * fit) / 2
       lines.forEach((line, i) => {
         const size = sizes[i] * fit
         c.font = `400 ${size}px ${family}`
         c.fillStyle = i === lines.length - 1 ? css(host, '--red-hot', '#bc0202') : css(host, '--text', '#1a1618')
         y += (size * gap) / 2
-        c.fillText(line, w / 2, y)
+        c.fillText(line, left, y)
         y += (size * gap) / 2
       })
-      return { cy: top + (bottom - top) / 2, block: total * fit }
+      return { cx: left + (maxW * fit) / 2, cy: top + maxH / 2, block: total * fit }
     }
 
     const start = async () => {
@@ -166,10 +167,12 @@ export default function ContactGlass({ lines, below, above }: Props) {
         visH = 2 * CAMERA_Z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
         visW = visH * camera.aspect
         plane.scale.set(visW, visH, 1)
-        const { cy, block } = drawText(w, h)
+        const { cx, cy, block } = drawText(w, h)
         // the knot sized to the words (the pen's words filled the screen; these share it)
         knot.scale.setScalar(Math.min(Math.min(visW, visH) * 0.16, (block / h) * visH * 0.48) * depth)
         home.y = (0.5 - cy / h) * visH * depth
+        // and over the words, wherever they are set
+        home.x = (cx / w - 0.5) * visW * depth
         texture?.dispose()
         texture = new THREE.CanvasTexture(textCanvas)
         texture.colorSpace = THREE.SRGBColorSpace
