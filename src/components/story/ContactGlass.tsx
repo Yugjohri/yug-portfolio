@@ -65,12 +65,14 @@ export default function ContactGlass({ lines, below, above }: Props) {
       const top = edge(below, 'bottom', 0) + pad
       const bottom = edge(above, 'top', h * 0.6) - pad
       const maxW = w * 0.9
-      const maxH = Math.max(40, bottom - top)
+      // the knot reaches about a fifth of the words' height past them, above and
+      // below: the words take ~70% of the room, so the knot stays in it too
+      const maxH = Math.max(40, (bottom - top) * 0.7)
       c.font = `400 ${base}px ${family}`
       const sizes = lines.map((l) => base * (maxW / Math.max(1, c.measureText(l).width)))
       const total = sizes.reduce((s, z) => s + z * gap, 0)
       const fit = Math.min(1, maxH / total)
-      let y = top + (maxH - total * fit) / 2
+      let y = top + (bottom - top - total * fit) / 2
       lines.forEach((line, i) => {
         const size = sizes[i] * fit
         c.font = `400 ${size}px ${family}`
@@ -79,7 +81,7 @@ export default function ContactGlass({ lines, below, above }: Props) {
         c.fillText(line, w / 2, y)
         y += (size * gap) / 2
       })
-      return { cy: top + maxH / 2, block: total * fit }
+      return { cy: top + (bottom - top) / 2, block: total * fit }
     }
 
     const start = async () => {

@@ -106,9 +106,17 @@ export default function NotesBoard() {
       // docked: the middle of the board around the title -- moved over to
       // leave room for the blank note while there is one (beside it; above it on a phone)
       const narrow = window.innerWidth < 700
-      const s = bw / (narrow ? 1100 : DOCK_VIEW)
-      const cx = mine ? 0.5 : narrow ? 0.5 : 0.31
+      let s = bw / (narrow ? 1100 : DOCK_VIEW)
+      let cx = 0.5
       const cy = mine ? 0.5 : narrow ? 0.27 : 0.5
+      if (!mine && !narrow) {
+        // beside the blank note: the title fits the room left of it, centred there
+        const note = b.querySelector<HTMLElement>('.nboard__dock-note')
+        const title = b.querySelector<HTMLElement>('.nboard__title')
+        const room = bw - (note ? note.offsetWidth + 36 : 0) - 16
+        if (title) s = Math.min(s, (room * 0.92) / title.offsetWidth)
+        cx = (16 + room / 2) / bw
+      }
       return { s, x: bw * cx - (WORLD.w / 2) * s, y: bh * cy - (WORLD.h / 2 + 40) * s }
     }
     // open: full size (a little less on a phone), centred on the blank note if there is one
