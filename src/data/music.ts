@@ -14,4 +14,10 @@ export type Track = {
   src: string
 }
 
-export const TRACKS: Track[] = []
+export const TRACKS: Track[] = [
+  { title: 'Infrunami', artist: 'Steve Lacy', src: '/audio/infrunami.mp3' },
+  { title: 'After The Storm', artist: 'Kali Uchis, Tyler, The Creator & Bootsy Collins', src: '/audio/after-the-storm.mp3' },
+  { title: 'Sure Thing', artist: 'Miguel', src: '/audio/sure-thing.mp3' },
+  { title: 'grateful', artist: 'Dhruv', src: '/audio/grateful.mp3' },
+  { title: 'Shut up My Moms Calling', artist: 'Hotel Ugly', src: '/audio/shut-up-my-moms-calling.mp3' },
+]

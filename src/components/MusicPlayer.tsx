@@ -50,6 +50,20 @@ export default function MusicPlayer() {
   const [duration, setDuration] = useState(0)
 
   const track = TRACKS[index]
+  // does the name fit its room? if not it scrolls (a second copy follows it round)
+  const titleBox = useRef<HTMLSpanElement>(null)
+  const titleText = useRef<HTMLSpanElement>(null)
+  const [scrolls, setScrolls] = useState(false)
+  useEffect(() => {
+    const box = titleBox.current
+    const text = titleText.current
+    if (!box || !text) return
+    const check = () => setScrolls(text.scrollWidth > box.clientWidth - 22)
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(box)
+    return () => ro.disconnect()
+  }, [index])
   const has = !!track
 
   // ------------------------------------------------------------ the element
@@ -209,8 +223,37 @@ export default function MusicPlayer() {
           <Icon d={ICON.next} />
         </button>
 
-        <span className="mp__title mono" title={track ? `${track.title}${track.artist ? ` — ${track.artist}` : ''}` : undefined}>
-          {track ? track.title : 'No track'}
+        {/* now playing: the song and its artist; it scrolls when it is longer than its room */}
+        <span
+          className="mp__title mono"
+          ref={titleBox}
+          data-scroll={scrolls ? '' : undefined}
+          aria-live="polite"
+          title={track ? `${track.title}${track.artist ? ` — ${track.artist}` : ''}` : undefined}
+        >
+          {track ? (
+            <>
+              <span className="mp__eq" data-on={playing ? '' : undefined} aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              <span className="mp__marquee">
+                <span className="mp__name" ref={titleText}>
+                  <b>{track.title}</b>
+                  {track.artist ? <span className="mp__artist"> — {track.artist}</span> : null}
+                </span>
+                {scrolls ? (
+                  <span className="mp__name" aria-hidden="true">
+                    <b>{track.title}</b>
+                    {track.artist ? <span className="mp__artist"> — {track.artist}</span> : null}
+                  </span>
+                ) : null}
+              </span>
+            </>
+          ) : (
+            'No track'
+          )}
         </span>
 
         <button className="mp__btn mp__btn--mute" type="button" onClick={mute} aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted}>
