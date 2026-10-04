@@ -339,6 +339,10 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
         const WALLS = { at: 0.88, dur: TL_TOTAL - 0.88, ease: 'sine.inOut' }
         tl.fromTo(wallL.current, { y: 0, yPercent: -100 }, { y: 0, yPercent: 0, duration: WALLS.dur, ease: WALLS.ease }, WALLS.at)
         tl.fromTo(wallR.current, { y: 0, yPercent: 100 }, { y: 0, yPercent: 0, duration: WALLS.dur, ease: WALLS.ease }, WALLS.at)
+        // their edges (the red line and the shadow) fade out over the last stretch,
+        // so they are gone as the walls meet and About takes over -- not cut at once
+        const EDGE = 0.16
+        tl.fromTo([wallL.current, wallR.current], { '--edge': 1 }, { '--edge': 0, duration: EDGE, ease: 'sine.in' }, TL_TOTAL - EDGE)
       }
     },
     { scope: root },

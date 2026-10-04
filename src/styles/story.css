@@ -1065,8 +1065,11 @@ em.about__pword {
 }
 .shero__wall--l::after { bottom: 0; }
 .shero__wall--r::after { top: 0; }
-.shero__wall--l { box-shadow: 0 18px 40px -6px rgb(20 12 8 / 0.28); }
-.shero__wall--r { box-shadow: 0 -18px 40px -6px rgb(20 12 8 / 0.28); }
+/* --edge (1 -> 0) is faded by the gesture over the walls' last stretch (StoryHero) */
+.shero__wall { --edge: 1; }
+.shero__wall::after { opacity: var(--edge); }
+.shero__wall--l { box-shadow: 0 18px 40px -6px rgb(20 12 8 / calc(0.28 * var(--edge))); }
+.shero__wall--r { box-shadow: 0 -18px 40px -6px rgb(20 12 8 / calc(0.28 * var(--edge))); }
 /* a copy in a wall: a screen's size, lined up with the screen */
 .shero__wall .apanel {
   position: absolute;
