@@ -333,7 +333,7 @@
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
   align-items: center;
   gap: clamp(2rem, 4vw, 5rem);
-  padding: clamp(1rem, 3vh, 2rem) var(--st-pad) clamp(2rem, 5vh, 3.5rem);
+  padding: clamp(2.5rem, 7vh, 5rem) var(--st-pad) clamp(2rem, 5vh, 3.5rem);
 }
 .contact__board { order: 2; }
 .contact__main {
@@ -441,8 +441,9 @@
   flex-wrap: wrap;
   gap: 0.75rem 2.5rem;
   align-items: center;
-  margin-top: clamp(4rem, 10vh, 7rem);
-  padding: 1.4rem calc(var(--mp-inset, 16px) + var(--mp-width, 236px) + 2rem) calc(var(--st-pad) + 0.4rem) var(--st-pad);
+  /* close to the bottom: the room this saves goes above the invitation and the board */
+  margin-top: clamp(2rem, 5vh, 3.5rem);
+  padding: 1.1rem calc(var(--mp-inset, 16px) + var(--mp-width, 236px) + 2rem) 1.1rem var(--st-pad);
   border-top: 1px solid var(--st-line);
 }
 .contact__top {
