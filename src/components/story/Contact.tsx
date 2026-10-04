@@ -105,6 +105,10 @@ export default function Contact() {
           <span className="contact__line" data-contact-line aria-hidden="true" />
         </a>
 
+        <a className="contact__phone" href={`tel:${LINKS.phone.replace(/\s/g, '')}`} data-contact-part>
+          {LINKS.phone}
+        </a>
+
         <ul className="contact__links" data-contact-part>
           {links.map((l) => (
             <li key={l.label}>

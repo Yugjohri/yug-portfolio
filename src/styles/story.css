@@ -359,6 +359,18 @@
 .contact__label { color: var(--red-hot, var(--hero-accent)); }
 .contact .st-title { max-width: 16ch; }
 
+.contact__phone {
+  margin-top: -0.4rem;
+  font-family: var(--st-grotesk);
+  font-size: clamp(1.05rem, 1.4vw, 1.35rem);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+.contact__phone:hover,
+.contact__phone:focus-visible { color: var(--text); outline: none; }
 .contact__email {
   position: relative;
   display: inline-block;
@@ -708,6 +720,20 @@ em.about__pword {
 /* The screen. The tube is drawn inside the canvas at 93-96.5% of its width
    and 80-94% of its height (bowed), as the reference's is; so the canvas is
    sized a little over the display we want -- by .shero's numbers above. */
+/* the screen's light on the room (StoryHero.tsx): a 32 x 18 copy of the footage,
+   drawn far larger than the screen and blurred until only its colours remain */
+.shero__glow {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--crt-top) + var(--crt-h) / 2);
+  width: calc(var(--crt-w) * 1.3);
+  height: calc(var(--crt-h) * 1.4);
+  translate: -50% -50%;
+  filter: blur(clamp(40px, 6vw, 90px)) saturate(1.35);
+  opacity: 0;
+  pointer-events: none;
+  image-rendering: auto;
+}
 .shero__screen {
   position: absolute;
   left: 50%;
@@ -1623,4 +1649,141 @@ em.about__pword {
     /* on the Menu button's line (13px type, 1.6 line height, 0.4rem padding) */
     top: calc(0.4rem + 10.4px - 190px * 0.3);
   }
+}
+
+/* ---------- the notes wall (NotesBoard.tsx) ---------- */
+.notes {
+  position: relative;
+  padding-block: calc(var(--st-pad) + 4.5rem) clamp(4rem, 10vh, 7rem);
+  background: var(--bg);
+}
+.notes__inner {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2rem, 5vh, 3.5rem);
+}
+.notes__wall {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
+  gap: clamp(1.25rem, 2.5vw, 2.25rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note {
+  --paper: #f6efdc;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-height: 190px;
+  padding: 1.6rem 1.25rem 1rem;
+  background: var(--paper);
+  color: #1a1618;
+  rotate: var(--tilt, 0deg);
+  box-shadow:
+    0 1px 1px rgb(0 0 0 / 0.06),
+    0 10px 18px -8px rgb(40 24 18 / 0.28);
+  transition: rotate 0.35s ease, translate 0.35s ease, box-shadow 0.35s ease;
+}
+.note:hover {
+  rotate: 0deg;
+  translate: 0 -3px;
+  box-shadow:
+    0 1px 1px rgb(0 0 0 / 0.06),
+    0 18px 26px -10px rgb(40 24 18 / 0.32);
+}
+.note--paper { --paper: #f6efdc; }
+.note--blush { --paper: #f2d9d2; }
+.note--sage { --paper: #dfe3cf; }
+.note--butter { --paper: #f4e3a6; }
+/* Yug's own: the accent */
+.note--now {
+  --paper: var(--red-hot, #bc0202);
+  color: #fff4f0;
+}
+.note--now .note__meta { color: rgb(255 244 240 / 0.75); }
+.note--mine { outline: 2px dashed rgb(26 22 24 / 0.25); outline-offset: 4px; }
+/* the pin */
+.note__pin {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  translate: -50% 0;
+  background: radial-gradient(circle at 35% 35%, #ff5a5a, var(--red-deep, #830000) 70%);
+  box-shadow: 0 2px 3px rgb(0 0 0 / 0.3);
+}
+.note--now .note__pin { background: radial-gradient(circle at 35% 35%, #fff, #c9c1bb 70%); }
+.note__body {
+  margin: 0;
+  font-family: var(--st-serif, 'Instrument Serif', Georgia, serif);
+  font-style: italic;
+  font-size: 1.32rem;
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+.note__meta {
+  margin-top: auto;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(26 22 24 / 0.5);
+}
+/* the pen */
+.note--new { outline: 1.5px dashed rgb(26 22 24 / 0.3); outline-offset: -8px; }
+.note__form { display: flex; flex-direction: column; gap: 0.6rem; flex: 1; }
+.note__label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: rgb(26 22 24 / 0.55); }
+.note__input {
+  flex: 1;
+  min-height: 5.5em;
+  resize: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: var(--st-serif, 'Instrument Serif', Georgia, serif);
+  font-style: italic;
+  font-size: 1.25rem;
+  line-height: 1.22;
+  outline: none;
+}
+.note__input::placeholder { color: rgb(26 22 24 / 0.35); }
+.note__row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.6rem; }
+.note__papers { display: flex; gap: 0.35rem; }
+.note__paper {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid rgb(26 22 24 / 0.25);
+  border-radius: 50%;
+  background: var(--paper);
+  cursor: pointer;
+}
+.note__paper[aria-checked='true'] { box-shadow: 0 0 0 2px var(--red-hot, #bc0202); }
+.note__count { margin-left: auto; font-size: 11px; color: rgb(26 22 24 / 0.45); }
+.note__pin-it {
+  padding: 0.4rem 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: #1a1618;
+  color: #f6efdc;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.note__pin-it:hover:not(:disabled),
+.note__pin-it:focus-visible { background: var(--red-hot, #bc0202); outline: none; }
+.note__pin-it:disabled { opacity: 0.4; cursor: default; }
+.note__msg { margin: 0; font-size: 0.85rem; color: var(--red-hot, #bc0202); }
+@media (max-width: 599px) {
+  /* a phone: two narrow columns, the pen across both */
+  .notes__wall { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.1rem; }
+  .note { min-height: 150px; padding: 1.4rem 0.9rem 0.8rem; }
+  .note__body { font-size: 1.08rem; }
+  .note--new { grid-column: 1 / -1; }
 }

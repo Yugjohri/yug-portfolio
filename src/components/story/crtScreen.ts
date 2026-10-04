@@ -395,6 +395,10 @@ export class CrtScreen {
   private u = new Map<string, WebGLUniformLocation | null>()
   private texSize: [number, number] = [16, 10]
   private video?: HTMLVideoElement
+  /** The footage once it has a frame to give (the header's glow samples it), else null. */
+  get source(): HTMLVideoElement | null {
+    return this.video && this.video.readyState >= 2 ? this.video : null
+  }
   private dpr = 1
 
   private trail: TrailPoint[] = []

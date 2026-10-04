@@ -8,6 +8,7 @@ import { BRIEF } from '../../data/brief'
 import AboutPanel from './AboutPanel'
 import { routeTransition, whenSettled } from '../../motion/routeTransition.ts'
 import { BEAT, EASE } from '../../motion/tokens'
+import { scrambleIn } from '../../motion/scramble'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText)
 
@@ -94,6 +95,7 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
   const drawn = useRef<((power: number) => void) | null>(null)
   /** how wide the tube's middle line is, as a share of the screen's width; set by the screen */
   const tubeLine = useRef(0)
+  const glow = useRef<HTMLCanvasElement>(null)
 
   // ------------------------------------------------------------- the screen
   useEffect(() => {
@@ -110,6 +112,24 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
     }
     screen.canvas.className = 'shero__canvas'
     host.appendChild(screen.canvas)
+
+    // The room the screen lights: the footage, shrunk to a few dozen pixels and
+    // blurred wide behind the glass, so its colours spill onto the black around
+    // it as a TV's do in a dark room. Resampled a few times a second.
+    const glowEl = glow.current
+    const glowCtx = glowEl?.getContext('2d', { alpha: false }) ?? null
+    if (glowEl) {
+      glowEl.width = 32
+      glowEl.height = 18
+    }
+    let glowFrame = 0
+    const paintGlow = () => {
+      if (!glowEl || !glowCtx) return
+      glowEl.style.opacity = String(0.17 * Math.max(0, Math.min(1, screen.power)))
+      const src = screen.source
+      if (!src || glowFrame++ % 4) return
+      glowCtx.drawImage(src, 0, 0, glowEl.width, glowEl.height)
+    }
     tubeLine.current = CrtScreen.lineWidth
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -120,7 +140,14 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
     const measure = () => {
       const r = host.getBoundingClientRect()
       screen.resize(r.width, r.height)
-      if (reduced) screen.render(0)
+      if (reduced) {
+        screen.render(0)
+        // under reduced motion the glow is painted once the footage has a frame
+        if (screen.source) {
+          glowFrame = 0
+          paintGlow()
+        }
+      }
     }
 
     const frameLoop = (now: number) => {
@@ -129,6 +156,7 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
       if (!visible || progress.current > 0.78) return
       screen.power = power.current.v
       screen.render(now / 1000)
+      paintGlow()
       drawn.current?.(screen.power)
     }
 
@@ -399,6 +427,8 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
       // stop clipping: at rest the title is exactly as it was.
       const label = titleEl.innerText.replace(/\s+/g, ' ').trim()
       let risen = false
+      // as it rises the title decodes, glyph by glyph, like the screen above it tuning in
+      let unscramble: (() => void) | null = null
       const unmask = (masks: Element[]) => masks.forEach((m) => ((m as HTMLElement).style.overflow = 'visible'))
       SplitText.create(titleEl, {
         type: 'lines',
@@ -426,6 +456,9 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
             },
             titleAt,
           )
+          rise.call(() => {
+            unscramble = scrambleIn(titleEl, { duration: 1.25 })
+          }, undefined, titleAt)
           return rise
         },
       })
@@ -440,6 +473,7 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
       return () => {
         cancel()
         carry.kill()
+        unscramble?.()
         drawn.current = null
         power.current.v = 1
       }
@@ -452,6 +486,8 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
 
       {/* the picture and the line: one layer, masked as one */}
       <div className="shero__frame" ref={frame}>
+        {/* the light the screen throws on the dark around it */}
+        <canvas className="shero__glow" ref={glow} aria-hidden="true" />
         <div className="shero__screen" ref={media} aria-hidden="true" />
         <div className="shero__tint" ref={tint} aria-hidden="true" />
         <h1 className="shero__title" ref={title}>
