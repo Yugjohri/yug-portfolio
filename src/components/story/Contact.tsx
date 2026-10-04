@@ -5,14 +5,16 @@ import { useGSAP } from '@gsap/react'
 import { BRIEF, LINKS } from '../../data/brief'
 import { ROLES } from '../../data/portfolio'
 import { BEAT, EASE } from '../../motion/tokens'
-import StTitle from './StTitle'
-import UselessSwitch from './UselessSwitch'
+import ContactGlass from './ContactGlass'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
 // TODO(yug): confirm the availability line
 /** What is true right now, in a line: what just finished, and what is next. */
 const NOW = 'Open to AI engineering roles, from October 2026.'
+
+/** The backdrop's words (ContactGlass.tsx): plain, the last line in the accent. */
+const GLASS_LINES = ["LET'S WORK", 'TOGETHER']
 
 /** The résumé, served from public/. */
 const RESUME = '/yug-johri-resume.pdf'
@@ -73,9 +75,12 @@ export default function Contact() {
   return (
     <section className="contact" id="contact" ref={root} aria-labelledby="contact-heading">
       <div className="st-corner st-corner--tl mono">
-        <b>06</b> — Contact
+        <b>04</b> — Contact
       </div>
       <div className="st-corner st-corner--tr mono">{BRIEF.location} · IST</div>
+
+      {/* the words, huge, with a knot of glass turning in front of them */}
+      <ContactGlass lines={GLASS_LINES} below=".st-corner--tl" above=".contact__now" />
 
       <div className="st-wrap contact__inner">
         <p className="contact__now" data-contact-part>
@@ -90,21 +95,15 @@ export default function Contact() {
           </span>
         </p>
 
-        <StTitle
-          id="contact-heading"
-          text="Bring me something that has to hold up."
-          accent="has to hold up."
-          start="top 80%"
-        />
+        {/* what the backdrop says, for whoever cannot see it */}
+        <h2 className="contact__heading" id="contact-heading">
+          Let's work together
+        </h2>
 
-        {/* the address, and beside it a switch that will not stay switched */}
-        <div className="contact__email-row" data-contact-part>
-          <a className="contact__email" href={`mailto:${LINKS.email}`}>
-            {LINKS.email}
-            <span className="contact__line" data-contact-line aria-hidden="true" />
-          </a>
-          <UselessSwitch />
-        </div>
+        <a className="contact__email" href={`mailto:${LINKS.email}`} data-contact-part>
+          {LINKS.email}
+          <span className="contact__line" data-contact-line aria-hidden="true" />
+        </a>
 
         <ul className="contact__links" data-contact-part>
           {links.map((l) => (

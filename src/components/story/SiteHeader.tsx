@@ -4,7 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { BRIEF } from '../../data/brief'
 import { scrollToSection } from '../../motion/scrollToSection'
-import { StoryStatus } from './StoryNav'
+import UselessSwitch from './UselessSwitch'
 import { PIN_LENGTH, TL_TOTAL, TURN_FROM, TURN_TO } from './StoryHero'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
@@ -167,8 +167,13 @@ export default function SiteHeader() {
       <nav className="shead__side shead__side--r" aria-label="More sections">
         <span aria-hidden="true" />
         {RIGHT.map(link)}
-        <StoryStatus />
+        {/* where the dark-mode switch sits (it is placed over this, outside the nav) */}
+        <span className="shead__mode-slot" aria-hidden="true" />
       </nav>
+      {/* the prank: a dark-mode toggle a bear will not let anyone use (UselessSwitch.tsx) */}
+      <div className="shead__mode">
+        <UselessSwitch skin="mode" />
+      </div>
       <button className="shead__menu" type="button" aria-expanded={open} aria-controls="shead-sheet" onClick={() => setOpen((o) => !o)}>
         {open ? 'Close' : 'Menu'}
       </button>

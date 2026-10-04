@@ -373,6 +373,8 @@ export default function StackOrbit({ mode, pin }: Props) {
       const tl = gsap.timeline({
         defaults: { ease: 'none' },
         scrollTrigger: {
+          // AboutPanel reads this pin's range: the paragraphs light up over it
+          id: 'about-stack',
           trigger: pinEl,
           pin: true,
           start: 'top top',

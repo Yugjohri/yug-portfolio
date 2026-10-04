@@ -13,14 +13,23 @@ gsap.registerPlugin(useGSAP)
  * the whole window) and to GSAP 3; the switch wears the site's red.
  *
  * Everything is laid out on a 420 x 300 stage around one point (the centre of
- * the switch). The bear lives below that line, hidden by a mask painted in
- * the section's own ground, and rises out of the page.
+ * the switch). The bear lives below that line and is clipped at it (the pen
+ * painted a mask in the page's colour; a clip works over any ground), so it
+ * rises from behind the switch.
+ *
+ * skin "mode": the prank. Dressed as a dark-mode toggle (a sun on the knob,
+ * a moon and a dark track once it is flipped) and kept in the header, where
+ * a theme switch is expected -- flip it and the bear will have none of it.
  */
 
 const DUR = { arm: 0.2, bear: 0.25, box: 0.25, paw: 0.1 }
+/** the "mode" skin's icon, after cameronknight's dark-mode toggle (codepen.io/cameronknight/pen/BaLWbae):
+ *  a crescent that swells to a full disc as it crosses the pill, and back */
+const MOON = 'M17.5 28C17.5 43.1878 28.5681 55.5 27.5 55.5C12.3122 55.5 0 43.1878 0 28C0 12.8122 12.3122 0.5 27.5 0.5C27.5 0.5 17.5 12.8122 17.5 28Z'
+const SUN = 'M55 27.5C55 42.6878 42.6878 55 27.5 55C12.3122 55 0 42.6878 0 27.5C0 12.3122 12.3122 0 27.5 0C42.6878 0 55 12.3122 55 27.5Z'
 const range = (max: number, min = 1) => Math.random() * (max - min) + min
 
-export default function UselessSwitch() {
+export default function UselessSwitch({ skin = 'plain' }: { skin?: 'plain' | 'mode' }) {
   const root = useRef<HTMLDivElement>(null)
   const bear = useRef<SVGSVGElement>(null)
   const armWrap = useRef<HTMLDivElement>(null)
@@ -29,6 +38,8 @@ export default function UselessSwitch() {
   const swear = useRef<HTMLDivElement>(null)
   const bg = useRef<HTMLDivElement>(null)
   const indicator = useRef<HTMLDivElement>(null)
+  const icon = useRef<SVGSVGElement>(null)
+  const iconPath = useRef<SVGPathElement>(null)
 
   // when the bear starts to show itself, to put its head up, and to lose its temper (per visit, as in the pen)
   const [limits] = useState(() => {
@@ -96,6 +107,7 @@ export default function UselessSwitch() {
       })
       .to(bg.current, { duration: DUR.box, backgroundColor: colours().off }, delay)
       .to(indicator.current, { duration: DUR.box, xPercent: 0 }, delay)
+      .add(iconTo(false, DUR.box * 2), delay)
       .to(paw.current, { duration: DUR.paw, scaleX: 0 }, delay)
       .to(arm.current, { duration: DUR.paw, scaleX: 1 }, delay + DUR.paw)
       .to(armWrap.current, { duration: DUR.arm, x: 0 }, delay + DUR.paw)
@@ -103,11 +115,21 @@ export default function UselessSwitch() {
     return tl
   })
 
+  /** the icon's half of a flip: the crescent turns half round and swells to a disc (or back) */
+  const iconTo = (on: boolean, duration: number) => {
+    const tl = gsap.timeline()
+    if (!icon.current || !iconPath.current) return tl
+    return tl
+      .to(icon.current, { rotation: on ? -180 : 0, duration, ease: 'power2.out', transformOrigin: '50% 50%' }, 0)
+      .to(iconPath.current, { attr: { d: on ? SUN : MOON }, duration, ease: 'power2.out' }, 0)
+  }
+
   const flip = contextSafe(() => {
     gsap
       .timeline()
       .to(bg.current, { duration: DUR.box, backgroundColor: colours().on })
       .to(indicator.current, { duration: DUR.box, xPercent: 100 }, 0)
+      .add(iconTo(true, DUR.box * 2), 0)
       .add(grabBear(), DUR.box)
   })
 
@@ -128,8 +150,10 @@ export default function UselessSwitch() {
 
   const cross = count >= limits.angerLimit
   return (
-    <div className="useless" ref={root}>
+    <div className={skin === 'mode' ? 'useless useless--mode' : 'useless'} ref={root} data-on={checked ? '' : undefined}>
       <div className="useless__stage">
+        {/* the bear's room: everything above the switch's centre line, and nothing below it */}
+        <div className="useless__bear-clip">
         <div className="useless__bear-wrap">
           <div className="useless__swear" ref={swear} aria-hidden="true">
             #@$%*!
@@ -169,6 +193,7 @@ export default function UselessSwitch() {
             </g>
           </svg>
         </div>
+        </div>
 
         <div className="useless__arm-wrap" ref={armWrap} aria-hidden="true">
           <svg ref={arm} className="useless__arm" viewBox="0 0 250.00001 99.999997" preserveAspectRatio="xMinYMin">
@@ -182,12 +207,22 @@ export default function UselessSwitch() {
           </svg>
         </div>
         <div className="useless__paw" ref={paw} aria-hidden="true" />
-        <div className="useless__mask" aria-hidden="true" />
 
-        <div className="useless__switch" onMouseOver={onHover} onMouseOut={offHover}>
-          <input type="checkbox" checked={checked} onChange={onChange} aria-label="A switch that does not want to be switched" />
+        <div className="useless__switch" onMouseOver={onHover} onMouseOut={offHover} title={skin === 'mode' ? 'Dark mode' : undefined}>
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={onChange}
+            aria-label={skin === 'mode' ? 'Dark mode (a joke: there is a bear who will not allow it)' : 'A switch that does not want to be switched'}
+          />
           <div className="useless__bg" ref={bg} />
-          <div className="useless__indicator" ref={indicator} />
+          <div className="useless__indicator" ref={indicator}>
+            {skin === 'mode' ? (
+              <svg className="useless__icon" ref={icon} viewBox="0 0 55 56" aria-hidden="true">
+                <path ref={iconPath} d={MOON} />
+              </svg>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
