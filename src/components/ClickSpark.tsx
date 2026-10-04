@@ -50,6 +50,9 @@ function makeSpark(x: number, y: number) {
     const line = document.createElementNS(SVG_NS, 'line')
     line.setAttribute('x1', '50')
     line.setAttribute('x2', '50')
+    // given from the start (as the pen's markup does): GSAP's attr tween reads them, and an empty one is an error
+    line.setAttribute('y1', '30')
+    line.setAttribute('y2', '4')
     line.setAttribute('stroke-dasharray', String(LEN))
     g.appendChild(line)
     turn.appendChild(g)

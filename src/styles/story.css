@@ -287,6 +287,31 @@
   padding-block: calc(var(--st-pad) + 4.5rem) 0;
   background: var(--bg);
 }
+/* the desk (ContactDesk.tsx), as the error screen shows it (ErrorScreen.tsx) */
+.cdesk {
+  max-width: 620px;
+  margin: 0 var(--st-pad) clamp(2rem, 6vh, 4rem);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.cdesk__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* the address with the switch beside it, the switch centred on the address's line */
+.contact__email-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: clamp(1rem, 2.5vw, 2rem);
+}
+.contact__email-row .useless {
+  --us-scale: 0.36;
+  margin-left: calc(-110px * var(--us-scale));
+  /* the stage carries the bear's room above the switch: lift it so the switch, not the stage, is centred */
+  margin-top: calc(-80px * var(--us-scale));
+}
 .contact__inner {
   display: flex;
   flex-direction: column;
@@ -1360,4 +1385,144 @@ em.about__pword {
 }
 @media (prefers-reduced-motion: reduce) {
   .sstatus__dot { animation: none; }
+}
+
+/* ---------- the useless switch (UselessSwitch.tsx) ----------
+   The pen's pieces, on a 420 x 300 stage around one point (--cx, --cy: the
+   switch's centre), scaled down as a whole. Below that line the mask, in
+   the section's ground, keeps the bear out of sight until it rises. */
+.useless {
+  --us-scale: 0.55;
+  --us-off: #cfc8be;
+  --us-on: var(--red-hot, #e0122f);
+  width: calc(420px * var(--us-scale));
+  height: calc(300px * var(--us-scale));
+  /* the stage reaches a little left of the switch's box; keep it in line with the text */
+  margin-left: calc(-110px * var(--us-scale));
+}
+.useless__stage {
+  --cx: 210px;
+  --cy: 190px;
+  position: relative;
+  width: 420px;
+  height: 300px;
+  overflow: hidden;
+  transform: scale(var(--us-scale));
+  transform-origin: 0 0;
+}
+.useless__bear-wrap {
+  position: absolute;
+  left: var(--cx);
+  top: var(--cy);
+  width: 100px;
+  transform: translate(-15%, -50%) rotate(5deg) translate(0, -75%);
+}
+.useless__bear {
+  display: block;
+  width: 100%;
+}
+.useless__swear {
+  display: none;
+  position: absolute;
+  left: 105%;
+  top: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: #fff;
+  color: #1a1618;
+  font: 700 16px/1 Inter, 'Inter Fallback', system-ui, sans-serif;
+  white-space: nowrap;
+}
+.useless__swear::before {
+  content: '';
+  position: absolute;
+  top: 90%;
+  right: 70%;
+  width: 30px;
+  height: 30px;
+  background: #fff;
+  clip-path: polygon(0 100%, 100% 0, 50% 0);
+}
+.useless__arm-wrap {
+  position: absolute;
+  z-index: 4;
+  left: var(--cx);
+  top: var(--cy);
+  width: 90px;
+  height: 30px;
+}
+.useless__arm {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 100%;
+}
+.useless__paw {
+  position: absolute;
+  z-index: 10;
+  left: var(--cx);
+  top: var(--cy);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #784421;
+}
+.useless__mask {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--cy);
+  bottom: 0;
+  background: var(--bg);
+}
+.useless__switch {
+  position: absolute;
+  z-index: 5;
+  left: var(--cx);
+  top: var(--cy);
+  width: 200px;
+  height: 100px;
+  border-radius: 50px;
+  translate: -50% -50%;
+}
+.useless__switch input {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: 50px;
+  opacity: 0;
+  cursor: pointer;
+}
+.useless__switch input:focus-visible ~ .useless__bg {
+  outline: 4px solid var(--us-on);
+  outline-offset: 6px;
+}
+.useless__bg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50px;
+  background: var(--us-off);
+}
+.useless__indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  border-radius: 50%;
+}
+.useless__indicator::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 85%;
+  height: 85%;
+  border-radius: 50%;
+  background: #f6f1ea;
+  translate: -50% -50%;
 }

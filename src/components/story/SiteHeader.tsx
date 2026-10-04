@@ -34,6 +34,8 @@ const ALL = [...LEFT, ...RIGHT]
 
 /** on the first screen the mark scales with the window's height, so it clears the glass on any screen */
 const compactPx = () => (window.innerHeight < 800 ? 30 : Math.min(46, window.innerHeight * 0.05))
+/** where (in the hero's timeline) the closing mask has uncovered the side links */
+const DARK_SIDES_UNTIL = 0.14
 /** on a phone the mark stays compact everywhere: at full size it would sit on the sections' titles */
 const PHONE = '(max-width: 767px)'
 
@@ -78,6 +80,25 @@ export default function SiteHeader() {
           },
         )
       })
+      // over the first screen's black the header takes the signal red (the crimson
+      // is too dark on black): the links until the closing mask has uncovered
+      // them (it sweeps in from the sides), the mark until the strip it sits on
+      // starts to turn away
+      if (hero) {
+        const at = (t: number) => () => hero.offsetTop + (window.innerHeight * PIN_LENGTH * t) / TL_TOTAL
+        ScrollTrigger.create({
+          start: -1, // so the very top counts as inside
+          end: at(DARK_SIDES_UNTIL),
+          invalidateOnRefresh: true,
+          onToggle: (self) => el.toggleAttribute('data-dark-sides', self.isActive),
+        })
+        ScrollTrigger.create({
+          start: -1,
+          end: at(TURN_FROM),
+          invalidateOnRefresh: true,
+          onToggle: (self) => el.toggleAttribute('data-dark-mark', self.isActive),
+        })
+      }
       // past the header, a soft ground behind the bar (phones), so the page passing under it stays clear
       if (hero) {
         ScrollTrigger.create({

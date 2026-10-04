@@ -75,7 +75,9 @@
 .work__head {
   position: relative;
   z-index: 3;
-  padding: calc(var(--work-pad) + 2.4rem) var(--work-pad) 0;
+  /* under the corner labels (same line as .work__corner--tl), with a clear gap:
+     the headline used to start 4px above "01 -- Projects" and sit on it */
+  padding: calc(var(--nav-top, 0px) + var(--nav-h, 0px) + 14px + 1.15rem + 1.1rem) var(--work-pad) 0;
   pointer-events: none;
 }
 /* stacked, the headline already clears the corner */
@@ -430,5 +432,15 @@
     clip-path: inset(50%);
     white-space: nowrap;
     padding: 0;
+  }
+}
+/* a short screen: the ribbon's cards sit higher, so the headline is set a size
+   smaller and closer under the corner labels, to stay clear of the cards */
+@media (min-width: 900px) and (max-height: 820px) {
+  .work__head {
+    padding-top: calc(var(--nav-top, 0px) + var(--nav-h, 0px) + 14px + 1.15rem + 0.5rem);
+  }
+  .work__head .st-title {
+    font-size: clamp(1.45rem, 2.1vw, 1.9rem);
   }
 }

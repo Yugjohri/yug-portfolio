@@ -17,9 +17,16 @@
   --text: #1a1618;
   --muted: #6b6369;
 
-  --red: #c8102e;
-  --red-hot: #e0122f;
-  --red-deep: #5a0912;
+  /* The reds, after "color palette 2.png": one hue in three strengths.
+     Crimson is the accent (5.3:1 on the cream, where the old #e0122f was
+     3.9:1); oxblood is depth -- hovers, presses, glows, the selection;
+     signal red only for small marks that should catch the eye for a moment
+     (3.2:1: never for text). Both accent tokens are crimson now. */
+  --red: #bc0202;
+  --red-hot: #bc0202;
+  --red-deep: #830000;
+  --red-signal: #ff0000;
+  --click-spark-color: var(--red-signal);
 
   --hero-elevated: #0e0b0c;
   --hero-accent: var(--red);
@@ -30,7 +37,7 @@
 }
 
 [data-theme='noir'] ::selection {
-  background: var(--red);
+  background: var(--red-deep);
   color: #fff;
 }
 
@@ -72,15 +79,27 @@
 }
 [data-theme='noir'] .work__stat {
   background:
-    radial-gradient(110% 80% at 100% 0%, rgb(200 16 46 / 0.16), transparent 58%),
-    radial-gradient(70% 55% at 0% 100%, rgb(90 9 18 / 0.35), transparent 62%),
+    radial-gradient(110% 80% at 100% 0%, rgb(188 2 2 / 0.2), transparent 58%),
+    radial-gradient(70% 55% at 0% 100%, rgb(131 0 0 / 0.38), transparent 62%),
     linear-gradient(#1a1214, #0f0b0c 65%, #080607);
 }
 [data-theme='noir'] .work__go:hover,
 [data-theme='noir'] .work__go:focus-visible {
   color: #fff;
-  background: var(--red);
-  border-color: var(--red);
+  background: var(--red-deep);
+  border-color: var(--red-deep);
+}
+/* the arrows: the disc darkens to oxblood under the hand; the hint's pulse is the signal red */
+[data-theme='noir'] .work__arrow:hover .work__arrow-disc,
+[data-theme='noir'] .work__arrow:focus-visible .work__arrow-disc {
+  background: var(--red-deep);
+}
+@keyframes work-pulse-signal {
+  0% { box-shadow: 0 0 0 0 rgb(255 0 0 / 0.45); }
+  100% { box-shadow: 0 0 0 18px rgb(255 0 0 / 0); }
+}
+[data-theme='noir'] .work__arrows[data-pulse] .work__arrow-disc {
+  animation-name: work-pulse-signal;
 }
 
 /* ---------- story ---------- */
@@ -111,7 +130,8 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: #050405;
+  /* the palette's black: the CRT's glow stands out of it */
+  background: #000;
 }
 [data-theme='noir'] .shero__title,
 [data-theme='noir'] .shero__lede {
@@ -125,6 +145,69 @@
 
 [data-theme='noir'] .shero__rule {
   background: var(--red-hot);
+}
+
+/* ---------- the reds in the header, About, the popup and the player ---------- */
+
+/* on the first screen's black the crimson is too dark (3.2:1): the header
+   (while SiteHeader marks it as over the black) and the headline's accent
+   take the signal red there (5.3:1) */
+[data-theme='noir'] .shero__title em {
+  color: var(--red-signal);
+}
+[data-theme='noir'] .shead[data-dark-sides] .shead__side a,
+[data-theme='noir'] .shead[data-dark-sides] .shead__menu {
+  color: var(--red-signal);
+}
+[data-theme='noir'] .shead[data-dark-mark] .shead__mark {
+  background: var(--red-signal);
+}
+[data-theme='noir'] .shead__menu,
+[data-theme='noir'] .shead__mark {
+  transition-property: color, background-color, rotate;
+  transition-duration: 0.35s;
+}
+
+/* links darken to oxblood under the hand; the live dot is the signal red */
+[data-theme='noir'] .shead a:not(.shead__mark) {
+  transition: background-size 0.45s cubic-bezier(0.22, 1, 0.36, 1), color 0.3s ease;
+}
+[data-theme='noir'] .shead a:not(.shead__mark):hover,
+[data-theme='noir'] .shead a:not(.shead__mark):focus-visible {
+  color: var(--red-deep);
+}
+[data-theme='noir'] .sstatus__dot {
+  background: var(--red-signal);
+}
+[data-theme='noir'] .sstatus:focus-visible .sstatus__dot {
+  box-shadow: 0 0 0 3px rgb(255 0 0 / 0.3);
+}
+/* About: the accent the rest of the page has (it was an orange of its own);
+   the closing note's rule in oxblood */
+[data-theme='noir'] .story {
+  --ap-accent: var(--red-hot);
+}
+[data-theme='noir'] .apanel__coda {
+  border-left-color: var(--red-deep);
+}
+/* the popup: crimson accents, oxblood when pressed on */
+[data-theme='noir'] .pd {
+  --pd-accent: var(--red-hot);
+}
+[data-theme='noir'] .pd__close:hover,
+[data-theme='noir'] .pd__close:focus-visible,
+[data-theme='noir'] .pd__sound:hover,
+[data-theme='noir'] .pd__sound:focus-visible,
+[data-theme='noir'] .pd__link:hover .pd__link-mark,
+[data-theme='noir'] .pd__link:focus-visible .pd__link-mark {
+  background: var(--red-deep);
+}
+/* the player: its progress line is the signal red, its play button darkens to oxblood */
+[data-theme='noir'] .mp {
+  --mp-accent: var(--red-signal);
+}
+[data-theme='noir'] .mp__btn--play:hover:not(:disabled) {
+  background: var(--red-deep);
 }
 [data-theme='noir'] .st-corner--tr {
   color: var(--red-hot);

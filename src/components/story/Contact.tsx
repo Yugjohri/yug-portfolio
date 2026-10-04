@@ -6,6 +6,7 @@ import { BRIEF, LINKS } from '../../data/brief'
 import { ROLES } from '../../data/portfolio'
 import { BEAT, EASE } from '../../motion/tokens'
 import StTitle from './StTitle'
+import UselessSwitch from './UselessSwitch'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -96,10 +97,14 @@ export default function Contact() {
           start="top 80%"
         />
 
-        <a className="contact__email" href={`mailto:${LINKS.email}`} data-contact-part>
-          {LINKS.email}
-          <span className="contact__line" data-contact-line aria-hidden="true" />
-        </a>
+        {/* the address, and beside it a switch that will not stay switched */}
+        <div className="contact__email-row" data-contact-part>
+          <a className="contact__email" href={`mailto:${LINKS.email}`}>
+            {LINKS.email}
+            <span className="contact__line" data-contact-line aria-hidden="true" />
+          </a>
+          <UselessSwitch />
+        </div>
 
         <ul className="contact__links" data-contact-part>
           {links.map((l) => (
@@ -112,6 +117,7 @@ export default function Contact() {
           ))}
         </ul>
       </div>
+
 
       <footer className="contact__foot mono">
         <span>
