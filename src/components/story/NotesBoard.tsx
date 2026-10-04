@@ -22,12 +22,14 @@ gsap.registerPlugin(useGSAP, Flip)
  */
 
 /** the board's own size, in its own px: notes are laid out on this */
-const WORLD = { w: 1800, h: 1400 }
+const WORLD = { w: 2800, h: 2000 }
 const NOTE = 200
 const MAX = 140
 const PAPERS: NoteColor[] = ['paper', 'blush', 'sage', 'butter']
-/** Yug's own note, pinned top-left */
-const NOW = { body: 'now: just finished at CFEES, DRDO. open to AI engineering roles from October 2026.', x: 0.06, y: 0.07 }
+/** Yug's own note, pinned up and to the left of the title */
+const NOW = { body: 'now: just finished at CFEES, DRDO. open to AI engineering roles from October 2026.', x: 0.31, y: 0.27 }
+/** docked, the board shows its middle this wide (in board px), so the title reads */
+const DOCK_VIEW = 1350
 const REASON: Record<string, string> = {
   already_posted: 'one note each, and yours is already up. thank you!',
   not_allowed: "that one can't go up (no links or rude words, please).",
@@ -39,8 +41,12 @@ const when = (iso: string) => {
   const d = new Date(iso)
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
-/** older notes without a place are laid out in rows, clear of Yug's */
-const fallback = (i: number) => ({ x: 0.2 + ((i * 0.16) % 0.72), y: 0.08 + Math.floor((i * 0.16) / 0.72) * 0.2 })
+/** older notes without a place go round the title, ring by ring */
+const fallback = (i: number) => {
+  const a = i * 2.39996
+  const r = 0.2 + 0.035 * Math.floor(i / 6)
+  return { x: clamp(0.02, 0.92, 0.47 + Math.cos(a) * r), y: clamp(0.02, 0.88, 0.45 + Math.sin(a) * r * 1.2) }
+}
 const clamp = gsap.utils.clamp
 
 export default function NotesBoard() {
@@ -59,7 +65,7 @@ export default function NotesBoard() {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   /** where the blank note is, in board px */
-  const draftAt = useRef({ x: WORLD.w / 2 - NOTE / 2, y: WORLD.h / 2 - NOTE / 2 })
+  const draftAt = useRef({ x: WORLD.w / 2 - NOTE / 2, y: WORLD.h / 2 + 150 })
 
   // ------------------------------------------------------------- the notes
   useEffect(() => {
@@ -97,9 +103,9 @@ export default function NotesBoard() {
     const bw = b.clientWidth
     const bh = b.clientHeight
     if (!isOpen) {
-      // docked: the whole board, contained
-      const s = Math.min(bw / WORLD.w, bh / WORLD.h)
-      return { s, x: (bw - WORLD.w * s) / 2, y: (bh - WORLD.h * s) / 2 }
+      // docked: the middle of the board, the title in the middle of the box
+      const s = bw / DOCK_VIEW
+      return { s, x: bw / 2 - (WORLD.w / 2) * s, y: bh / 2 - (WORLD.h / 2 + 40) * s }
     }
     // open: full size (a little less on a phone), centred on the blank note if there is one
     const s = window.innerWidth < 700 ? 0.62 : 1
@@ -261,6 +267,14 @@ export default function NotesBoard() {
         }}
       >
         <div className="nboard__world" ref={world} style={{ width: WORLD.w, height: WORLD.h }}>
+          {/* the board's title, written on the cork; notes go over it */}
+          <div className="nboard__title" aria-hidden="true">
+            <span>Leave a note :)</span>
+            <svg viewBox="0 0 600 40" preserveAspectRatio="none">
+              <path d="M6 24 C 90 12, 170 30, 250 20 S 420 10, 500 22 S 570 28, 594 16" />
+              <path d="M40 33 C 140 26, 260 36, 380 29 S 520 27, 560 31" />
+            </svg>
+          </div>
           <ol className="nboard__notes">
             <li className="note note--now" data-note="now" style={{ left: NOW.x * WORLD.w, top: NOW.y * WORLD.h, '--tilt': '-2deg' } as React.CSSProperties}>
               <span className="note__pin" aria-hidden="true" />

@@ -27,6 +27,9 @@ type Stage = {
   release: () => void
   /** stop drawing; what is on screen stays */
   stop: () => void
+  /** 0..1: how far the hole has moved from the divider to the Story panel's
+   *  centre (the takeover before the dive); placed again every frame while > 0 */
+  focus: { p: number }
 }
 
 const PANELS: { key: PanelKey; name: string; descriptor: string; href: string }[] = [
@@ -166,26 +169,35 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
     // leaving for another page, the pointer is let go of and ignored
     let leaving = false
 
+    const focus = { p: 0 }
+    // One hole, on the line between the panels: side by side, the Brief's
+    // right edge and the Story's left; stacked (a phone), between them. In the
+    // takeover before the dive (focus.p toward 1) it moves to the middle of the
+    // Story panel, which by then is the whole screen.
+    const place = () => {
+      const L = pre.parentElement?.getBoundingClientRect()
+      const R = host.getBoundingClientRect()
+      if (!R.width) return
+      const m = Math.min(R.width, R.height) || 1
+      const hasL = !!L && L.width > 1 && L.height > 1
+      const stacked = hasL ? R.top >= L!.bottom - 1 : R.height < R.width * 0.9 && R.top > 1
+      const line = stacked
+        ? { x: R.left + R.width / 2, y: hasL ? (L!.bottom + R.top) / 2 : R.top }
+        : { x: hasL ? (L!.right + R.left) / 2 : R.left, y: R.top + R.height * 0.47 }
+      const f = focus.p
+      const hx = line.x + (R.left + R.width / 2 - line.x) * f
+      const hy = line.y + (R.top + R.height * 0.47 - line.y) * f
+      const at = (box: DOMRect) => ({ x: (hx - (box.left + box.width / 2)) / m, y: (box.top + box.height / 2 - hy) / m })
+      source.centers.story = at(R)
+      if (hasL) source.centers.brief = at(L!)
+    }
+
     const measure = () => {
       const left = pre.parentElement?.getBoundingClientRect()
       const right = host.getBoundingClientRect()
       if (right.width > 0) source.resize(right.width, right.height)
       if (left && left.width > 0) ascii.layout(left.width, left.height)
-      // one hole, on the line between the panels: side by side, the Brief's
-      // right edge and the Story's left; stacked (a phone), between them
-      if (left && left.width > 0 && right.width > 0) {
-        const m = Math.min(right.width, right.height) || 1
-        const stacked = right.top >= left.bottom - 1
-        const line = stacked
-          ? { x: right.left + right.width / 2, y: (left.bottom + right.top) / 2 }
-          : { x: (left.right + right.left) / 2, y: right.top + right.height * 0.47 }
-        const at = (box: DOMRect) => ({
-          x: (line.x - (box.left + box.width / 2)) / m,
-          y: (box.top + box.height / 2 - line.y) / m,
-        })
-        source.centers.brief = at(left)
-        source.centers.story = at(right)
-      }
+      place()
       if (reduced) {
         const { width: aw, height: ah } = source.asciiPass
         source.render(0, 0, 0, 0, aw, ah, 'lit', 'brief')
@@ -202,6 +214,12 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
       ease(current.brief, target.brief)
       ease(current.story, target.story)
 
+      // the takeover widens the Story panel under the canvas: keep the canvas its size
+      if (focus.p > 0) {
+        const r = host.getBoundingClientRect()
+        if (r.width > 0) source.resize(r.width, r.height)
+        place()
+      }
       const time = now / 1000
       const { width: aw, height: ah } = source.asciiPass
 
@@ -271,6 +289,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
         target.story.amt = 0
       },
       stop: () => cancelAnimationFrame(raf),
+      focus,
     }
 
     return () => {
@@ -367,6 +386,9 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
       const deepest = gsap.utils.clamp(0.05, 0.2, reach / (far * 1.15))
       const dive = { e: 0 }
 
+      // the takeover runs first: the Story side sweeps over the Brief, and the
+      // whole hole, lit, holds a beat before the dive (everything after is shifted by T0)
+      const T0 = 0.95
       const overlay = routeTransition.play('story', {
         path: href,
         hole: () => {
@@ -375,20 +397,31 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
           const clear = source.clearRadiusPx() * v.k
           return { x: v.x, y: v.y, r: clear + (shadow - clear) * dive.e }
         },
-        from: 0.12,
-        to: 0.8,
+        from: T0 + 0.12,
+        to: T0 + 0.8,
       })
       if (!overlay) return false
 
       contextSafe(() => {
         const tl = gsap.timeline()
-        if (other) {
-          tl.to(other, { autoAlpha: 0, xPercent: -2, duration: 0.3, ease: 'power2.in' }, 0)
-        }
-        // 1. anticipation: the hole draws in by about 3%, and lets go of the cursor
+        const chosen = panelEls.current.story
+        // 0. the takeover: the Story side rises over the Brief and widens to the
+        //    whole screen while the Brief folds away under it; the hole slides
+        //    from the divider to the middle and is whole, and lit, for a beat
         tl.call(st.release, undefined, 0)
         if (resumeRef.current) tl.to(resumeRef.current, { autoAlpha: 0, duration: 0.3, ease: 'power2.in' }, 0)
-        tl.to(source, { zoom: ZOOM_REST * 1.03, duration: 0.12, ease: 'power2.out' }, 0)
+        if (chosen) {
+          gsap.set(chosen, { zIndex: 3 })
+          tl.to(chosen.querySelectorAll('.hero__content, .hero__dot'), { autoAlpha: 0, y: 14, duration: 0.35, ease: 'power2.in' }, 0)
+        }
+        if (other) {
+          tl.to(other, { flexGrow: 0, flexBasis: '0%', duration: 0.7, ease: 'power3.inOut' }, 0.05)
+          tl.to(other.querySelector('[data-hero-shift]'), { scale: 0.9, autoAlpha: 0, duration: 0.55, ease: 'power2.in' }, 0.05)
+        }
+        tl.to(rootRef.current?.querySelector('.hero__divider') ?? {}, { autoAlpha: 0, duration: 0.3 }, 0.05)
+        tl.to(st.focus, { p: 1, duration: 0.7, ease: 'power3.inOut' }, 0.05)
+        // 1. anticipation: the hole draws in by about 3%
+        tl.to(source, { zoom: ZOOM_REST * 1.03, duration: 0.12, ease: 'power2.out' }, T0)
         // 2. the dive
         tl.to(
           dive,
@@ -402,7 +435,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
               source.dive = dive.e
             },
           },
-          0.12,
+          T0 + 0.12,
         )
         // 3. black: the picture stops, and the point is handed over
         tl.call(
@@ -414,7 +447,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
             navigate(href)
           },
           undefined,
-          0.8,
+          T0 + 0.8,
         )
       })()
       return true

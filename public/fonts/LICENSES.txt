@@ -8,3 +8,5 @@ instrument-serif-latin-v5.woff2        Instrument Serif      Copyright 2022 The 
 instrument-serif-italic-latin-v5.woff2 Instrument Serif Italic (same project)
 inter-latin-v20.woff2                  Inter                 Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)
 jetbrains-mono-latin-v24.woff2         JetBrains Mono        Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+
+Caveat -- caveat-latin-v23.woff2. Copyright 2014 The Caveat Project Authors. SIL Open Font License 1.1.
