@@ -48,7 +48,7 @@ const PANELS: { key: PanelKey; name: string; descriptor: string; href: string }[
 ]
 
 /** how far (CSS px) each half of the hole is moved off the divider, into its own panel */
-const HALF_NUDGE = 7
+const HALF_NUDGE = 0
 
 const prefersReducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches

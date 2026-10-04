@@ -81,7 +81,13 @@
   white-space: pre;
   user-select: none;
   transform: scale(1.02);
-  transform-origin: center center;
+  /* grown about the hole's point (the bottom-middle when the panels are
+     stacked, the right edge's when they sit side by side), so the ASCII half
+     meets the lit half exactly at the divider */
+  transform-origin: 50% 100%;
+}
+@media (min-width: 768px) {
+  .hero__ascii { transform-origin: 100% 47%; }
 }
 
 .hero__color,
