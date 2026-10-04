@@ -274,7 +274,8 @@
 
 @media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
   .work[data-stage] .work__pin {
-    height: 100dvh;
+    /* a screen and 16px: the ribbon stays centred, so 8px more room above it and 8px below */
+    height: calc(100dvh + 16px);
   }
 
   .work[data-stage] .work__corner--tr b,
