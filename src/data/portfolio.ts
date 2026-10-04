@@ -42,6 +42,10 @@ export type Sleeve = {
   repo?: string
   /** The deployed site or demo, when there is one. Never invented. */
   live?: string
+  /** What the live link is called in the detail panel (default "Live demo"). */
+  liveLabel?: string
+  /** A second link beside it, when the work has one (a related demo). */
+  extra?: { label: string; href: string }
   /** The case-study stream, in order. Empty until real captures are supplied;
    *  the panel then shows the title card and the numbers alone. */
   media?: ProjectMedia[]
@@ -100,7 +104,9 @@ export const SLEEVES: Sleeve[] = [
     emoji: '🔎',
     metrics: ['−60% lookup time', 'Cited answers', 'Local + API'],
     tags: ['LangChain', 'FAISS', 'ChromaDB', 'OpenAI API'],
-    repo: 'https://github.com/Yugjohri',
+    repo: 'https://github.com/Yugjohri/RAG-Powered-AI-Knowledge-Worker',
+    live: 'https://rag-powered-ai-knowledge-worker-xyotc8knhafumxdsw3w9zf.streamlit.app/',
+    liveLabel: 'Live demo',
     video: ragClip,
     jx: 3,
     jr: -0.6,
@@ -125,7 +131,10 @@ export const SLEEVES: Sleeve[] = [
     emoji: '🧠',
     metrics: ['−70% GPU memory', '4-bit quantized', 'GPT-4 accuracy peer'],
     tags: ['PyTorch', 'QLoRA', 'Hugging Face', 'PEFT'],
-    repo: 'https://github.com/Yugjohri',
+    repo: 'https://github.com/Yugjohri/Finetuned-Open-Source-LLM-for-Product-Price-Prediction-QLoRA-',
+    live: 'https://huggingface.co/spaces/YugJ/pricer-qlora',
+    liveLabel: 'Results',
+    extra: { label: 'Frontier models demo', href: 'https://price-predictor-steel.vercel.app' },
     video: qloraClip,
     jx: -1,
     jr: 0.4,
@@ -148,7 +157,7 @@ export const SLEEVES: Sleeve[] = [
     emoji: '🤖',
     metrics: ['Agent-to-agent memory', 'Structured tool use'],
     tags: ['Multi-agent', 'Python', 'Tool calling'],
-    repo: 'https://github.com/Yugjohri',
+    repo: 'https://github.com/Yugjohri/Autonomous-Multi-Agent-Bargain-Spotter-',
     jx: 2,
     jr: -0.5,
   },
@@ -192,7 +201,9 @@ export const SLEEVES: Sleeve[] = [
     emoji: '⚙️',
     metrics: ['Measured speedup', 'Output-checked', 'GPT-OSS 120B'],
     tags: ['LLM translation', 'Rust', 'C++', 'Sandboxed execution'],
-    repo: 'https://github.com/Yugjohri',
+    repo: 'https://github.com/Yugjohri/python-to-rust-cpp',
+    live: 'https://huggingface.co/spaces/YugJ/python-to-rust-cpp',
+    liveLabel: 'Live demo',
     video: portClip,
     jx: -2,
     jr: 0.5,

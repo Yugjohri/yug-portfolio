@@ -512,7 +512,15 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
                   <span className="pd__link-mark" aria-hidden="true">
                     ↗
                   </span>
-                  Live site
+                  {project.liveLabel ?? 'Live demo'}
+                </a>
+              ) : null}
+              {project.extra ? (
+                <a className="pd__link" href={project.extra.href} target="_blank" rel="noreferrer">
+                  <span className="pd__link-mark" aria-hidden="true">
+                    ↗
+                  </span>
+                  {project.extra.label}
                 </a>
               ) : null}
               <span className="pd__chip mono">{project.org}</span>
