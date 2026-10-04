@@ -1773,6 +1773,34 @@ em.about__pword {
 }
 .nboard:not(.nboard--open) .note { pointer-events: none; }
 .nboard .note--new { z-index: 5; cursor: move; min-height: 230px; }
+.nboard .note--new .note__input { cursor: text; }
+.nboard[data-dragging='note'] .note--new,
+.nboard[data-dragging='note'] .note--new .note__input { cursor: grabbing; user-select: none; }
+/* docked: the blank note over the board's bottom-right corner, full size, ready to write on */
+.nboard__dock-note {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 6;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nboard:not(.nboard--open) .nboard__dock-note .note {
+  position: relative;
+  width: 210px;
+  min-height: 0;
+  rotate: 2deg;
+  cursor: default;
+  pointer-events: auto;
+}
+@media (max-width: 699px) {
+  /* a phone: a taller board -- the title above, the blank note under it, the label below that */
+  .nboard-slot { aspect-ratio: 3 / 4; }
+  .nboard__dock-note { right: 50%; translate: 50% 0; bottom: 58px; }
+  .nboard:not(.nboard--open) .nboard__dock-note .note { width: 180px; padding: 1.3rem 0.9rem 0.8rem; }
+  .nboard:not(.nboard--open) .nboard__dock-note .note__input { min-height: 3.6em; font-size: 1.1rem; }
+}
 /* the round glass button */
 .nboard__toggle {
   position: absolute;
@@ -1910,6 +1938,7 @@ em.about__pword {
 }
 .note__paper[aria-checked='true'] { box-shadow: 0 0 0 2px var(--red-hot, #bc0202); }
 .note__count { margin-left: auto; font-size: 11px; color: rgb(26 22 24 / 0.45); }
+.note__form > .note__pin-it { align-self: stretch; margin-top: 0.15rem; }
 .note__pin-it {
   padding: 0.4rem 0.7rem;
   border: 0;
