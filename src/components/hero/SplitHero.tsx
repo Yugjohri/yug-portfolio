@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { HeroSource } from './heroSource'
+import { HeroSource, ZOOM_REST } from './heroSource'
 import { AsciiRenderer } from './asciiRenderer'
 import { grade } from '../../theme'
 import { LINKS } from '../../data/brief'
@@ -171,9 +171,24 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
       const right = host.getBoundingClientRect()
       if (right.width > 0) source.resize(right.width, right.height)
       if (left && left.width > 0) ascii.layout(left.width, left.height)
+      // one hole, on the line between the panels: side by side, the Brief's
+      // right edge and the Story's left; stacked (a phone), between them
+      if (left && left.width > 0 && right.width > 0) {
+        const m = Math.min(right.width, right.height) || 1
+        const stacked = right.top >= left.bottom - 1
+        const line = stacked
+          ? { x: right.left + right.width / 2, y: (left.bottom + right.top) / 2 }
+          : { x: (left.right + right.left) / 2, y: right.top + right.height * 0.47 }
+        const at = (box: DOMRect) => ({
+          x: (line.x - (box.left + box.width / 2)) / m,
+          y: (box.top + box.height / 2 - line.y) / m,
+        })
+        source.centers.brief = at(left)
+        source.centers.story = at(right)
+      }
       if (reduced) {
         const { width: aw, height: ah } = source.asciiPass
-        source.render(0, 0, 0, 0, aw, ah, 'lit')
+        source.render(0, 0, 0, 0, aw, ah, 'lit', 'brief')
         ascii.draw(source.canvas, 0, source.canvas.height - ah, aw, ah)
         source.render(0, 0, 0, 0)
       }
@@ -193,7 +208,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
       // Two passes, one clock. Identical `time` means both panels always show
       // the same moment of the same source; only the warp differs. The ASCII
       // pass runs first, at reduced size, and is read back immediately...
-      source.render(time, current.brief.x, current.brief.y, current.brief.amt, aw, ah, 'lit')
+      source.render(time, current.brief.x, current.brief.y, current.brief.amt, aw, ah, 'lit', 'brief')
       ascii.draw(source.canvas, 0, source.canvas.height - ah, aw, ah)
 
       // ...then the full-size pass overwrites the canvas, which *is* the right
@@ -373,7 +388,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
         // 1. anticipation: the hole draws in by about 3%, and lets go of the cursor
         tl.call(st.release, undefined, 0)
         if (resumeRef.current) tl.to(resumeRef.current, { autoAlpha: 0, duration: 0.3, ease: 'power2.in' }, 0)
-        tl.to(source, { zoom: 2.58, duration: 0.12, ease: 'power2.out' }, 0)
+        tl.to(source, { zoom: ZOOM_REST * 1.03, duration: 0.12, ease: 'power2.out' }, 0)
         // 2. the dive
         tl.to(
           dive,
@@ -382,7 +397,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
             duration: 0.68,
             ease: EASE.collapse,
             onUpdate: () => {
-              source.zoom = 2.58 * Math.pow(deepest / 2.58, dive.e)
+              source.zoom = ZOOM_REST * 1.03 * Math.pow(deepest / (ZOOM_REST * 1.03), dive.e)
               source.spin = 1 + 3 * dive.e
               source.dive = dive.e
             },
@@ -444,7 +459,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
             onUpdate: () => {
               // squeezed toward the hole's own line, wherever the cursor left it
               const c = st.cursor.brief
-              ascii.drainMid = source.holeCentrePx(c.x, c.y, c.amt).y / (source.canvas.clientHeight || 1)
+              ascii.drainMid = source.holeCentrePx(c.x, c.y, c.amt, 'brief').y / (source.canvas.clientHeight || 1)
               ascii.drain = drain.p
             },
           },

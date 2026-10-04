@@ -6,6 +6,7 @@ import { BRIEF, LINKS } from '../../data/brief'
 import { ROLES } from '../../data/portfolio'
 import { BEAT, EASE } from '../../motion/tokens'
 import ContactGlass from './ContactGlass'
+import NotesBoard from './NotesBoard'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -46,6 +47,8 @@ export default function Contact() {
         { autoAlpha: 0, y: 24 },
         { autoAlpha: 1, y: 0, duration: BEAT * 1.7, ease: EASE.unfold, stagger: 0.08 },
       )
+      const board = root.current?.querySelector('[data-contact-board]')
+      if (board) tl.fromTo(board, { autoAlpha: 0 }, { autoAlpha: 1, duration: BEAT * 1.7, ease: EASE.unfold }, 0)
       ScrollTrigger.create({
         trigger: root.current,
         start: 'top 55%',
@@ -79,10 +82,18 @@ export default function Contact() {
       </div>
       <div className="st-corner st-corner--tr mono">{BRIEF.location} · IST</div>
 
-      {/* the words, huge, with a knot of glass turning in front of them */}
-      <ContactGlass lines={GLASS_LINES} below=".st-corner--tl" above=".contact__now" />
+      {/* two halves: the notes board, and the invitation with the details under it */}
+      <div className="contact__grid">
+      {/* faded in on its own, without a transform: a transformed ancestor would
+          keep the open board (position: fixed) from reaching the whole screen */}
+      <div className="contact__board" data-contact-board>
+        <NotesBoard />
+      </div>
+      <div className="contact__main">
+      {/* the words, with a knot of glass turning in front of them */}
+      <ContactGlass lines={GLASS_LINES} above=".contact__now" />
 
-      <div className="st-wrap contact__inner">
+      <div className="contact__inner">
         <p className="contact__now" data-contact-part>
           <span className="mono contact__label">Now</span>
           <span>
@@ -119,6 +130,8 @@ export default function Contact() {
             </li>
           ))}
         </ul>
+      </div>
+      </div>
       </div>
 
 

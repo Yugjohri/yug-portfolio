@@ -17,6 +17,9 @@ create table if not exists public.notes (
   body text not null check (char_length(btrim(body)) between 1 and 140),
   color text not null default 'paper' check (color in ('paper', 'blush', 'sage', 'butter')),
   tilt real not null default 0 check (tilt between -6 and 6),
+  -- where it is pinned on the board, as shares of its width and height
+  x real check (x between 0 and 1),
+  y real check (y between 0 and 1),
   created_at timestamptz not null default now()
 );
 
@@ -47,7 +50,7 @@ as $$
      and not (p_body ~* '(https?://|www\.)');
 $$;
 
-create or replace function public.add_note(p_body text, p_color text, p_client text)
+create or replace function public.add_note(p_body text, p_color text, p_client text, p_x real default null, p_y real default null)
 returns public.notes
 language plpgsql
 security definer
@@ -79,11 +82,13 @@ begin
     raise exception 'already_posted' using errcode = 'P0001';
   end if;
 
-  insert into public.notes (body, color, tilt)
+  insert into public.notes (body, color, tilt, x, y)
   values (
     v_body,
     case when p_color in ('paper', 'blush', 'sage', 'butter') then p_color else 'paper' end,
-    round(((random() * 7) - 3.5)::numeric, 2)
+    round(((random() * 7) - 3.5)::numeric, 2),
+    least(greatest(coalesce(p_x, 0.5), 0), 1),
+    least(greatest(coalesce(p_y, 0.5), 0), 1)
   )
   returning * into v_note;
 
@@ -94,6 +99,6 @@ begin
 end;
 $$;
 
-revoke all on function public.add_note(text, text, text) from public;
-grant execute on function public.add_note(text, text, text) to anon, authenticated;
+revoke all on function public.add_note(text, text, text, real, real) from public;
+grant execute on function public.add_note(text, text, text, real, real) to anon, authenticated;
 revoke all on function public.note_is_clean(text) from public;

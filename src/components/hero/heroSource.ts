@@ -18,7 +18,11 @@ export type HeroSourceOptions = {
 
 import { GRADE_ID, INK, INK_DEEP, PAPER, type Grade } from '../../theme'
 
-const MAX_DPR = 2
+/** The black hole is traced ray by ray, so its pass is kept to about this
+ *  many pixels and drawn up to the panel's size: the picture is soft light,
+ *  and the extra samples at the rim (below) keep the edges clean. */
+const MAX_DPR = 1.5
+const MAX_PIXELS = 1_050_000
 
 /**
  * The ASCII panel reads its frame back at ~150 characters wide, so it does not
@@ -32,10 +36,8 @@ const ASCII_PASS_MIN = 320
  *  the resting zoom, the shadow's radius (R_H), how far above centre the hole
  *  sits (0.031 / 2.50, in units of the short side), and the cursor's
  *  parallax (0.035 x CURSOR_K). */
-const ZOOM_REST = 2.5
+export const ZOOM_REST = 2.1
 const SHADOW_R = 0.28
-const HOLE_Y = 0.031 / 2.5
-const PARALLAX = 0.035 * (1.2 / 2.5)
 /** and the near half of the disk, which crosses in front of the shadow: its
  *  inner edge (R_IN) comes within R_IN x SQ of the centre */
 const CLEAR_R = 0.31 * 0.21
@@ -66,6 +68,7 @@ uniform vec3      uInk;
 uniform vec3      uInkDeep;
 uniform float     uZoom;      // how far back the camera sits: 2.50 at rest
 uniform float     uDive;      // 0 at rest; toward 1 the stars streak in toward the hole
+uniform vec2      uCenter;    // where the hole sits, from the panel's centre, in short-side units
 
 const vec3 BG = vec3(0.024, 0.024, 0.059);
 
@@ -111,74 +114,119 @@ mat2 rot(float a) {
   return mat2(c, -s, s, c);
 }
 
-/* Black-hole geometry, in screen units where the panel's short side is 1. */
-const float R_H   = 0.28;   /* shadow radius */
-const float SQ    = 0.21;   /* disk squash: sin of the viewing inclination */
-const float R_IN  = 0.31;   /* disk inner edge, disk-plane units */
-const float R_OUT = 1.40;   /* disk outer edge: where the fade finishes, inside the frame */
-const float TILT  = -0.21;  /* disk rotation on screen */
-const float ARC_T = 0.12;   /* thickness of the lensed far-side band over the top */
-const float ARC_B = 0.078;  /* and of the thinner one bent under the bottom */
+/* ---- The black hole, traced.
+   Units: the Schwarzschild radius is 1. Each pixel is a ray from a pinhole
+   camera thirty radii out, a little above the disk's plane; the ray is bent by
+   the hole's gravity (the photon orbit equation, integrated in steps), picks up
+   the accretion disk each time it crosses the plane, and ends either in the
+   hole or out among the stars, which it then shows from the direction it left
+   in. Everything the old painting faked -- the arc over the top, the thinner
+   one beneath, the bright ring at the shadow's edge, the sky bent round it --
+   falls out of the bending. */
+const float R_H   = 0.28;    /* the shadow's radius on screen (mirrored in TS as SHADOW_R) */
+const float B_CRIT = 2.598;  /* the shadow's radius in impact parameter: 3*sqrt(3)/2 */
+const float CAM_D = 30.0;
+const float INC   = 0.13;    /* the camera's height above the disk plane, radians */
+const float TILT  = -0.11;   /* the disk's lean on screen */
+const float R_IN  = 3.0;     /* innermost stable orbit */
+const float R_OUT = 10.5;
 const float PI    = 3.14159265;
 
-/* Colour + intensity of the disk at disk-plane polar (rho, phi).
-   rgb is premultiplied by intensity; a is the intensity itself. */
-vec4 diskTex(float rho, float phi, float time, float det) {
-  /* Rotation in two parts: a rigid spin, plus a gentler keplerian shear so the
-     inner material still laps the outer. Only the shear varies with radius, and
-     it is the radial rate of change that aliases -- so it is kept small. */
-  float swirl = phi + time * 0.40 + time * 0.26 / pow(max(rho, 0.36), 1.05);
-
-  /* Sample the turbulence on a ring rather than on the angle itself. atan()
-     jumps from +PI to -PI along one radius; feeding that straight into the
-     noise put a 2PI step in its input and tore a seam across the disk.
-     cos/sin are continuous there, so the texture closes on itself. The ring is
-     deliberately small: its radius multiplies the radial rate above. */
-  vec2 ring = vec2(cos(swirl), sin(swirl)) * 2.3;
-  float turb = fbm4(ring + vec2(rho * 3.0, rho * 1.9));
-  turb = 0.55 + 0.9 * turb;
-
-  /* Filaments: two cheap octaves drawn out along the ring, so the material
-     reads as streaks wound round the hole rather than as even cloud. Faded in
-     with radius -- near the hole the shear is fast enough to alias them. Only
-     the open disk asks for them; in the lensed bands they never resolve. */
-  if (det > 0.5) {
-    float fil = noise(ring * 2.7 + vec2(rho * 5.2, -rho * 3.1)) * 0.62
-              + noise(ring * 5.3 + vec2(rho * 9.1, rho * 2.2)) * 0.30;
-    turb *= mix(1.0, 0.62 + 0.86 * fil, smoothstep(R_IN + 0.05, 0.95, rho));
-  }
-
-  /* A long band that thins out rather than stopping: bright close in, a slow
-     falloff, and a fade that finishes just inside the frame's side edges. */
-  float band = smoothstep(R_IN, R_IN + 0.09, rho) * (1.0 - smoothstep(0.98, R_OUT, rho));
-  float amt = band * turb / (1.0 + rho * rho * 0.40);
-
-  /* relativistic beaming: the approaching side burns white, the receding one
-     drops away. The ramp below reads this, so brightness carries the colour. */
-  amt *= 1.0 + 0.45 * cos(phi);
-  amt = clamp(amt, 0.0, 1.6);
-
-  float t = clamp(amt * 1.35, 0.0, 1.0);
-  vec3 c = mix(vec3(0.30, 0.05, 0.30), vec3(0.90, 0.16, 0.06), smoothstep(0.10, 0.40, t));
-  c = mix(c, vec3(1.00, 0.55, 0.18), smoothstep(0.40, 0.70, t));
-  c = mix(c, vec3(1.00, 0.96, 0.92), smoothstep(0.80, 1.00, t));
-
-  return vec4(c * amt, amt);
+float hash3(vec3 p) {
+  p = fract(p * 0.3183099 + 0.1);
+  p *= 17.0;
+  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
 }
 
-vec3 starfield(vec2 p, float time) {
-  vec3 c = vec3(0.0);
+/* the sky behind it, by direction: faint nebula and three layers of stars,
+   hashed in 3D so no seam runs anywhere a bent ray might look */
+vec3 sky(vec3 d, float time) {
+  vec3 c = BG;
+  float n = fbm(d.xy * 2.4 + vec2(d.z * 1.7, -d.z));
+  float n2 = fbm(d.yz * 3.1 - vec2(1.3, d.x));
+  c += vec3(0.09, 0.03, 0.12) * smoothstep(0.42, 0.95, n) * 0.55;
+  c += vec3(0.02, 0.04, 0.09) * smoothstep(0.35, 0.9, n2) * 0.55;
   for (int i = 0; i < 3; i++) {
     float fi = float(i);
-    vec2 q = p * (150.0 + fi * 110.0) + fi * 31.0;
-    float h = hash(floor(q));
-    vec2 f = fract(q) - 0.5;
-    float tw = 0.55 + 0.45 * sin(time * 2.2 + h * 63.0);
-    vec3 tint = mix(mix(vec3(0.45, 1.00, 0.55), vec3(0.55, 0.70, 1.00), step(0.5, fi)),
-                    vec3(1.00, 0.45, 0.45), step(1.5, fi));
-    c += tint * step(0.9915, h) * smoothstep(0.42, 0.0, length(f)) * tw;
+    float k = 70.0 + fi * 65.0;
+    vec3 q = d * k + fi * 13.7;
+    vec3 cell = floor(q);
+    float h = hash3(cell);
+    if (h > 0.972) {
+      vec3 off = vec3(hash3(cell + 1.3), hash3(cell + 2.7), hash3(cell + 4.1)) - 0.5;
+      float dd = length(fract(q) - 0.5 - off * 0.5);
+      float tw = 0.65 + 0.35 * sin(time * 1.8 + h * 90.0);
+      vec3 tint = mix(vec3(1.0, 0.86, 0.72), vec3(0.72, 0.82, 1.0), fract(h * 97.0));
+      c += tint * smoothstep(0.075, 0.0, dd) * tw * (1.5 - fi * 0.35);
+    }
   }
-  return c * 0.85;
+  return c;
+}
+
+/* the disk at a crossing: colour (premultiplied) and opacity.
+   Hotter inward; Doppler-boosted on the side turning toward the camera and
+   dimmed on the other; reddened by the climb out of the hole's well. */
+vec4 disk(vec3 hit, vec3 rd, float time, float dive) {
+  float r = length(hit.xz);
+  float edge = smoothstep(R_IN, R_IN + 0.7, r) * (1.0 - smoothstep(R_OUT * 0.55, R_OUT, r));
+  if (edge <= 0.0) return vec4(0.0);
+  float phi = atan(hit.z, hit.x);
+  float beta = min(sqrt(0.5 / max(r - 1.0, 0.5)), 0.7);
+  vec3 vel = normalize(vec3(-hit.z, 0.0, hit.x)) * beta;
+  float gamma = inversesqrt(1.0 - beta * beta);
+  float g = 1.0 / (gamma * (1.0 - dot(vel, -rd))) * sqrt(max(1.0 - 1.0 / r, 0.05));
+
+  /* turbulence carried round at the orbit's own rate (inner laps outer); the
+     angle enters through cos/sin so the texture closes on itself */
+  float sw = phi - time * (0.9 + 2.2 * dive) * pow(R_IN / r, 1.5);
+  vec2 ring = vec2(cos(sw), sin(sw));
+  float n = fbm4(ring * 1.9 + vec2(r * 0.85, r * 0.55));
+  float fil = noise(ring * 4.6 + vec2(r * 2.4, -r * 1.2)) * 0.65 + noise(ring * 9.0 + vec2(r * 4.1, r)) * 0.35;
+  float dens = (0.45 + 1.0 * n) * (0.62 + 0.7 * fil);
+
+  float temp = pow(R_IN / r, 0.78);
+  float lum = dens * edge * temp * temp * pow(g, 3.4) * 3.4;
+  float t = clamp(temp * g * 1.08, 0.0, 1.4);
+  vec3 c = mix(vec3(0.45, 0.06, 0.03), vec3(0.98, 0.30, 0.07), smoothstep(0.15, 0.45, t));
+  c = mix(c, vec3(1.0, 0.68, 0.30), smoothstep(0.45, 0.78, t));
+  c = mix(c, vec3(1.0, 0.95, 0.86), smoothstep(0.82, 1.15, t));
+  float alpha = clamp(dens * edge * 1.15, 0.0, 0.96);
+  return vec4(c * lum, alpha);
+}
+
+/* one ray, from impact parameter b (in hole radii) on the camera's image plane */
+vec3 trace(vec2 b, float time, float dive) {
+  vec3 cam = vec3(0.0, sin(INC), -cos(INC)) * CAM_D;
+  vec3 fw = -cam / CAM_D;
+  vec3 rt = vec3(1.0, 0.0, 0.0);
+  vec3 up = cross(fw, rt);
+  vec3 p = cam;
+  vec3 v = normalize(fw * CAM_D + rt * b.x + up * b.y);
+  vec3 hv = cross(p, v);
+  float h2 = dot(hv, hv);
+
+  vec3 col = vec3(0.0);
+  float T = 1.0;
+  bool caught = false;
+  for (int i = 0; i < 180; i++) {
+    float r2 = dot(p, p);
+    float r = sqrt(r2);
+    if (r < 1.0) { caught = true; break; }
+    if (r > CAM_D + 2.0 && dot(p, v) > 0.0) break;
+    float dt = clamp(0.065 * r - 0.03, 0.025, 2.0);
+    vec3 prev = p;
+    v += -1.5 * h2 * p / (r2 * r2 * r) * dt;
+    p += v * dt;
+    if (prev.y * p.y < 0.0) {
+      vec3 hit = mix(prev, p, prev.y / (prev.y - p.y));
+      vec4 d = disk(hit, normalize(v), time, dive);
+      col += T * d.rgb;
+      T *= 1.0 - d.a;
+      if (T < 0.02) break;
+    }
+  }
+  if (!caught) col += T * sky(normalize(v), time);
+  return col;
 }
 
 void main() {
@@ -188,114 +236,54 @@ void main() {
   /* Cursor reads as mass: it drags the image toward itself and parallaxes the
      whole field. Each panel passes its own cursor, so only the panel under the
      pointer is warped. */
+  /* the hole sits where the panel is told (on the line between the two
+     panels, so each shows its half); the cursor reads as a small extra mass,
+     pulling the picture toward itself where it rests */
   vec2 toCursor = uv - uPointer;
-  /* The pull is sized to the hole, not to the screen. It is worked out here
-     in screen units, before the frame pulls back below -- so when the camera
-     moved from 1.20 to 2.50, its reach, its strength and the field's drift
-     came back by the same 1.20/2.50, and the cursor bends the hole exactly
-     as far as it always did instead of dwarfing it. */
-  const float CURSOR_K = 1.20 / 2.50;
-  float reach = 0.055 * CURSOR_K * CURSOR_K;
+  float reach = 0.013;
   float pull = uPointerAmt * reach / (dot(toCursor, toCursor) + reach);
-  uv -= normalize(toCursor + vec2(1e-5)) * pull * (0.10 * CURSOR_K);
-  uv -= uPointer * uPointerAmt * (0.035 * CURSOR_K);
+  uv -= normalize(toCursor + vec2(1e-5)) * pull * 0.05;
 
-  /* Frame the hole from well back, so it is a small object inside a wide
-     band rather than a close-up: its shadow spans about a fifth of the panel's
-     width and the disk runs out to both side edges. Sitting just above centre.
-     Everything drawn below is in these pulled-back units, so the terms that
-     describe the frame itself (stars, vignette) are scaled to match. */
-  if (uUseVideo < 0.5) {
-    uv *= uZoom;
-    /* the hole sits a little above centre; scaled with the zoom so it holds
-       its place on screen while the camera moves -- at 2.50 this is 0.031 */
-    uv.y -= 0.031 * (uZoom / 2.50);
-  }
-
-  float r = length(uv);
   vec3 col;
-
+  float r;
   if (uUseVideo > 0.5) {
+    r = length(uv);
     vec2 tex = (uv * m + 0.5 * uRes) / uRes;
     col = texture2D(uVideo, tex).rgb;
     col = pow(max(col, 0.0), vec3(1.30));
     float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
     col = mix(vec3(l), col, 1.35);
   } else {
-    vec3 stars = starfield(uv * 0.432, uTime);
-    if (uDive > 0.001) {
-      /* a dive toward the hole draws the stars in along their radius: the
-         same field, sampled a little further out and painted here */
-      for (int i = 1; i <= 3; i++) {
-        float k = 1.0 + float(i) * 0.07 * uDive;
-        stars = max(stars, starfield(uv * 0.432 * k, uTime) * (1.0 - float(i) * 0.24));
+    uv -= uCenter;
+    uv *= uZoom;
+    r = length(uv);
+    /* screen to impact parameter: the shadow's edge lands at R_H */
+    vec2 q = uv * rot(TILT) * (B_CRIT / R_H);
+    /* a dive streaks the sky in toward the hole */
+    q *= 1.0 + 0.25 * uDive * smoothstep(0.0, 2.5, length(q) / 12.0);
+    float px = uZoom * (B_CRIT / R_H) / m;
+    float rb = length(q);
+    /* one ray a pixel, four at the rim -- the shadow, the photon ring and the
+       arcs over and under, where one ray a pixel leaves stair-steps */
+    if (abs(rb - B_CRIT) < 0.9 + 3.0 * px || (abs(q.y) < 0.9 && rb < R_OUT + 1.0)) {
+      col = vec3(0.0);
+      for (int s = 0; s < 4; s++) {
+        vec2 o = vec2(mod(float(s), 2.0) - 0.5, floor(float(s) / 2.0) - 0.5) * px * 0.5;
+        o = vec2(o.x * 0.97 - o.y * 0.24, o.x * 0.24 + o.y * 0.97);
+        col += trace(q + o, uTime, uDive);
       }
+      col *= 0.25;
+    } else {
+      col = trace(q, uTime, uDive);
     }
-    col = BG + stars;
-
-    /* disk-plane coordinates: tilted on screen, squashed by inclination */
-    vec2 p = uv * rot(TILT);
-    vec2 e = vec2(p.x, p.y / SQ);
-    float rho = length(e);
-    float phi = atan(e.y, e.x);
-
-    /* one continuous band. The far half is behind the hole: dimmer and redder,
-       blended through phi so the left/right extremes do not step. */
-    vec4 fb = diskTex(rho, phi, uTime, 1.0);
-    float farW = smoothstep(-0.15, 0.45, sin(phi));
-    vec3 farC = fb.rgb * (0.14 * farW) * mix(vec3(1.0), vec3(1.0, 0.58, 0.48), farW);
-
-    /* Lensing, the part that makes it read as a hole rather than a ring: the
-       far side of the disk is bent around the shadow and arrives twice -- once
-       carried over the top, once under the bottom. Together with the near half
-       drawn in front, the band appears to wrap the hole. Radial offset from
-       the shadow edge maps onto disk radius within each band. */
-    float ang  = atan(uv.y, uv.x);
-    float up   = clamp( sin(ang), 0.0, 1.0);
-    float down = clamp(-sin(ang), 0.0, 1.0);
-    float off  = r - R_H;
-
-    /* over the top: the thick, bright one */
-    float Tt = ARC_T * pow(up, 0.42) + 1e-4;
-    float ut = off / Tt;
-    vec4 arcTt = diskTex(R_IN + clamp(ut, 0.0, 1.0) * 1.05, PI - ang, uTime, 0.0);
-    float envT = smoothstep(-0.004, 0.005, off) * (1.0 - smoothstep(0.62, 1.0, ut)) * pow(up, 0.34);
-    vec3 arc = arcTt.rgb * (envT * 1.15);
-
-    /* under the bottom: the same material from beneath, thinner and dimmer */
-    float Tb = ARC_B * pow(down, 0.55) + 1e-4;
-    float ub = off / Tb;
-    vec4 arcBb = diskTex(R_IN + clamp(ub, 0.0, 1.0) * 0.85, PI - ang, uTime, 0.0);
-    float envB = smoothstep(-0.004, 0.005, off) * (1.0 - smoothstep(0.55, 1.0, ub)) * pow(down, 0.48);
-    arc += arcBb.rgb * (envB * 0.80);
-
-    /* --- behind the hole */
-    col += farC + arc;
-
-    /* the shadow eats everything behind it; a tight edge keeps the silhouette */
-    col *= smoothstep(R_H - 0.009, R_H + 0.002, r);
-
-    /* photon ring: a complete thin circle on the shadow's edge, brightest
-       where the lensed band lands on it */
-    float ring = exp(-pow((r - (R_H + 0.003)) / 0.0085, 2.0)) * (0.90 + 0.38 * up);
-    col += vec3(1.00, 0.80, 0.55) * (ring * 1.25);
-    col += vec3(1.00, 0.45, 0.18) * 0.05 * exp(-pow((r - R_H - 0.02) / 0.075, 2.0));
-    /* and the atmosphere it sits in: wide, faint, falling away outward, and
-       kept outside the shadow so the void stays a void */
-    col += vec3(1.00, 0.50, 0.21) * 0.030 * exp(-pow((r - R_H) / 0.30, 2.0))
-         * smoothstep(R_H - 0.004, R_H + 0.02, r);
-
-    /* --- in front of the hole: the near half of the band, composited OVER so
-       it occludes the ring and the lower part of the shadow outline */
-    vec3 nearC = fb.rgb * (1.0 - farW);
-    float nearA = clamp(fb.a * (1.0 - farW) * 1.6, 0.0, 1.0);
-    col = col * (1.0 - nearA) + nearC;
+    /* a faint warmth round the hole, as its light scatters */
+    col += vec3(1.0, 0.45, 0.18) * 0.022 * exp(-pow((r - R_H) / 0.45, 2.0)) * smoothstep(R_H - 0.01, R_H + 0.03, r);
   }
 
   /* vignette back down to the page colour */
   /* vignette back down to the page colour, measured in the pulled-back units:
      the same place on screen it always began, so the band's far ends survive */
-  col = mix(BG, col, 1.0 - smoothstep(0.96, 1.98, r) * 0.80);
+  col = mix(BG, col, 1.0 - smoothstep(1.6, 3.2, r) * 0.70);
 
   /* filmic tonemap keeps the ring white-hot instead of clipping it flat */
   col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14);
@@ -362,6 +350,10 @@ export class HeroSource {
   spin = 1
   /** 0..1: how far the stars are drawn in toward the hole by a dive. */
   dive = 0
+  /** Where each panel's pass puts the hole, from the panel's centre in short-side
+   *  units: on the line between the panels, so the Brief shows its left half
+   *  in ASCII and the Story its right half, lit. Set by the hero from layout. */
+  centers: Record<'brief' | 'story', { x: number; y: number }> = { brief: { x: 0, y: 0 }, story: { x: 0, y: 0 } }
 
   constructor({ videoSrc, grade = 'lit' }: HeroSourceOptions = {}) {
     this.canvas = document.createElement('canvas')
@@ -403,7 +395,7 @@ export class HeroSource {
     gl.useProgram(program)
     for (const name of [
       'uRes', 'uTime', 'uPointer', 'uPointerAmt', 'uUseVideo', 'uVideo',
-      'uGrade', 'uPaperCol', 'uInk', 'uInkDeep', 'uZoom', 'uDive',
+      'uGrade', 'uPaperCol', 'uInk', 'uInkDeep', 'uZoom', 'uDive', 'uCenter',
     ]) {
       this.u[name] = gl.getUniformLocation(program, name)
     }
@@ -451,11 +443,10 @@ export class HeroSource {
    * whole field; the pull right under the cursor is local and not counted.
    * `pointer` and `amount` are what the panel is rendering with.
    */
-  holeCentrePx(pointerX = 0, pointerY = 0, amount = 0) {
+  holeCentrePx(_pointerX = 0, _pointerY = 0, _amount = 0, which: 'brief' | 'story' = 'story') {
     const m = Math.min(this.cssW, this.cssH)
-    const ux = pointerX * amount * PARALLAX
-    const uy = HOLE_Y + pointerY * amount * PARALLAX
-    return { x: this.cssW / 2 + ux * m, y: this.cssH / 2 - uy * m }
+    const c = this.centers[which]
+    return { x: this.cssW / 2 + c.x * m, y: this.cssH / 2 - c.y * m }
   }
 
   /** The shadow's radius in CSS px at the current zoom. */
@@ -473,7 +464,8 @@ export class HeroSource {
   resize(width: number, height: number) {
     this.cssW = Math.max(1, width)
     this.cssH = Math.max(1, height)
-    const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR)
+    let dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR)
+    dpr = Math.min(dpr, Math.sqrt(MAX_PIXELS / Math.max(1, width * height)))
     const w = Math.max(1, Math.round(width * dpr))
     const h = Math.max(1, Math.round(height * dpr))
     if (this.canvas.width === w && this.canvas.height === h) return
@@ -505,6 +497,7 @@ export class HeroSource {
     width?: number,
     height?: number,
     grade = this.grade,
+    which: 'brief' | 'story' = 'story',
   ) {
     const gl = this.gl
     if (!gl || !this.program) return
@@ -530,6 +523,7 @@ export class HeroSource {
     gl.uniform1f(this.u.uTime, time + this.clock.offset)
     gl.uniform1f(this.u.uZoom, this.zoom)
     gl.uniform1f(this.u.uDive, this.dive)
+    gl.uniform2f(this.u.uCenter, this.centers[which].x, this.centers[which].y)
     gl.uniform2f(this.u.uPointer, pointerX, pointerY)
     gl.uniform1f(this.u.uPointerAmt, amount)
     gl.uniform1f(this.u.uUseVideo, this.video ? 1 : 0)

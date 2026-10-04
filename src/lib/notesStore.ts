@@ -11,7 +11,8 @@
  */
 
 export type NoteColor = 'paper' | 'blush' | 'sage' | 'butter'
-export type Note = { id: string; body: string; color: NoteColor; tilt: number; created_at: string }
+/** x, y: where it is pinned on the board, as shares of the board's width and height (null: older notes, laid out in order) */
+export type Note = { id: string; body: string; color: NoteColor; tilt: number; x: number | null; y: number | null; created_at: string }
 
 export type AddResult = { ok: true; note: Note } | { ok: false; reason: 'already_posted' | 'not_allowed' | 'bad_length' | 'offline' }
 
@@ -57,22 +58,22 @@ const headers = () => ({ apikey: KEY!, Authorization: `Bearer ${KEY}`, 'Content-
 
 export async function listNotes(): Promise<Note[]> {
   if (!isShared) return localNotes()
-  const res = await fetch(`${URL_}/rest/v1/notes?select=id,body,color,tilt,created_at&order=created_at.desc&limit=${LIMIT}`, {
+  const res = await fetch(`${URL_}/rest/v1/notes?select=id,body,color,tilt,x,y,created_at&order=created_at.desc&limit=${LIMIT}`, {
     headers: headers(),
   })
   if (!res.ok) throw new Error(`notes ${res.status}`)
   return res.json()
 }
 
-export async function addNote(body: string, color: NoteColor): Promise<AddResult> {
+export async function addNote(body: string, color: NoteColor, x: number, y: number): Promise<AddResult> {
   if (myNoteId()) return { ok: false, reason: 'already_posted' }
-  if (!isShared) return addLocal(body, color)
+  if (!isShared) return addLocal(body, color, x, y)
   let res: Response
   try {
     res = await fetch(`${URL_}/rest/v1/rpc/add_note`, {
       method: 'POST',
       headers: headers(),
-      body: JSON.stringify({ p_body: body, p_color: color, p_client: clientId() }),
+      body: JSON.stringify({ p_body: body, p_color: color, p_client: clientId(), p_x: x, p_y: y }),
     })
   } catch {
     return { ok: false, reason: 'offline' }
@@ -103,7 +104,7 @@ function localNotes(): Note[] {
     return []
   }
 }
-function addLocal(body: string, color: NoteColor): AddResult {
+function addLocal(body: string, color: NoteColor, x: number, y: number): AddResult {
   const text = body.replace(/\s+/g, ' ').trim()
   if (!text || text.length > 140) return { ok: false, reason: 'bad_length' }
   if (/(https?:\/\/|www\.)/i.test(text)) return { ok: false, reason: 'not_allowed' }
@@ -112,6 +113,8 @@ function addLocal(body: string, color: NoteColor): AddResult {
     body: text,
     color,
     tilt: Math.round((Math.random() * 7 - 3.5) * 100) / 100,
+    x: Math.min(1, Math.max(0, x)),
+    y: Math.min(1, Math.max(0, y)),
     created_at: new Date().toISOString(),
   }
   try {

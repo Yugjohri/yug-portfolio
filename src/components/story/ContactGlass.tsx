@@ -62,7 +62,7 @@ export default function ContactGlass({ lines, below, above }: Props) {
         return el ? offTop(el) + (side === 'bottom' ? el.offsetHeight : 0) : fallback
       }
       const pad = Math.max(16, h * 0.03)
-      const top = edge(below, 'bottom', h * 0.15) + pad
+      const top = edge(below, 'bottom', 0) + pad
       const bottom = edge(above, 'top', h * 0.6) - pad
       const maxW = w * 0.9
       const maxH = Math.max(40, bottom - top)
