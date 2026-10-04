@@ -1956,3 +1956,31 @@ em.about__pword {
 .note__pin-it:hover:not(:disabled),
 .note__pin-it:focus-visible { background: var(--red-hot, #bc0202); outline: none; }
 .note__pin-it:disabled { opacity: 0.4; cursor: default; }
+
+/* ---------- section transitions (motion/sectionTransitions.ts; each only while switched on) ---------- */
+/* About -> Experience: Experience is a page laid over About */
+.story[data-tr-layered] .exp {
+  z-index: 7;
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -24px 60px -20px rgb(20 12 8 / 0.35);
+}
+.tr-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: #0a0809;
+  opacity: 0;
+  pointer-events: none;
+}
+/* Projects -> Contact: Projects lifts off Contact */
+.story[data-tr-footer] .work {
+  z-index: 2;
+  border-radius: 0 0 32px 32px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px -18px rgb(20 12 8 / 0.4);
+}
+.story[data-tr-footer] .contact {
+  z-index: 1;
+  /* room to breathe between the two */
+  padding-top: calc(var(--st-pad) + 4.5rem + 14vh);
+}

@@ -3,6 +3,7 @@ import ProjectsStrip from '../components/projects/ProjectsStrip'
 import Experience from '../components/story/Experience'
 import Contact from '../components/story/Contact'
 import { useSmoothScroll } from '../lib/useSmoothScroll'
+import { useSectionTransitions } from '../motion/sectionTransitions'
 import SiteHeader from '../components/story/SiteHeader'
 import AboutPanel from '../components/story/AboutPanel'
 
@@ -13,6 +14,8 @@ import AboutPanel from '../components/story/AboutPanel'
  */
 export default function Story() {
   useSmoothScroll()
+  // the scroll transitions between sections (each one switched in motion/sectionTransitions.ts)
+  useSectionTransitions()
 
   return (
     <main className="story">
