@@ -22,56 +22,63 @@ gsap.registerPlugin(ScrollTrigger)
  */
 export const SECTION_TRANSITIONS = {
   layered: true,
-  footerReveal: true,
+  footerReveal: false,
 }
+
+/** How long (px) About's own pin (the stack's, StackOrbit 'about-stack') holds
+ *  after its stream is done, for Experience to slide over it: one screen
+ *  while "layered" is on, nothing otherwise. One pin does it all -- a second
+ *  pin wrapped round the first broke the page when scrolling back up. */
+export const layeredHoldPx = () =>
+  SECTION_TRANSITIONS.layered && !window.matchMedia('(prefers-reduced-motion: reduce)').matches ? window.innerHeight : 0
 
 export function useSectionTransitions() {
   useEffect(() => {
     const story = document.querySelector<HTMLElement>('main.story')
     if (!story) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const made: (ScrollTrigger | gsap.core.Tween)[] = []
+    const made: gsap.core.Tween[] = []
     const added: HTMLElement[] = []
+    const undo: (() => void)[] = []
 
     // ---------------------------------------------------------- About -> Experience
-    const shift = story.querySelector<HTMLElement>('.about-shift')
+    const about = story.querySelector<HTMLElement>('#about')
     const exp = story.querySelector<HTMLElement>('#experience')
-    if (SECTION_TRANSITIONS.layered && shift && exp) {
+    if (SECTION_TRANSITIONS.layered && about && exp && !reduced) {
       story.setAttribute('data-tr-layered', '')
+      // Experience is drawn up by the hold, so it arrives while About is still held
+      const pull = () => {
+        exp.style.marginTop = `${-layeredHoldPx()}px`
+      }
+      pull()
+      ScrollTrigger.addEventListener('refreshInit', pull)
+      undo.push(() => {
+        ScrollTrigger.removeEventListener('refreshInit', pull)
+        exp.style.removeProperty('margin-top')
+      })
+      // and About dims under it, over the hold
       const veil = document.createElement('div')
       veil.className = 'tr-veil'
-      shift.appendChild(veil)
+      about.appendChild(veil)
       added.push(veil)
-      // the moment the stack's pin lets go (StackOrbit's 'about-stack'): About is held from exactly there
-      const from = () => ScrollTrigger.getById('about-stack')?.end ?? 0
-      if (!reduced) {
-        // About held for one screen once its stack has let go; Experience comes up over it
-        made.push(
-          ScrollTrigger.create({
-            trigger: shift,
-            start: () => from() || 'bottom bottom',
-            end: () => (from() ? from() + window.innerHeight : '+=100%'),
-            pin: true,
-            pinSpacing: false,
-          }),
-        )
-        made.push(
-          gsap.fromTo(
-            veil,
-            { opacity: 0 },
-            {
-              opacity: 0.55,
-              ease: 'none',
-              scrollTrigger: {
-                trigger: shift,
-                start: () => from() || 'bottom bottom',
-                end: () => (from() ? from() + window.innerHeight : '+=100%'),
-                scrub: true,
-              },
+      const stack = () => ScrollTrigger.getById('about-stack')
+      made.push(
+        gsap.fromTo(
+          veil,
+          { opacity: 0 },
+          {
+            opacity: 0.55,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: about,
+              start: () => (stack()?.end ?? 0) - layeredHoldPx(),
+              end: () => stack()?.end ?? 1,
+              scrub: true,
+              invalidateOnRefresh: true,
             },
-          ),
-        )
-      }
+          },
+        ),
+      )
     }
 
     // ---------------------------------------------------------- Projects -> Contact
@@ -81,8 +88,6 @@ export function useSectionTransitions() {
       story.setAttribute('data-tr-footer', '')
       const lift = contact.querySelectorAll<HTMLElement>(':scope > *')
       if (!reduced) {
-        // uncovered rather than scrolled in: the content starts well up, under
-        // Projects, and rises slower than the page until Contact is in place
         made.push(
           gsap.fromTo(
             lift,
@@ -101,13 +106,11 @@ export function useSectionTransitions() {
     ScrollTrigger.refresh()
     return () => {
       made.forEach((m) => {
-        if (m instanceof ScrollTrigger) m.kill(true)
-        else {
-          m.scrollTrigger?.kill()
-          m.revert()
-        }
+        m.scrollTrigger?.kill()
+        m.revert()
       })
       added.forEach((el) => el.remove())
+      undo.forEach((f) => f())
       story.removeAttribute('data-tr-layered')
       story.removeAttribute('data-tr-footer')
       ScrollTrigger.refresh()

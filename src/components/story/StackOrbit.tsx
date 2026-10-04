@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { TECH } from '../../data/portfolio'
 import { TECH_LOGOS, type TechLogo } from '../../data/techLogos'
+import { layeredHoldPx } from '../../motion/sectionTransitions'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -370,6 +371,9 @@ export default function StackOrbit({ mode, pin }: Props) {
 
       // ---------------------------------------- live: the section pins, the scroll carries it
       const pinEl = pin.current
+      // the hold after the stream (set once the timeline exists; onRefresh can fire while it is being made)
+      let hold: gsap.core.Tween | null = null
+      const streamPx = () => Math.round(span() * (win.p1 - win.p0) * Math.max(dims.W, dims.H * 0.9) * SCROLL_RATE)
       const tl = gsap.timeline({
         defaults: { ease: 'none' },
         scrollTrigger: {
@@ -378,7 +382,8 @@ export default function StackOrbit({ mode, pin }: Props) {
           trigger: pinEl,
           pin: true,
           start: 'top top',
-          end: () => `+=${Math.round(span() * (win.p1 - win.p0) * Math.max(dims.W, dims.H * 0.9) * SCROLL_RATE)}`,
+          // the stream's run, then (with the layered transition on) a screen's hold for Experience to come over
+          end: () => `+=${streamPx() + layeredHoldPx()}`,
           scrub: 0.6,
           anticipatePin: 1,
           invalidateOnRefresh: true,
@@ -387,10 +392,15 @@ export default function StackOrbit({ mode, pin }: Props) {
             measure()
             findWindow()
             place()
+            // the hold's share of the timeline, against the stream's
+            hold?.duration(layeredHoldPx() / Math.max(1, streamPx()))
           },
         },
       })
       tl.fromTo(flow, { p: () => win.p0 }, { p: () => win.p1, duration: 1, onUpdate: place }, 0)
+      // nothing moves in the hold: the stream is done, About waits under Experience
+      hold = gsap.to({}, { duration: layeredHoldPx() / Math.max(1, streamPx()) })
+      tl.add(hold, 1)
       place()
 
       // the lean answers the hand, as before

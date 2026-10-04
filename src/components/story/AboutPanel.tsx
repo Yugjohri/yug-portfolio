@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { ABOUT_PANEL } from '../../data/brief'
 import StackOrbit from './StackOrbit'
+import { layeredHoldPx } from '../../motion/sectionTransitions'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -130,7 +131,7 @@ export default function AboutPanel({ variant }: { variant: 'copy' | 'section' })
         start: () => pin()?.start ?? 'top top',
         end: () => {
           const p = pin()
-          return p ? p.start + (p.end - p.start) * 0.62 : '+=150%'
+          return p ? p.start + (p.end - layeredHoldPx() - p.start) * 0.62 : '+=150%'
         },
         scrub: 0.4,
         invalidateOnRefresh: true,
