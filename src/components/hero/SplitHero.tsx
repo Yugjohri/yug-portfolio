@@ -47,6 +47,9 @@ const PANELS: { key: PanelKey; name: string; descriptor: string; href: string }[
   },
 ]
 
+/** how far (CSS px) each half of the hole is moved off the divider, into its own panel */
+const HALF_NUDGE = 7
+
 const prefersReducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -187,9 +190,12 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
       const f = focus.p
       const hx = line.x + (R.left + R.width / 2 - line.x) * f
       const hy = line.y + (R.top + R.height * 0.47 - line.y) * f
-      const at = (box: DOMRect) => ({ x: (hx - (box.left + box.width / 2)) / m, y: (box.top + box.height / 2 - hy) / m })
-      source.centers.story = at(R)
-      if (hasL) source.centers.brief = at(L!)
+      // each half nudged off the line toward its own panel, so more of it shows
+      // (side by side only; it eases away as the takeover centres the hole)
+      const nudge = stacked ? 0 : HALF_NUDGE * (1 - f)
+      const at = (box: DOMRect, dx: number) => ({ x: (hx + dx - (box.left + box.width / 2)) / m, y: (box.top + box.height / 2 - hy) / m })
+      source.centers.story = at(R, nudge)
+      if (hasL) source.centers.brief = at(L!, -nudge)
     }
 
     const measure = () => {

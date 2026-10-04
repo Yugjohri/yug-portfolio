@@ -208,6 +208,8 @@ vec3 trace(vec2 b, float time, float dive) {
   vec3 col = vec3(0.0);
   float T = 1.0;
   bool caught = false;
+  float nb = length(b);
+  int n = 0; /* which crossing of the disk plane this is */
   for (int i = 0; i < 180; i++) {
     float r2 = dot(p, p);
     float r = sqrt(r2);
@@ -220,6 +222,17 @@ vec3 trace(vec2 b, float time, float dive) {
     if (prev.y * p.y < 0.0) {
       vec3 hit = mix(prev, p, prev.y / (prev.y - p.y));
       vec4 d = disk(hit, normalize(v), time, dive);
+      n++;
+      float r_hit = length(hit.xz);
+      /* the second image -- the strip bent under the hole -- is kept to the
+         disk's inner part, so it reads as a thin band */
+      if (n == 2) d *= 1.0 - smoothstep(R_IN + 1.6, R_IN + 3.6, r_hit);
+      /* the arcs fade just before the photon ring instead of running into its
+         edge, so they read as passing behind it. The ring itself (rays within a
+         hair of the critical radius, and every third-or-later crossing) is
+         untouched. */
+      /* (a crossing after the ray's closest pass, i.e. light that has gone round the hole) */
+      if (n <= 2 && nb > B_CRIT + 0.06 && dot(prev, v) > 0.0) d *= smoothstep(B_CRIT + 0.06, B_CRIT + 0.7, nb);
       col += T * d.rgb;
       T *= 1.0 - d.a;
       if (T < 0.02) break;
