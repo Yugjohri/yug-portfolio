@@ -19,6 +19,7 @@
 import gsap from 'gsap'
 import { THEME } from '../../theme'
 import type { Sleeve } from '../../data/portfolio'
+import { addVideoSources } from '../../lib/videoSources'
 
 // ---------------------------------------------------------------- constants
 
@@ -998,8 +999,9 @@ export class RibbonScene {
     const { project } = card
     if (project.video) {
       const video = document.createElement('video')
-      video.src = project.video
-      if (project.art) video.poster = project.art
+      // (the WebM first, the MP4 its fallback)
+      addVideoSources(video, project.video)
+      if (project.poster ?? project.art) video.poster = (project.poster ?? project.art)!
       video.muted = true
       video.loop = true
       video.playsInline = true

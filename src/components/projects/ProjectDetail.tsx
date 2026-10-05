@@ -4,6 +4,7 @@ import gsap from 'gsap'
 import type { ProjectMedia, Sleeve } from '../../data/portfolio'
 import { PopupSurface } from './popupSurface'
 import { PROJECT_AUDIO } from '../../motion/projectAudio'
+import { VideoSources } from '../../lib/videoSources'
 
 /**
  * A project, opened.
@@ -107,7 +108,11 @@ function Plate({ project }: { project: Sleeve }) {
 /** The first thing in the stream: the project's own artwork, or its plate. */
 function Lead({ project }: { project: Sleeve }) {
   if (project.video) {
-    return <video className="pd__media-item" src={project.video} poster={project.art} muted loop playsInline autoPlay />
+    return (
+      <video className="pd__media-item" poster={project.poster ?? project.art} muted loop playsInline autoPlay>
+        <VideoSources src={project.video} />
+      </video>
+    )
   }
   if (project.art) return <img className="pd__media-item" src={project.art} alt="" />
   return <Plate project={project} />

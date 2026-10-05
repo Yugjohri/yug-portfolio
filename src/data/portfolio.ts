@@ -7,10 +7,14 @@
 // The project clips, referenced where they live (../project mockup vids, beside
 // the app) rather than copied in. Vite serves them in development and bundles
 // them for a build.
-import inventoryClip from '../../../project mockup vids/EIM launch film.mp4'
-import ragClip from '../../../project mockup vids/RAG AI mockup vid.mp4'
-import qloraClip from '../../../project mockup vids/frontier price predict mockup vid.mp4'
-import portClip from '../../../project mockup vids/pythonrust.mp4'
+// the clips, re-encoded for the web: an .mp4 and a smaller .webm of each in
+// public/video (lib/videoSources.tsx offers the WebM first), with a poster frame
+const inventoryClip = '/video/eim-launch-film.mp4'
+const ragClip = '/video/rag-mockup.mp4'
+const qloraClip = '/video/frontier-mockup.mp4'
+const portClip = '/video/pythonrust-mockup.mp4'
+/** a clip's first frame, shown until it plays */
+const posterOf = (clip: string) => clip.replace(/\.mp4$/, '-poster.webp')
 
 /** A picture or clip in a project's case-study stream. */
 export type ProjectMedia = {
@@ -61,6 +65,8 @@ export type Sleeve = {
    * Muted, plays only while its plate is in view.
    */
   video?: string
+  /** The clip's first frame, for a <video> to show until it plays. */
+  poster?: string
 }
 
 export const SLEEVES: Sleeve[] = [
@@ -87,6 +93,7 @@ export const SLEEVES: Sleeve[] = [
     tags: ['React', 'Express', 'PostgreSQL', 'Row-level security', 'RBAC'],
     repo: 'https://github.com/Yugjohri/Employee-Inventory-Management-Drdo',
     video: inventoryClip,
+    poster: posterOf(inventoryClip),
     jx: -2,
     jr: 0.5,
   },
@@ -112,6 +119,7 @@ export const SLEEVES: Sleeve[] = [
     live: 'https://rag-powered-ai-knowledge-worker-xyotc8knhafumxdsw3w9zf.streamlit.app/',
     liveLabel: 'Live demo',
     video: ragClip,
+    poster: posterOf(ragClip),
     jx: 3,
     jr: -0.6,
   },
@@ -141,6 +149,7 @@ export const SLEEVES: Sleeve[] = [
     liveLabel: 'Results',
     extra: { label: 'Frontier models demo', href: 'https://price-predictor-steel.vercel.app' },
     video: qloraClip,
+    poster: posterOf(qloraClip),
     jx: -1,
     jr: 0.4,
   },
@@ -211,6 +220,7 @@ export const SLEEVES: Sleeve[] = [
     live: 'https://huggingface.co/spaces/YugJ/python-to-rust-cpp',
     liveLabel: 'Live demo',
     video: portClip,
+    poster: posterOf(portClip),
     jx: -2,
     jr: 0.5,
   },

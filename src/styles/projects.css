@@ -167,7 +167,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: url('/grain.png') repeat;
+  background: url('/grain.webp') repeat;
   background-size: 180px;
   opacity: 0.14;
   mix-blend-mode: soft-light;

@@ -863,7 +863,7 @@
   inset: 0;
   opacity: 0.45;
   pointer-events: none;
-  background-image: url('/grain.png');
+  background-image: url('/grain.webp');
   background-size: 170px 170px;
   mix-blend-mode: multiply;
 }

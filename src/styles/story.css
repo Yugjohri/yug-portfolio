@@ -855,8 +855,8 @@ em.about__pword {
   margin-top: -0.9rem;
   transform-origin: 50% 0;
   background: var(--red-hot, var(--hero-accent));
-  -webkit-mask: url('/yug-johri-mark.png') center / contain no-repeat;
-  mask: url('/yug-johri-mark.png') center / contain no-repeat;
+  -webkit-mask: url('/yug-johri-mark.webp') center / contain no-repeat;
+  mask: url('/yug-johri-mark.webp') center / contain no-repeat;
   transition: rotate 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .shead__mark:hover,

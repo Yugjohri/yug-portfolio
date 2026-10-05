@@ -6,6 +6,7 @@ import { SLEEVES, type Sleeve } from '../../data/portfolio'
 import { RibbonScene } from './ribbonScene'
 import ProjectDetail, { type DetailOrigin } from './ProjectDetail'
 import StTitle from '../story/StTitle'
+import { VideoSources } from '../../lib/videoSources'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -49,13 +50,14 @@ function Screen({ project }: { project: Sleeve }) {
       <video
         data-work-media
         className="work__media"
-        src={project.video}
-        poster={project.art}
+        poster={project.poster ?? project.art}
         muted
         loop
         playsInline
         preload="none"
-      />
+      >
+        <VideoSources src={project.video} />
+      </video>
     )
   }
   if (project.art) {

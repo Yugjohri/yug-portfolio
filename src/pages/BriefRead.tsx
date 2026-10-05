@@ -10,7 +10,7 @@ import { afterBoot, booting, markPage } from '../boot/boot'
 import { NOTES, ROLES, BRIEF_PROJECTS, type Sleeve } from '../data/portfolio'
 // The Brief's ground: the wallpaper clip, referenced where it lives (../my
 // brief backgrounds, beside the app) rather than copied in.
-import briefWallpaper from '../../../my brief backgrounds/my brief background 1.mp4'
+import { VideoSources } from '../lib/videoSources'
 import {
   ABOUT_CLOSER,
   ABOUT_HEADING,
@@ -304,7 +304,9 @@ export default function BriefRead() {
   return (
     <main className="brief" ref={root}>
       <div className="brief__bg" aria-hidden="true">
-        <video className="brief__bg-video" src={briefWallpaper} poster="/brief-wallpaper-poster.jpg" muted loop autoPlay playsInline preload="auto" />
+        <video className="brief__bg-video" poster="/video/brief-background-poster.webp" muted loop autoPlay playsInline preload="metadata">
+          <VideoSources src="/video/brief-background.mp4" />
+        </video>
       </div>
       <div className="brief__grid" aria-hidden="true" />
       <canvas className="brief__grain" ref={grain} aria-hidden="true" />

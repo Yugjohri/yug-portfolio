@@ -77,7 +77,7 @@ type StoryHeroProps = {
   posterSrc?: string
 }
 
-export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.jpg' }: StoryHeroProps) {
+export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.webp' }: StoryHeroProps) {
   const root = useRef<HTMLElement>(null)
   const frame = useRef<HTMLDivElement>(null)
   const media = useRef<HTMLDivElement>(null)

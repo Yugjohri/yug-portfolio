@@ -47,7 +47,7 @@ export default function MusicPlayer() {
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(false)
   const [time, setTime] = useState(0)
-  const [duration, setDuration] = useState(0)
+  const [duration, setDuration] = useState(TRACKS[0]?.duration ?? 0)
 
   const track = TRACKS[index]
   // does the name fit its room? if not it scrolls (a second copy follows it round)
@@ -118,7 +118,7 @@ export default function MusicPlayer() {
     el.src = track.src
     el.load()
     setTime(0)
-    setDuration(0)
+    setDuration(track.duration ?? 0)
     if (playing) void el.play().catch(() => setPlaying(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index])
@@ -210,7 +210,7 @@ export default function MusicPlayer() {
 
   return (
     <div className="mp" ref={root} data-has={has ? '' : undefined} aria-label="Music player">
-      <audio ref={audio} preload="metadata" />
+      <audio ref={audio} preload="none" />
 
       <div className="mp__row">
         <button className="mp__btn" type="button" onClick={prev} disabled={!has} aria-label="Previous">
