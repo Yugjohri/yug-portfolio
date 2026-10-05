@@ -138,8 +138,11 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
     let visible = true
 
     const measure = () => {
-      const r = host.getBoundingClientRect()
-      screen.resize(r.width, r.height)
+      // the screen's own layout size, not its box on screen: the gesture turns
+      // and clips the frame, and a box measured then (a reload part way down,
+      // a resize while scrolled) had the turned shape -- the picture came out
+      // stretched and zoomed until the next resize
+      screen.resize(host.clientWidth, host.clientHeight)
       if (reduced) {
         screen.render(0)
         // under reduced motion the glow is painted once the footage has a frame
