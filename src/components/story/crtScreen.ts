@@ -32,6 +32,15 @@ const CELL_MIN_PX = 7.2
 /** The characters a cell can be. Dense and holed, so every mark reads as a
  *  small ring rather than a dot or a block; ordered light to dark. */
 const GLYPHS = '@#W$98&60'
+/** What the cells under the moving hand scramble through, after erevan's
+ *  "ASCII Glitch Ripple Hover Effect" (codepen.io/erevan/pen/MYKBjdZ): the
+ *  atlas holds these after the dense marks above. */
+const SCRAMBLE = '!<>-_\\/[]{}=+*^?%;:'
+/** A fast swipe tears the picture (after Juxtopposed's "Glitch image hover
+ *  effect with shaders", codepen.io/Juxtopposed/pen/GRPRPyR): the hand's speed,
+ *  in screen widths a second, at which the tearing is full, and how fast it calms. */
+const GLITCH_FULL = 2.6
+const GLITCH_CALM = 0.18
 /** How much of a glyph a cell shows: >1 crops to its centre, which is what
  *  makes neighbours nearly touch. Eased off 1.7 so a little more of each
  *  glyph's own margin comes with it and the ground shows between marks.
@@ -123,6 +132,8 @@ uniform vec3 uPaperCol;
 uniform vec3 uInk;
 uniform vec3 uInkDeep;
 uniform float uTrailN;
+uniform float uGlyphAll; // the atlas: uGlyphN dense marks, then the scramble characters
+uniform float uGlitch;   // 0..1, how torn the picture is (the hand's recent speed)
 uniform vec4 uTrail[${TRAIL_MAX}]; // xy: uv, zw: velocity in uv/frame
 
 varying vec2 vUv;
@@ -247,6 +258,15 @@ void main() {
 
   /* --- where this cell reads the picture */
   vec2 readUv = fisheye(cellUv + pushUv);
+  /* a fast swipe tears the picture: some rows of cells shift sideways, a band
+     at a time, re-cut many times a second */
+  if (uGlitch > 0.01) {
+    float band = floor(cellUv.y * 26.0);
+    float tick = floor(uTime * 22.0);
+    float pick = hash(vec2(band, tick));
+    float tear = step(1.0 - 0.45 * uGlitch, pick);
+    readUv.x += (hash(vec2(band * 1.7, tick + 3.1)) - 0.5) * 0.09 * uGlitch * tear;
+  }
   readUv = clamp(readUv, 0.001, 0.999);
   /* a little tighter under the hand: the cells coarsen as they are pushed */
   float coarse = mix(1.0, 0.45, influence);
@@ -254,7 +274,7 @@ void main() {
   readUv = (floor(readUv * quant) + 0.5) / quant;
 
   /* colour splits along the drag, faintly, as the reference's does */
-  vec2 chroma = normalize(drag + vec2(0.0001)) * 0.0018 * influence;
+  vec2 chroma = normalize(drag + vec2(0.0001)) * 0.0018 * influence + vec2(0.006 * uGlitch, 0.0);
   vec3 col;
   col.r = pic(readUv + chroma).r;
   col.g = pic(readUv).g;
@@ -272,10 +292,25 @@ void main() {
   /* --- the mark: a dense glyph, chosen by value, inked in the picture's colour */
   float luma = dot(col, vec3(0.299, 0.587, 0.114));
   float idx = floor((1.0 - clamp(luma, 0.0, 1.0)) * (uGlyphN - 1.0) + 0.5);
+  /* under the moving hand the marks scramble: a cell's chance to turn into a
+     flickering character is how much the hand is on it, re-drawn ~16 times a
+     second, so the patch churns and settles back as the hand rests */
+  float handNear = 0.0;
+  if (uTrailN > 0.5) {
+    float dh = distance(centre, uTrail[0].xy * uRes);
+    handNear = 1.0 - smoothstep(uRadius * 0.5, uRadius * 1.5, dh);
+    handNear *= smoothstep(${SPEED_LOW}, ${SPEED_HIGH} * 0.5, length(uTrail[0].zw));
+  }
+  float churn = clamp(max(influence * 1.4, handNear), 0.0, 1.0);
+  float roll = hash(cellId + vec2(floor(uTime * 16.0) * 7.13, 3.7));
+  if (roll < churn * 0.85) {
+    float extra = uGlyphAll - uGlyphN;
+    idx = uGlyphN + floor(hash(cellId * 1.31 + vec2(floor(uTime * 16.0), 9.2)) * extra);
+  }
   /* a little shorter than wide, so rows part as clearly as columns do */
   vec2 local = (mod(frag, uCell) - uCell * 0.5) / (uCell * 0.5 * uGlyphScale * vec2(1.0, 0.86));
   vec2 guv = clamp(local * 0.5 + 0.5, 0.0, 1.0);
-  float ink = texture2D(uGlyphs, vec2((idx + guv.x) / uGlyphN, guv.y)).r;
+  float ink = texture2D(uGlyphs, vec2((idx + guv.x) / uGlyphAll, guv.y)).r;
   /* the cells the hand pushes also flare a little, as a disturbed phosphor would */
   col *= 1.0 + 0.35 * influence;
   vec3 mark = col * ink;
@@ -440,7 +475,7 @@ export class CrtScreen {
     }
     for (const n of [
       'uTex', 'uGlyphs', 'uRes', 'uTexSize', 'uCell', 'uGlyphN', 'uGlyphScale', 'uFisheye', 'uSat',
-      'uExposure', 'uBloom', 'uSoften', 'uHalo', 'uVignette', 'uRadius', 'uPush', 'uStrength', 'uTailLen', 'uTime', 'uAlpha', 'uTrailN',
+      'uExposure', 'uBloom', 'uSoften', 'uHalo', 'uVignette', 'uRadius', 'uPush', 'uStrength', 'uTailLen', 'uTime', 'uAlpha', 'uTrailN', 'uGlyphAll', 'uGlitch',
       'uGrade', 'uPaperCol', 'uInk', 'uInkDeep', 'uOpenY', 'uPulse', 'uHot', 'uHotCol',
     ]) {
       this.u.set(n, gl.getUniformLocation(this.prog, n))
@@ -488,7 +523,7 @@ export class CrtScreen {
     gl.activeTexture(gl.TEXTURE1)
     gl.bindTexture(gl.TEXTURE_2D, this.glyphs)
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, glyphAtlas(GLYPHS))
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, glyphAtlas(GLYPHS + SCRAMBLE))
   }
 
   private load(videoSrc: string | undefined, posterSrc: string) {
@@ -538,9 +573,18 @@ export class CrtScreen {
   // -------------------------------------------------------------- pointer
 
   /** The hand moved to (u, v) on the glass, v up. Only movement is recorded. */
+  /** how torn the picture is (0..1), and the time it was last stepped */
+  private glitch = 0
+  private glitchAt = 0
+
   pointerMove(u: number, v: number, now: number) {
     const dx = u - this.last.x
     const dy = v - this.last.y
+    // a fast hand tears the picture: its speed in screen widths a second
+    if (this.last.t !== 0) {
+      const sp = Math.hypot(dx, dy) / Math.max(0.004, (now - this.last.t) / 1000)
+      this.glitch = Math.max(this.glitch, Math.min(1, Math.max(0, (sp - GLITCH_FULL * 0.35) / (GLITCH_FULL * 0.65))))
+    }
     if (this.last.t !== 0) this.trail.unshift({ x: u, y: v, dx, dy })
     if (this.trail.length > TRAIL_MAX) this.trail.length = TRAIL_MAX
     this.last = { x: u, y: v, t: now }
@@ -628,6 +672,12 @@ export class CrtScreen {
     gl.uniform1f(u('uHot'), on.hot)
     gl.uniform3f(u('uHotCol'), HOT.r, HOT.g, HOT.b)
     gl.uniform1f(u('uTrailN'), n)
+    gl.uniform1f(u('uGlyphAll'), GLYPHS.length + SCRAMBLE.length)
+    // the tear: raised by a fast hand, calming on its own
+    const dt = this.glitchAt ? Math.min(0.1, time - this.glitchAt) : 0
+    this.glitchAt = time
+    this.glitch *= Math.exp(-dt / GLITCH_CALM)
+    gl.uniform1f(u('uGlitch'), this.glitch)
     gl.uniform4fv(u('uTrail'), this.trailData)
     gl.uniform1f(u('uGrade'), GRADE_ID[this.grade])
     gl.uniform3f(u('uPaperCol'), PAPER.r, PAPER.g, PAPER.b)
