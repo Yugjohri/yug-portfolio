@@ -53,7 +53,7 @@ const SHEET_SHIFT = -0.123
  * The hollow's slope displaces the picture and is lit as a real surface; the
  * cloth is also drawn a little toward the hand.
  */
-const PRESS_DEPTH = 0.0 // (was 0.09; the liquid surface is the hover now) -- how far the stamp presses the surface in, as a share of the card's height
+const PRESS_DEPTH = 0.09 // how far the stamp presses the surface in, as a share of the card's height
 const PRESS_RADIUS = 0.14 // the stamp's radius, as a share of the card's height
 const PRESS_EDGE = 0.84 // where the floor starts turning up: flat inside this share of the radius
 /* The cloth: a broad, soft swell that the moving hand raises and leaves
@@ -62,7 +62,7 @@ const PRESS_EDGE = 0.84 // where the floor starts turning up: flat inside this s
 const BALL_TAPS = 6
 const BALL_RADIUS = 0.55 // the swell's radius, as a share of the card's height
 const BALL_LIFT = 0.16 // the unit the field's heights are in, as a share of the card's height
-const BALL_WAKE = 0.0 // (was 0.6; the liquid surface is the hover now) -- a swell's height at full amplitude, in that unit
+const BALL_WAKE = 0.6 // a swell's height at full amplitude, in that unit
 /* The picture is NOT slid across the surface: the cloth bends in space and
    whatever is printed on it bends with it, so type and video stay true. */
 const BALL_WARP = 0.0
@@ -119,13 +119,7 @@ const FLOOR_NEAR = 22 // world units it comes toward the camera
 // and the gaps between them as one surface.
 
 /** Field texels across; the height follows the canvas' aspect. */
-export const SURFACE_RES = 300
-/** The water (Umut501's "Liquid Cursor", codepen.io/Umut501/pen/JoGmRyB): the
- *  ripple's radius at the hand, in field texels, how much of each wave is kept
- *  a step, and how hard a stop or a sharp turn drops a ring. */
-export const WAVE_RIPPLE = 3.2
-export const WAVE_DAMPING = 0.98
-export const WAVE_SHOCK = 0.4
+export const SURFACE_RES = 192
 /** The hand's reach into the sheet, as a fraction of the canvas height. */
 export const STIR_RADIUS = 0.09
 /** Displacement pushed per unit the hand moved this frame (both in height units). */
@@ -503,67 +497,53 @@ void main() {
 }
 `
 
-/* The field's step: a water surface. x height, y velocity, zw its slope.
-   Each texel is pulled toward its neighbours (a 9-point Laplacian), damped,
-   and the moving hand presses a soft disc into it; a sudden stop or a sharp
-   turn drops a ring. (Umut501's "Liquid Cursor", codepen.io/Umut501/pen/JoGmRyB.)
-   Without half-float targets the values are packed into bytes about 0.5. */
+/* The field's step. Read where the flow carries this texel from, soften with
+   the neighbours there, let it settle, then push the hand's movement in
+   under a soft disc. Values are displacement in height units; on a device
+   without half-float render targets they are packed into bytes about 0.5. */
 export const FIELD_FRAG = /* glsl */ `
 precision highp float;
 uniform sampler2D uField;
 uniform vec2 uTexel;
+uniform float uAspect;
 uniform vec2 uStir;    // the hand, uv
-uniform float uActive; // the hand moved this frame
-uniform float uShock;  // drop a ring
-uniform float uRipple; // texels
-uniform float uDamping;
+uniform vec2 uPush;    // what it pushes this frame, height units
+uniform float uRadius; // height units
+uniform float uDecay;
+uniform float uDrift;
+uniform float uSpread;
+uniform float uMax;
 uniform float uPacked;
 varying vec2 vUv;
-vec4 get(vec2 uv) {
-  vec4 v = texture2D(uField, uv);
-  if (uPacked > 0.5) v = (v - 0.5) * 4.0;
+vec2 field(vec2 uv) {
+  vec2 v = texture2D(uField, uv).xy;
+  if (uPacked > 0.5) {
+    v = (v - 0.5) * 0.25;
+    v *= step(0.0015, length(v));
+  }
   return v;
 }
 void main() {
-  vec4 d = get(vUv);
-  float p = d.x;
-  float vel = d.y;
-  float pr = get(vUv + vec2(uTexel.x, 0.0)).x;
-  float pl = get(vUv - vec2(uTexel.x, 0.0)).x;
-  float pu = get(vUv + vec2(0.0, uTexel.y)).x;
-  float pd = get(vUv - vec2(0.0, uTexel.y)).x;
-  float ptr = get(vUv + uTexel).x;
-  float ptl = get(vUv + vec2(-uTexel.x, uTexel.y)).x;
-  float pbr = get(vUv + vec2(uTexel.x, -uTexel.y)).x;
-  float pbl = get(vUv - uTexel).x;
-  if (vUv.x < uTexel.x) pl = pr;
-  if (vUv.x > 1.0 - uTexel.x) pr = pl;
-  if (vUv.y < uTexel.y) pd = pu;
-  if (vUv.y > 1.0 - uTexel.y) pu = pd;
-  float lap = (pr + pl + pu + pd) * 0.2 + (ptr + ptl + pbr + pbl) * 0.05 - p;
-  vel += lap * 2.0;
-  p += vel;
-  p = mix(p, (pr + pl + pu + pd) * 0.3, 0.05);
-  vel -= 0.002 * p;
-  vel *= 0.99;
-  p *= uDamping;
-  vec2 res = 1.0 / uTexel;
-  float dist = distance(vUv * res, uStir * res);
-  if (uActive > 0.5) p += exp(-dist * dist / (uRipple * uRipple * 0.5));
-  if (uShock > 0.5) {
-    float ring = abs(dist - uRipple * 4.0);
-    p += pow(smoothstep(uRipple * 4.0, 0.0, ring), 6.0) * 0.4;
-  }
-  p = clamp(p, -1.5, 1.5);
-  vel = clamp(vel, -1.5, 1.5);
-  vec4 o = vec4(p, vel, (pr - pl) * 0.5, (pu - pd) * 0.5);
-  if (uPacked > 0.5) o = o * 0.25 + 0.5;
-  gl_FragColor = o;
+  vec2 here = field(vUv);
+  vec2 from = vUv - vec2(here.x / uAspect, here.y) * uDrift;
+  vec2 v = field(from);
+  vec2 n = field(from + vec2(uTexel.x, 0.0)) + field(from - vec2(uTexel.x, 0.0))
+         + field(from + vec2(0.0, uTexel.y)) + field(from - vec2(0.0, uTexel.y));
+  v = mix(v, n * 0.25, uSpread);
+  v *= uDecay;
+  vec2 d = vUv - uStir;
+  d.x *= uAspect;
+  v += uPush * exp(-dot(d, d) / (uRadius * uRadius));
+  /* a soft ceiling: fast strokes saturate at uMax instead of tearing */
+  float len = max(length(v), 1e-6);
+  float e = exp(-2.0 * len / uMax);
+  v *= uMax * ((1.0 - e) / (1.0 + e)) / len;
+  if (uPacked > 0.5) v = v * 4.0 + 0.5;
+  gl_FragColor = vec4(v, 0.0, 1.0);
 }
 `
 
-/* The frame, seen through the water: bent by its slope (the colours a touch
-   apart), lit where it faces the light, and faintly bright on every wave. */
+/* The frame, read through the field. */
 export const SURFACE_FRAG = /* glsl */ `
 precision highp float;
 uniform sampler2D uScene;
@@ -572,23 +552,10 @@ uniform float uAspect;
 uniform float uPacked;
 varying vec2 vUv;
 void main() {
-  vec4 d = texture2D(uField, vUv);
-  if (uPacked > 0.5) d = (d - 0.5) * 4.0;
-  vec2 dist = d.zw * 0.3;
-  float h = d.x;
-  vec2 o = vec2(dist.x / uAspect, dist.y);
-  vec4 base = texture2D(uScene, clamp(vUv + o * 0.8, 0.001, 0.999));
-  float r = texture2D(uScene, clamp(vUv + o * 0.95, 0.001, 0.999)).r;
-  float b = texture2D(uScene, clamp(vUv + o * 0.65, 0.001, 0.999)).b;
-  vec3 col = vec3(r, base.g, b);
-  vec3 n = normalize(vec3(-d.z * 4.0, 0.5, -d.w * 4.0));
-  vec3 L = normalize(vec3(-2.0, 5.0, 3.0));
-  float spec = pow(max(0.0, dot(n, L)), 800.0);
-  float spec2 = pow(max(0.0, dot(n, L)), 50.0);
-  col += vec3(1.0) * spec * 0.9 + vec3(1.0, 0.97, 0.92) * spec2 * 0.35;
-  /* the glow on each wave, warm (the page is cream, not the pen's pool blue) */
-  col += vec3(1.0, 0.62, 0.32) * abs(h) * 0.12;
-  gl_FragColor = vec4(col, base.a);
+  vec2 v = texture2D(uField, vUv).xy;
+  if (uPacked > 0.5) v = (v - 0.5) * 0.25;
+  vec2 off = vec2(v.x / uAspect, v.y);
+  gl_FragColor = texture2D(uScene, clamp(vUv - off, 0.001, 0.999));
 }
 `
 
@@ -880,8 +847,6 @@ export class RibbonScene {
   private sceneTex!: WebGLTexture
   private sceneFbo!: WebGLFramebuffer
   private field: { tex: WebGLTexture; fbo: WebGLFramebuffer }[] = []
-  /** the hand's last movement, field texels: a stop or a sharp turn after it drops a ring */
-  private wavePrev = { x: 0, y: 0 }
   private fieldW = SURFACE_RES
   private fieldH = SURFACE_RES
   private packed = false
@@ -1097,7 +1062,7 @@ export class RibbonScene {
     const gl = this.gl
     this.fieldProg = program(gl, QUAD_VERT, FIELD_FRAG)
     this.surfaceProg = program(gl, QUAD_VERT, SURFACE_FRAG)
-    for (const n of ['uField', 'uTexel', 'uStir', 'uActive', 'uShock', 'uRipple', 'uDamping', 'uPacked']) {
+    for (const n of ['uField', 'uTexel', 'uAspect', 'uStir', 'uPush', 'uRadius', 'uDecay', 'uDrift', 'uSpread', 'uMax', 'uPacked']) {
       this.fieldU.set(n, gl.getUniformLocation(this.fieldProg, n))
     }
     for (const n of ['uScene', 'uField', 'uAspect', 'uPacked']) {
@@ -1148,8 +1113,8 @@ export class RibbonScene {
     for (const f of this.field) {
       gl.bindFramebuffer(gl.FRAMEBUFFER, f.fbo)
       gl.viewport(0, 0, this.fieldW, this.fieldH)
-      if (this.packed) gl.clearColor(0.5, 0.5, 0.5, 0.5)
-      else gl.clearColor(0, 0, 0, 0)
+      if (this.packed) gl.clearColor(0.5, 0.5, 0, 1)
+      else gl.clearColor(0, 0, 0, 1)
       gl.clear(gl.COLOR_BUFFER_BIT)
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
@@ -1207,27 +1172,22 @@ export class RibbonScene {
   }
 
   /** one step of the sheet, then the frame read through it */
-  private stepSurface(_dt: number) {
+  private stepSurface(dt: number) {
     const gl = this.gl
+    const H = this.height
     const aspect = this.width / this.height
-    // the hand in field texels, and what it did: moving presses; a stop after a
-    // run, or a sharp turn, drops a ring (as the pen reads it)
-    const k = this.fieldW / Math.max(1, this.width)
-    const dx = (this.hand.x - this.handPrev.x) * k
-    const dy = (this.hand.y - this.handPrev.y) * k
-    const mv = Math.hypot(dx, dy)
-    const pm = Math.hypot(this.wavePrev.x, this.wavePrev.y)
-    let shock = false
+    // what the hand did this frame, in height units
+    let px = 0
+    let py = 0
     if (this.stirTarget) {
-      if (pm > 0.35 && mv < 0.12) shock = true
-      if (mv > 0.12 && pm > 0.12) {
-        const c = (dx * this.wavePrev.x + dy * this.wavePrev.y) / Math.max(1e-4, mv * pm)
-        if (Math.acos(Math.min(1, Math.max(-1, c))) > Math.PI / 3) shock = true
+      px = ((this.hand.x - this.handPrev.x) / H) * STIR_GAIN
+      py = (-(this.hand.y - this.handPrev.y) / H) * STIR_GAIN
+      const m = Math.hypot(px, py)
+      if (m > STIR_MAX) {
+        px *= STIR_MAX / m
+        py *= STIR_MAX / m
       }
     }
-    const active = !!this.stirTarget && mv > 0.06
-    this.wavePrev.x = dx
-    this.wavePrev.y = dy
     this.handPrev.x = this.hand.x
     this.handPrev.y = this.hand.y
 
@@ -1242,11 +1202,14 @@ export class RibbonScene {
     gl.bindTexture(gl.TEXTURE_2D, src.tex)
     gl.uniform1i(f('uField'), 0)
     gl.uniform2f(f('uTexel'), 1 / this.fieldW, 1 / this.fieldH)
-    gl.uniform2f(f('uStir'), this.hand.x / this.width, 1 - this.hand.y / this.height)
-    gl.uniform1f(f('uActive'), active ? 1 : 0)
-    gl.uniform1f(f('uShock'), shock ? 1 : 0)
-    gl.uniform1f(f('uRipple'), WAVE_RIPPLE)
-    gl.uniform1f(f('uDamping'), WAVE_DAMPING)
+    gl.uniform1f(f('uAspect'), aspect)
+    gl.uniform2f(f('uStir'), this.hand.x / this.width, 1 - this.hand.y / H)
+    gl.uniform2f(f('uPush'), px, py)
+    gl.uniform1f(f('uRadius'), STIR_RADIUS)
+    gl.uniform1f(f('uDecay'), Math.pow(0.5, dt / SURFACE_HALF_LIFE))
+    gl.uniform1f(f('uDrift'), SURFACE_DRIFT)
+    gl.uniform1f(f('uSpread'), SURFACE_SPREAD)
+    gl.uniform1f(f('uMax'), STIR_MAX)
     gl.uniform1f(f('uPacked'), this.packed ? 1 : 0)
     this.drawQuad(this.fieldProg)
     this.field = [dst, src]
