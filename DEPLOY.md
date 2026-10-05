@@ -28,6 +28,11 @@ In the project's **Settings → Environment Variables**, add both for
 Both are in Supabase under **Project Settings → API**. See `.env.example`.
 Then redeploy so the build picks them up.
 
+To build locally without a Supabase project (testing only), run
+`NOTES_LOCAL_PREVIEW=1 npm run build`: the board then keeps notes in that
+browser. `npm run preview` serves the build with the same security headers as
+Vercel.
+
 Before you deploy, apply the two migrations in `supabase/migrations/` to the
 project (Supabase dashboard → SQL editor, run each file in order, or
 `supabase db push`).

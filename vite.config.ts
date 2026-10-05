@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -12,6 +12,19 @@ function productionHeaders(): Record<string, string> {
   const all = config.headers?.find((h) => h.source === '/(.*)')
   return Object.fromEntries((all?.headers ?? []).map((h) => [h.key, h.value]))
 }
+
+/** On Vercel, /_vercel/insights/script.js is the analytics script, served by
+ *  Vercel itself. `npm run preview` has no such file, so it answers with an
+ *  empty script instead of a 404 in the console. */
+const vercelInsightsStub = (): Plugin => ({
+  name: 'vercel-insights-stub',
+  configurePreviewServer(server) {
+    server.middlewares.use('/_vercel/insights', (_req, res) => {
+      res.setHeader('Content-Type', 'text/javascript')
+      res.end('')
+    })
+  },
+})
 
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
@@ -29,7 +42,7 @@ export default defineConfig(({ command, mode }) => {
     }
   }
   return {
-    plugins: [react()],
+    plugins: [react(), vercelInsightsStub()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
