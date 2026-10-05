@@ -32,7 +32,7 @@ export const ABOUT_HEADING =
 
 export const ABOUT_PARAS: string[] = [
   'i learned this backwards. i read bad answers for a year before i tried to write good ones. strange education. i recommend it.',
-  'since then i have not trusted much that i cannot check. it reads as caution. it is mostly curiosity — i want to know why the thing worked, not just that it did.',
+  'since then i have not trusted much that i cannot check. it reads as caution. it is mostly curiosity: i want to know why the thing worked, not just that it did.',
   'badminton, martial arts, drums, sign language. i keep choosing things that only give way to repetition. it is a pattern i have stopped arguing with.',
 ]
 
@@ -66,7 +66,7 @@ export const ABOUT_PANEL = {
   heading: ['Making the complex simple', 'and the simple meaningful'],
   paras: [
     "hi, i'm Yug Johri. i design, and i write code. i am not easily impressed, and that includes my own work: most of what i do is checking, and the building tends to be the quick part. the interesting part is usually the part that does not show.",
-    'i learned this backwards. i read bad answers for a year before i tried to write good ones. strange education. i recommend it. since then i have not trusted much that i cannot check. it reads as caution. it is mostly curiosity — i want to know why the thing worked, not just that it did.',
+    'i learned this backwards. i read bad answers for a year before i tried to write good ones. strange education. i recommend it. since then i have not trusted much that i cannot check. it reads as caution. it is mostly curiosity: i want to know why the thing worked, not just that it did.',
     'most recently i was the sole developer of an inventory and approval system for 500+ staff and 10,000+ assets at CFEES, DRDO. away from the screen: badminton, martial arts, drums, sign language. i keep choosing things that only give way to repetition. bring me something that has to hold up.',
   ],
   // a short closing note under the paragraphs (the stack beside them is sized to the paragraphs alone)
