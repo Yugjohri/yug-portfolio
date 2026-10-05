@@ -22,7 +22,7 @@ export type BootStep = 'code' | 'type' | 'route' | 'scene'
 /** each step's share of the counter */
 const WEIGHT: Record<BootStep, number> = { code: 0.25, type: 0.2, route: 0.25, scene: 0.3 }
 /** the least time the screen stays up on a first visit, so it reads, s */
-const MIN_FIRST = 2.2
+const MIN_FIRST = 1
 /** ... and once this session has seen it, s (the files are cached by then) */
 const MIN_AGAIN = 0.35
 /** the most it ever waits: a step that has not reported by now is let go, s */
@@ -168,7 +168,7 @@ function leave() {
   }
 
   // the log and the hole fade where they are; the page shows through as the ground lifts
-  const tl = gsap.timeline({ delay: 0.35, onComplete: finish })
+  const tl = gsap.timeline({ delay: 0.2, onComplete: finish })
   tl.to([term, curve, hole], { autoAlpha: 0, duration: 0.4, ease: 'power2.in', stagger: 0.04 }, 0)
   tl.call(reveal, undefined, 0.25)
   tl.to(root, { autoAlpha: 0, duration: 0.5, ease: 'power1.inOut' }, 0.3)
