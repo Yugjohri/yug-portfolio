@@ -127,9 +127,9 @@ export default function AboutPanel({ variant }: { variant: 'copy' | 'section' })
       const serif = s2.chars as HTMLElement[]
       const REST = 600
       const REACH = 170
-      let landed = false
       // the underline waits undrawn (as on the walls) and draws itself in after the wave
       gsap.set(l2, { '--ap-ul': '0%' })
+      let run: gsap.core.Timeline | gsap.core.Tween | null = null
       const wave = () =>
         gsap.timeline()
           .to(sans, { fontWeight: 880, duration: 0.35, ease: 'power2.out', stagger: 0.025 })
@@ -140,10 +140,18 @@ export default function AboutPanel({ variant }: { variant: 'copy' | 'section' })
         start: 'top top+=1',
         end: 'max',
         refreshPriority: -1,
+        // every time About lands from above -- scrolling back up past it and down again replays it
         onEnter: () => {
-          if (landed) return
-          landed = true
-          gsap.delayedCall(0.15, wave)
+          run?.kill()
+          gsap.set(sans, { fontWeight: REST })
+          gsap.set(l2, { '--ap-ul': '0%' })
+          run = gsap.delayedCall(0.15, () => {
+            run = wave()
+          })
+        },
+        onLeaveBack: () => {
+          run?.kill()
+          gsap.set(l2, { '--ap-ul': '0%' })
         },
       })
       const near = (c: HTMLElement, x: number, y: number) => {
