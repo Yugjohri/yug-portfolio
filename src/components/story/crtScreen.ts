@@ -1,6 +1,7 @@
 import gsap from 'gsap'
 import { GRADE_ID, INK, INK_DEEP, PAPER, type Grade } from '../../theme'
 import { softwareGpu } from '../../lib/gpu'
+import { whenIdle } from '../../lib/idle'
 
 /**
  * The Story header's screen: a curved display that draws its picture as a
@@ -530,28 +531,36 @@ export class CrtScreen {
 
     if (!videoSrc) return
     const video = document.createElement('video')
-    // An .mp4 is offered with its .webm sibling first (same picture, smaller),
-    // the mp4 the fallback for a browser that cannot play WebM.
-    const webm = videoSrc.endsWith('.mp4') ? videoSrc.slice(0, -4) + '.webm' : null
-    if (webm) {
-      for (const [src, type] of [[webm, 'video/webm'], [videoSrc, 'video/mp4']]) {
-        const source = document.createElement('source')
-        source.src = src
-        source.type = type
-        video.appendChild(source)
-      }
-    } else {
-      video.src = videoSrc
-    }
     video.muted = true
     video.loop = true
     video.playsInline = true
-    video.autoplay = true
-    video.preload = 'auto'
     video.crossOrigin = 'anonymous'
-    void video.play().catch(() => {})
     this.video = video
+    // The footage waits for the page: it starts loading once the loading
+    // screen has gone and the browser is idle. The poster (its first frame)
+    // holds the screen till then, so the hand-over is not seen.
+    this.cancelStart = whenIdle(() => {
+      // An .mp4 is offered with its .webm sibling first (same picture, smaller),
+      // the mp4 the fallback for a browser that cannot play WebM.
+      const webm = videoSrc.endsWith('.mp4') ? videoSrc.slice(0, -4) + '.webm' : null
+      if (webm) {
+        for (const [src, type] of [[webm, 'video/webm'], [videoSrc, 'video/mp4']]) {
+          const source = document.createElement('source')
+          source.src = src
+          source.type = type
+          video.appendChild(source)
+        }
+      } else {
+        video.src = videoSrc
+      }
+      video.autoplay = true
+      video.preload = 'auto'
+      void video.play().catch(() => {})
+    })
   }
+
+  /** stops the footage's deferred start, if it has not run yet */
+  private cancelStart: () => void = () => {}
 
   private upload(source: TexImageSource, w: number, h: number) {
     const gl = this.gl
@@ -683,6 +692,7 @@ export class CrtScreen {
 
   dispose() {
     const gl = this.gl
+    this.cancelStart()
     gsap.killTweensOf(this.energy)
     if (!gl) return
     if (this.video) {

@@ -13,13 +13,13 @@ function productionHeaders(): Record<string, string> {
   return Object.fromEntries((all?.headers ?? []).map((h) => [h.key, h.value]))
 }
 
-/** On Vercel, /_vercel/insights/script.js is the analytics script, served by
- *  Vercel itself. `npm run preview` has no such file, so it answers with an
- *  empty script instead of a 404 in the console. */
+/** On Vercel, /_vercel/insights and /_vercel/speed-insights serve the
+ *  analytics scripts, from Vercel itself. `npm run preview` has no such files,
+ *  so it answers with an empty script instead of a 404 in the console. */
 const vercelInsightsStub = (): Plugin => ({
   name: 'vercel-insights-stub',
   configurePreviewServer(server) {
-    server.middlewares.use('/_vercel/insights', (_req, res) => {
+    server.middlewares.use('/_vercel', (_req, res) => {
       res.setHeader('Content-Type', 'text/javascript')
       res.end('')
     })

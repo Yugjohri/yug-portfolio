@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { HeroSource, ZOOM_REST } from './heroSource'
 import { AsciiRenderer } from './asciiRenderer'
@@ -13,7 +12,7 @@ import { EASE, TONE } from '../../motion/tokens'
 import { afterBoot, markBoot } from '../../boot/boot'
 import { softwareGpu } from '../../lib/gpu'
 
-gsap.registerPlugin(useGSAP, ScrollTrigger)
+gsap.registerPlugin(useGSAP)
 
 type PanelKey = 'brief' | 'story'
 
@@ -427,20 +426,9 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
         }),
       )
 
-      // Scrolling away parts the two halves and hands off to the section below.
-      // The inner wrapper is animated so this never fights the entrance tween.
-      gsap
-        .timeline({
-          scrollTrigger: {
-            trigger: rootRef.current,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: 0.4,
-          },
-        })
-        .to('[data-hero-panel="brief"] [data-hero-shift]', { xPercent: -12, ease: 'none' }, 0)
-        .to('[data-hero-panel="story"] [data-hero-shift]', { xPercent: 12, ease: 'none' }, 0)
-        .to('[data-hero-shift]', { opacity: 0.15, scale: 0.96, ease: 'none' }, 0)
+      // (A scroll-away that parted the halves lived here, from when the old page
+      // continued below the hero. The landing is one screen and never scrolls,
+      // so it never ran -- and it kept ScrollTrigger in the landing's download.)
 
       return () => cancelEntrance()
     },

@@ -5,13 +5,14 @@
  */
 export const webmOf = (mp4: string) => (mp4.endsWith('.mp4') ? mp4.slice(0, -4) + '.webm' : null)
 
-/** The <source>s for a <video>: the WebM sibling, then the MP4. */
-export function VideoSources({ src }: { src: string }) {
+/** The <source>s for a <video>: the WebM sibling, then the MP4; `media`
+ *  limits them to the screens it matches (a phone's smaller copy, say). */
+export function VideoSources({ src, media }: { src: string; media?: string }) {
   const webm = webmOf(src)
   return (
     <>
-      {webm ? <source src={webm} type="video/webm" /> : null}
-      <source src={src} type="video/mp4" />
+      {webm ? <source src={webm} type="video/webm" media={media} /> : null}
+      <source src={src} type="video/mp4" media={media} />
     </>
   )
 }

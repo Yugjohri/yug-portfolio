@@ -11,6 +11,7 @@ import { NOTES, ROLES, BRIEF_PROJECTS, type Sleeve } from '../data/portfolio'
 // The Brief's ground: the wallpaper clip, referenced where it lives (../my
 // brief backgrounds, beside the app) rather than copied in.
 import { VideoSources } from '../lib/videoSources'
+import { whenIdle } from '../lib/idle'
 import {
   ABOUT_CLOSER,
   ABOUT_HEADING,
@@ -154,10 +155,23 @@ function TileGrid({ items, onScroll }: { items: Sleeve[]; onScroll: boolean }) {
 export default function BriefRead() {
   const root = useRef<HTMLElement>(null)
   const grain = useRef<HTMLCanvasElement>(null)
+  const bgVideo = useRef<HTMLVideoElement>(null)
   const [showAll, setShowAll] = useState(false)
 
   useSmoothScroll()
   useEffect(markPage, [])
+
+  // The background waits for the page: it starts loading once the loading
+  // screen has gone and the browser is idle; its poster (the first frame)
+  // holds until then, so the hand-over is not seen.
+  useEffect(() => {
+    const v = bgVideo.current
+    if (!v) return
+    return whenIdle(() => {
+      v.preload = 'auto'
+      void v.play().catch(() => {})
+    })
+  }, [])
 
   // ------------------------------------------------------------- the grain
   // The reference's ground moves: a fine dither that never sits still. A small
@@ -304,7 +318,9 @@ export default function BriefRead() {
   return (
     <main className="brief" ref={root}>
       <div className="brief__bg" aria-hidden="true">
-        <video className="brief__bg-video" poster="/video/brief-background-poster.webp" muted loop autoPlay playsInline preload="metadata">
+        <video ref={bgVideo} className="brief__bg-video" poster="/video/brief-background-poster.webp" muted loop playsInline preload="none">
+          {/* a phone gets a 960-wide copy (a third of the size); everything else the 1600 */}
+          <VideoSources src="/video/brief-background-mobile.mp4" media="(max-width: 700px)" />
           <VideoSources src="/video/brief-background.mp4" />
         </video>
       </div>
@@ -391,7 +407,15 @@ export default function BriefRead() {
             </div>
 
             <div className="bf-portrait" data-portrait>
-              <img src="/portrait.webp" alt="Yug Johri" />
+              {/* the page's largest picture, so fetched first; a 1x screen gets the smaller copy */}
+              <img
+                src="/portrait.webp"
+                srcSet="/portrait-450.webp 450w, /portrait.webp 676w"
+                sizes="(max-width: 899px) 92vw, 440px"
+                alt="Yug Johri"
+                fetchPriority="high"
+                decoding="async"
+              />
               <i className="bf-portrait__tick" aria-hidden="true" />
             </div>
           </header>

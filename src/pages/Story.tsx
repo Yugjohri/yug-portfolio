@@ -15,6 +15,9 @@ import { markPage } from '../boot/boot'
  * 01 about (with the stack), 02 experience, 03 the ribbon, 04 contact (with the notes board).
  * (The red thread that once ran between them, StoryThread, is retired.)
  */
+const headerClip = () =>
+  window.matchMedia('(max-width: 700px)').matches ? '/story-header-mobile.mp4' : '/story-header.mp4'
+
 export default function Story() {
   useSmoothScroll()
   // the scroll transitions between sections (each one switched in motion/sectionTransitions.ts)
@@ -23,7 +26,8 @@ export default function Story() {
 
   return (
     <main className="story">
-      <StoryHero videoSrc="/story-header.mp4" />
+      {/* a phone gets the smaller clip (its screen is a third the size) */}
+      <StoryHero videoSrc={headerClip()} />
       {/* About: carried in by the header's walls, then the real section takes over in place */}
       <AboutPanel variant="section" />
       <Experience />
