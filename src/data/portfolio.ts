@@ -42,6 +42,8 @@ export type Sleeve = {
   repo?: string
   /** The deployed site or demo, when there is one. Never invented. */
   live?: string
+  /** A still of the work for the Brief's tile (public/brief), in place of its number card. */
+  still?: string
   /** What the live link is called in the detail panel (default "Live demo"). */
   liveLabel?: string
   /** A second link beside it, when the work has one (a related demo). */
@@ -64,6 +66,7 @@ export type Sleeve = {
 export const SLEEVES: Sleeve[] = [
   {
     code: 'A1',
+    still: '/brief/inventory.webp',
     org: 'CFEES, DRDO',
     kicker: 'A1 · CFEES, DRDO · 2026',
     title: 'Employee inventory management system',
@@ -89,6 +92,7 @@ export const SLEEVES: Sleeve[] = [
   },
   {
     code: 'A2',
+    still: '/brief/rag.webp',
     org: 'Independent',
     kicker: 'A2 · Independent build',
     title: 'RAG-powered knowledge worker',
@@ -113,6 +117,7 @@ export const SLEEVES: Sleeve[] = [
   },
   {
     code: 'B1',
+    still: '/brief/qlora.webp',
     org: 'Independent',
     kicker: 'B1 · Independent build',
     title: 'Fine-tuned LLM on one GPU',
@@ -186,6 +191,7 @@ export const SLEEVES: Sleeve[] = [
   },
   {
     code: 'C1',
+    still: '/brief/python-rust.webp',
     org: 'Independent',
     kicker: 'C1 · Independent build',
     title: 'Python → Rust & C++, measured and verified',

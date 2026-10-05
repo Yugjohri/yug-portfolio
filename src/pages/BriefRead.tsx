@@ -76,13 +76,19 @@ function ProjectTile({ project, index }: { project: Sleeve; index: number }) {
   const summary = project.body.split(/(?<=\.)\s/)[0]
   return (
     <article className="bf-tile" data-tile style={{ '--i': index } as React.CSSProperties}>
-      <div className="bf-tile__plate" aria-hidden="true">
+      <div className={project.still ? 'bf-tile__plate bf-tile__plate--photo' : 'bf-tile__plate'} aria-hidden="true">
+        {/* a still of the work where there is one; its numbers card where there is not */}
+        {project.still ? <img className="bf-tile__photo" src={project.still} alt="" loading="lazy" decoding="async" /> : null}
         <span className="bf-tile__bar mono">
           <span>{project.code}</span>
           <span>{project.org}</span>
         </span>
-        <span className="bf-tile__lead">{lead}</span>
-        {rest[0] ? <span className="bf-tile__sub mono">{rest.join('  ·  ')}</span> : null}
+        {project.still ? null : (
+          <>
+            <span className="bf-tile__lead">{lead}</span>
+            {rest[0] ? <span className="bf-tile__sub mono">{rest.join('  ·  ')}</span> : null}
+          </>
+        )}
       </div>
 
       <div className="bf-tile__name">
