@@ -10,8 +10,7 @@ import { scrambleIn } from '../motion/scramble'
  * loader", codepen.io/uiforfree/pen/QWJqZJY, in the hero's orange), and under
  * it a short log reports what is actually loading, each line decoding as its
  * step is done (after filipz's terminal preloader, codepen.io/filipz/pen/wBBmqEX).
- * When everything is in, the small hole flies to where the landing's hole is
- * and grows into it; on the other pages it swallows the screen and is gone.
+ * When everything is in, it fades and the page shows through.
  *
  * The steps are real: the code (this module running), the type (the fonts),
  * the route (its page mounted) and the scene (its first frame drawn). The
@@ -30,14 +29,11 @@ const MIN_AGAIN = 0.35
 const MAX_WAIT = 9
 const SEEN_KEY = 'yj-boot-seen'
 
-/** where the loader's hole should go as it leaves: the landing's hole, in px */
-export type BootTarget = { x: number; y: number; r: number }
 
 const root = typeof document !== 'undefined' ? document.getElementById('boot') : null
 const done = new Set<BootStep>()
 const waiting: (() => void)[] = []
 let revealed = !root
-let target: (() => BootTarget | null) | null = null
 const shown = { n: 0 }
 let ticked = 0
 
@@ -116,11 +112,6 @@ export function markPage() {
   requestAnimationFrame(() => requestAnimationFrame(() => markBoot('scene')))
 }
 
-/** The landing tells the loader where its hole is, so the small one can fly into it. */
-export function setBootTarget(fn: (() => BootTarget | null) | null) {
-  target = fn
-}
-
 /** Runs `go` once the loading screen has begun to leave (at once if there is none). Returns a cancel. */
 export function afterBoot(go: () => void) {
   if (revealed) {
@@ -176,42 +167,11 @@ function leave() {
     return
   }
 
+  // the log and the hole fade where they are; the page shows through as the ground lifts
   const tl = gsap.timeline({ delay: 0.35, onComplete: finish })
-  tl.to(term, { autoAlpha: 0, y: 14, duration: 0.35, ease: 'power2.in' }, 0)
-  tl.to(curve, { autoAlpha: 0, scale: 1.15, duration: 0.35, ease: 'power2.in' }, 0)
-
-  const to = target?.()
-  if (hole && to) {
-    // the landing: the small hole flies to the real one and grows into it,
-    // while the ground lifts off the page; the two are one hole by the end
-    const box = hole.getBoundingClientRect()
-    const shadow = hole.querySelector<HTMLElement>('.boot__shadow')
-    const r = (shadow?.getBoundingClientRect().width ?? box.width * 0.42) / 2
-    tl.to(
-      hole,
-      {
-        x: to.x - (box.left + box.width / 2),
-        y: to.y - (box.top + box.height / 2),
-        scale: to.r / r,
-        duration: 0.95,
-        ease: 'power3.inOut',
-      },
-      0.1,
-    )
-    tl.call(reveal, undefined, 0.35)
-    tl.to(root, { '--boot-ground': 0, duration: 0.6, ease: 'power2.inOut' }, 0.35)
-    tl.to(hole, { autoAlpha: 0, duration: 0.3, ease: 'power1.in' }, 0.8)
-  } else if (hole) {
-    // elsewhere: the screen falls into it
-    const far = Math.hypot(window.innerWidth, window.innerHeight)
-    const box = hole.getBoundingClientRect()
-    tl.to(hole, { scale: (far * 1.3) / (box.width * 0.42), duration: 0.8, ease: 'power3.in' }, 0.05)
-    tl.call(reveal, undefined, 0.75)
-    tl.to(root, { autoAlpha: 0, duration: 0.4, ease: 'power1.out' }, 0.8)
-  } else {
-    tl.call(reveal, undefined, 0)
-    tl.to(root, { autoAlpha: 0, duration: 0.4 }, 0)
-  }
+  tl.to([term, curve, hole], { autoAlpha: 0, duration: 0.4, ease: 'power2.in', stagger: 0.04 }, 0)
+  tl.call(reveal, undefined, 0.25)
+  tl.to(root, { autoAlpha: 0, duration: 0.5, ease: 'power1.inOut' }, 0.3)
 }
 
 /** Starts the loader: called once, from main.tsx, before the app renders. */

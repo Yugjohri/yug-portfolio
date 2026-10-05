@@ -1709,7 +1709,7 @@ em.about__pword {
   inset: 0;
   overflow: hidden;
   border-radius: 22px;
-  cursor: zoom-in;
+  /* (no zoom-in cursor: the board opens only from its button) */
   touch-action: none;
   /* an even edge all round (an offset inset shadow darkened the top corners) */
   box-shadow:

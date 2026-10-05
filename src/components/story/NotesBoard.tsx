@@ -395,11 +395,8 @@ export default function NotesBoard() {
         aria-label="The notes board"
         data-lenis-prevent
         onPointerDown={onDown}
-        onClick={(e) => {
-          // docked, the whole board opens it
-          if (!open && !(e.target as HTMLElement).closest('button, [data-note-docked]')) toggle()
-        }}
       >
+        {/* (it opens only from its own button, nboard__toggle, not from a click anywhere on it) */}
         <div className="nboard__world" ref={world} style={{ width: WORLD.w, height: WORLD.h }}>
           {/* the board's title, written on the cork; notes go over it */}
           <div className="nboard__title" aria-hidden="true">

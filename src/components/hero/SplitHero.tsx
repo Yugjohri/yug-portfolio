@@ -10,7 +10,7 @@ import { LINKS } from '../../data/brief'
 import { loadBrief, loadStory } from '../../routes'
 import { routeTransition, type BandShape } from '../../motion/routeTransition.ts'
 import { EASE, TONE } from '../../motion/tokens'
-import { afterBoot, markBoot, setBootTarget } from '../../boot/boot'
+import { afterBoot, markBoot } from '../../boot/boot'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -301,15 +301,6 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
 
     measure()
     if (reduced) markBoot('scene')
-    // the loading screen's hole leaves by flying into this one: where it is, and its size
-    // (from the layout, not the screen: the panels are still offset for their entrance)
-    setBootTarget(() => {
-      const c = box(source.canvas)
-      if (!c || !c.width) return null
-      const at = root.getBoundingClientRect()
-      const h = source.holeCentrePx()
-      return { x: at.left + c.left + h.x, y: at.top + c.top + h.y, r: source.shadowRadiusPx() }
-    })
     const resizeObserver = new ResizeObserver(measure)
     resizeObserver.observe(root)
 
@@ -342,7 +333,6 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
 
     return () => {
       stage.current = null
-      setBootTarget(null)
       cancelAnimationFrame(raf)
       resizeObserver.disconnect()
       intersectionObserver.disconnect()

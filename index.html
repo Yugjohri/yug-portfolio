@@ -85,47 +85,44 @@
         border-radius: 50%;
         transform: translate(-50%, -50%);
       }
-      /* the disk, seen nearly edge on: drawn twice, its far half behind the shadow and its near half in front */
+      /* The hole is drawn level and symmetrical about its centre: a shadow, the
+         light hugging its edge, and the disk seen edge on -- drawn twice, its
+         far half behind the shadow and its near half in front, its band
+         crossing through the middle. Sizes are shares of the stage (S):
+         shadow radius 0.21 S. */
       .boot__disc {
-        width: 245%;
-        height: 30%;
-        background: radial-gradient(closest-side, transparent 50%, #ffd2a0 56%, #ff8a3d 63%, rgba(212, 80, 10, 0.6) 78%, transparent 100%);
-        filter: blur(2.5px);
-        rotate: -7deg;
-        animation: boot-breathe 2.2s ease-in-out infinite alternate;
+        width: 230%;
+        height: 18%;
+        background: radial-gradient(closest-side, transparent 24%, #ffd9b0 30%, #ff8a3d 40%, rgba(212, 80, 10, 0.55) 64%, transparent 100%);
+        filter: blur(1.5px);
       }
       .boot__disc--front {
         clip-path: inset(50% 0 0 0);
       }
-      /* the light bent over the top and under the bottom of the shadow, and the glow round it */
+      /* the light bent round the shadow: it starts at the shadow's edge (0.21 S,
+         38% of this box's radius) and fades softly into the dark, breathing */
       .boot__ring {
-        width: 74%;
-        height: 74%;
-        background: radial-gradient(circle, transparent 54%, #ffd2a0 58%, rgba(255, 138, 61, 0.75) 64%, rgba(212, 80, 10, 0.25) 76%, transparent 100%);
-        box-shadow: 0 0 2.4rem rgba(212, 80, 10, 0.45);
-      }
-      .boot__ring::after {
-        content: '';
-        position: absolute;
-        inset: -14%;
-        border-radius: 50%;
-        background: conic-gradient(from 0deg, transparent, rgba(255, 210, 160, 0.85) 9%, transparent 22%, rgba(255, 138, 61, 0.6) 42%, transparent 58%, rgba(255, 190, 120, 0.75) 78%, transparent);
-        -webkit-mask: radial-gradient(circle, transparent 50%, #000 56%, #000 64%, transparent 72%);
-        mask: radial-gradient(circle, transparent 50%, #000 56%, #000 64%, transparent 72%);
-        filter: blur(1.5px);
-        animation: boot-turn 2.6s linear infinite;
+        width: 110%;
+        height: 110%;
+        background: radial-gradient(circle closest-side, transparent 37%, #ffd9b0 39.5%, rgba(255, 138, 61, 0.85) 44%, rgba(212, 80, 10, 0.32) 58%, rgba(212, 80, 10, 0.1) 76%, transparent 100%);
+        animation: boot-breathe 2.4s ease-in-out infinite alternate;
       }
       .boot__shadow {
         width: 42%;
         height: 42%;
         background: #000;
-        box-shadow: 0 0 0 1px rgba(255, 190, 130, 0.55), 0 0 1.2rem rgba(0, 0, 0, 0.9);
       }
+      /* the ring of text, centred on the hole. (max-width: none -- the site's
+         reset caps every svg at 100% of its box, which shrank the ring and
+         pushed it off centre once the stylesheet arrived) */
       .boot__curve {
         position: absolute;
-        inset: -42%;
+        left: -42%;
+        top: -42%;
         width: 184%;
         height: 184%;
+        max-width: none;
+        max-height: none;
         animation: boot-turn 14s linear infinite;
         fill: rgba(233, 229, 222, 0.55);
         font-size: 15px;
@@ -191,7 +188,7 @@
       }
       .boot__edge b { font-weight: 500; color: var(--boot-ink); }
       @keyframes boot-turn { to { transform: rotate(360deg); } }
-      @keyframes boot-breathe { to { transform: translate(-50%, -50%) scale(1.05); } }
+      @keyframes boot-breathe { to { transform: translate(-50%, -50%) scale(1.06); opacity: 0.85; } }
       @keyframes boot-type { to { clip-path: inset(0 0 0 0); } }
       @keyframes boot-blink { 50% { opacity: 0; } }
       @media (prefers-reduced-motion: reduce) {
