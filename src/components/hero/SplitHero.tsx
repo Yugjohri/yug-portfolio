@@ -11,6 +11,7 @@ import { loadBrief, loadStory } from '../../routes'
 import { routeTransition, type BandShape } from '../../motion/routeTransition.ts'
 import { EASE, TONE } from '../../motion/tokens'
 import { afterBoot, markBoot } from '../../boot/boot'
+import { softwareGpu } from '../../lib/gpu'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -167,6 +168,9 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
     }
 
     const reduced = prefersReducedMotion()
+    // On a software renderer (no usable graphics chip) the hole is drawn once
+    // and held, as under reduced motion: the same picture, still.
+    const still = reduced || softwareGpu()
     let visible = true
     let raf = 0
     // leaving for another page, the pointer is let go of and ignored
@@ -226,7 +230,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
       if (right.width > 0) source.resize(right.width, right.height)
       if (left && left.width > 0) ascii.layout(left.width, left.height)
       place()
-      if (reduced) {
+      if (still) {
         const { width: aw, height: ah } = source.asciiPass
         source.render(0, 0, 0, 0, aw, ah, 'lit', 'brief')
         ascii.draw(source.canvas, 0, source.canvas.height - ah, aw, ah)
@@ -234,9 +238,63 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
       }
     }
 
+    // Adaptive resolution. Frame times are averaged over ~45 frames; when they
+    // run long (a weak graphics chip) the picture is drawn smaller and scaled
+    // up, a step at a time down to half, and stays there a while; once frames
+    // are quick again it steps back up. A screen that only refreshes slowly
+    // (30 Hz) gains nothing from a smaller picture, so a step down that does
+    // not help is taken back and the resolution is left alone from then on.
+    // On an ordinary machine none of this ever fires.
+    const SLOW_MS = 24
+    const QUICK_MS = 15
+    const WINDOW = 45
+    const pace = { last: 0, sum: 0, n: 0, judging: 0, hold: 0, locked: false }
+    const setQuality = (q: number) => {
+      source.quality = Math.min(1, Math.max(0.5, q))
+      measure()
+    }
+    const pacing = (now: number) => {
+      const dt = pace.last ? now - pace.last : 0
+      pace.last = now
+      // a stall or a hidden tab says nothing about the chip: start over
+      if (!dt || dt > 250) {
+        pace.sum = 0
+        pace.n = 0
+        return
+      }
+      pace.sum += dt
+      pace.n += 1
+      if (pace.n < WINDOW) return
+      const avg = pace.sum / pace.n
+      pace.sum = 0
+      pace.n = 0
+      // never mid-takeover, and not once a step down has been shown useless
+      if (pace.locked || focus.p > 0) return
+      if (pace.judging) {
+        if (avg > pace.judging * 0.9) {
+          pace.locked = true
+          setQuality(source.quality / 0.8)
+        }
+        pace.judging = 0
+        return
+      }
+      if (pace.hold > 0) {
+        pace.hold -= 1
+        return
+      }
+      if (avg > SLOW_MS && source.quality > 0.5) {
+        pace.judging = avg
+        pace.hold = 8
+        setQuality(source.quality * 0.8)
+      } else if (avg < QUICK_MS && source.quality < 1) {
+        setQuality(source.quality / 0.8)
+      }
+    }
+
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame)
       if (!visible) return
+      pacing(now)
 
       // ease each cursor so its distortion trails it instead of snapping
       ease(current.brief, target.brief)
@@ -300,7 +358,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
     }
 
     measure()
-    if (reduced) markBoot('scene')
+    if (still) markBoot('scene')
     const resizeObserver = new ResizeObserver(measure)
     resizeObserver.observe(root)
 
@@ -312,7 +370,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
     )
     intersectionObserver.observe(root)
 
-    if (!reduced) {
+    if (!still) {
       root.addEventListener('pointermove', onPointerMove)
       root.addEventListener('pointerleave', onPointerLeave)
       raf = requestAnimationFrame(frame)
@@ -575,7 +633,8 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
     event.preventDefault()
     if (busy.current) return
 
-    if (prefersReducedMotion()) {
+    // (a still hero, on a software renderer, leaves as reduced motion does: at once)
+    if (prefersReducedMotion() || softwareGpu()) {
       go(href)
       return
     }

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { softwareGpu } from '../../lib/gpu'
 
 /**
  * The contact section's backdrop: its words set huge, and a knot of clear
@@ -90,6 +91,8 @@ export default function ContactGlass({ lines, below, above }: Props) {
       let THREE: typeof import('three') | null = null
       let RoomEnvironment: typeof import('three/examples/jsm/environments/RoomEnvironment.js').RoomEnvironment | null = null
       try {
+        // on a software renderer the glass is too heavy: the type alone, and three.js is never fetched
+        if (softwareGpu()) throw new Error('software renderer')
         THREE = await import('three')
         RoomEnvironment = (await import('three/examples/jsm/environments/RoomEnvironment.js')).RoomEnvironment
       } catch {

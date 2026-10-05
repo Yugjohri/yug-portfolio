@@ -20,6 +20,7 @@ import gsap from 'gsap'
 import { THEME } from '../../theme'
 import type { Sleeve } from '../../data/portfolio'
 import { addVideoSources } from '../../lib/videoSources'
+import { softwareGpu } from '../../lib/gpu'
 
 // ---------------------------------------------------------------- constants
 
@@ -869,7 +870,8 @@ export class RibbonScene {
       premultipliedAlpha: true,
       powerPreference: 'high-performance',
     })
-    this.supported = !!gl
+    // (on a software renderer the scene stands down: lib/gpu.ts)
+    this.supported = !!gl && !softwareGpu()
     if (!gl) return
     this.gl = gl
     gl.getExtension('OES_standard_derivatives')

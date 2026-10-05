@@ -36,6 +36,7 @@ import {
   program,
   spring,
 } from './ribbonScene'
+import { softwareGpu } from '../../lib/gpu'
 
 /** The pictures' corner radius, CSS px: the stream's own. */
 const RADIUS_PX = 10
@@ -138,7 +139,8 @@ export class PopupSurface {
   constructor() {
     this.canvas = document.createElement('canvas')
     const gl = this.canvas.getContext('webgl', { alpha: true, premultipliedAlpha: true, antialias: true })
-    this.supported = !!gl
+    // (on a software renderer the scene stands down: lib/gpu.ts)
+    this.supported = !!gl && !softwareGpu()
     if (!gl) return
     this.gl = gl
     this.itemProg = program(gl, ITEM_VERT, ITEM_FRAG)

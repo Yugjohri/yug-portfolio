@@ -361,6 +361,10 @@ export class HeroSource {
   zoom = ZOOM_REST
   /** How fast the disk turns, as a multiple of its own speed. */
   spin = 1
+  /** 0.5..1: a share of the full resolution. The hero lowers it when frames
+   *  run slow (a weak graphics chip) and raises it again when they recover;
+   *  at 1 on any ordinary machine. Takes effect at the next resize(). */
+  quality = 1
   /** 0..1: how far the stars are drawn in toward the hole by a dive. */
   dive = 0
   /** Where each panel's pass puts the hole, from the panel's centre in short-side
@@ -479,6 +483,7 @@ export class HeroSource {
     this.cssH = Math.max(1, height)
     let dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR)
     dpr = Math.min(dpr, Math.sqrt(MAX_PIXELS / Math.max(1, width * height)))
+    dpr *= this.quality
     const w = Math.max(1, Math.round(width * dpr))
     const h = Math.max(1, Math.round(height * dpr))
     if (this.canvas.width === w && this.canvas.height === h) return

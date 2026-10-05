@@ -1,5 +1,6 @@
 import gsap from 'gsap'
 import { GRADE_ID, INK, INK_DEEP, PAPER, type Grade } from '../../theme'
+import { softwareGpu } from '../../lib/gpu'
 
 /**
  * The Story header's screen: a curved display that draws its picture as a
@@ -452,7 +453,8 @@ export class CrtScreen {
       premultipliedAlpha: true,
       powerPreference: 'low-power',
     })
-    this.supported = !!gl
+    // (on a software renderer the scene stands down: lib/gpu.ts)
+    this.supported = !!gl && !softwareGpu()
     if (!gl) return
     this.gl = gl
 

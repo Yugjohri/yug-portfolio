@@ -67,6 +67,8 @@ function Panel({ live, pin }: { live: boolean; pin?: React.RefObject<HTMLElement
           </div>
         </div>
         <div className="apanel__half apanel__half--r">
+          {/* the stack's label: the left's eyebrow, at its height, over the stack */}
+          <p className="apanel__eyebrow apanel__eyebrow--stack">Tech stack</p>
           <div className="apanel__side">
             <StackOrbit mode={live ? 'pin' : 'still'} pin={pin} />
           </div>
@@ -121,8 +123,10 @@ export default function AboutPanel({ variant }: { variant: 'copy' | 'section' })
     const l1 = el.querySelector<HTMLElement>('.apanel__l1')
     const l2 = el.querySelector<HTMLElement>('.apanel__u')
     if (l1 && l2) {
-      const s1 = SplitText.create(l1, { type: 'chars', charsClass: 'apanel__ch' })
-      const s2 = SplitText.create(l2, { type: 'chars', charsClass: 'apanel__ch' })
+      // letters inside words: a line may only break between words, even while
+      // the wave swells the letters (letters alone broke "co / mplex" on a phone)
+      const s1 = SplitText.create(l1, { type: 'words,chars', wordsClass: 'apanel__hw', charsClass: 'apanel__ch' })
+      const s2 = SplitText.create(l2, { type: 'words,chars', wordsClass: 'apanel__hw', charsClass: 'apanel__ch' })
       const sans = s1.chars as HTMLElement[]
       const serif = s2.chars as HTMLElement[]
       const REST = 600

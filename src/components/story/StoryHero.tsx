@@ -108,7 +108,14 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
     const screen = new CrtScreen({ videoSrc, posterSrc, grade: 'lit' })
     if (!screen.supported) {
       screen.dispose()
-      return
+      // no WebGL, or a software renderer (lib/gpu.ts): the footage's own still,
+      // in the glass's place, rather than an empty screen
+      const still = document.createElement('img')
+      still.className = 'shero__canvas shero__still'
+      still.src = posterSrc
+      still.alt = ''
+      host.appendChild(still)
+      return () => still.remove()
     }
     screen.canvas.className = 'shero__canvas'
     host.appendChild(screen.canvas)
