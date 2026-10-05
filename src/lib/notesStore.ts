@@ -57,7 +57,13 @@ const rememberMine = (id: string) => {
   }
 }
 
-const headers = () => ({ apikey: KEY!, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' })
+// A publishable key (sb_publishable_...) goes in `apikey` alone; a legacy anon
+// key is a JWT and is also sent as the bearer token, as Supabase expects of it.
+const headers = (): Record<string, string> => ({
+  apikey: KEY!,
+  ...(KEY!.startsWith('eyJ') ? { Authorization: `Bearer ${KEY}` } : {}),
+  'Content-Type': 'application/json',
+})
 
 export async function listNotes(): Promise<Note[]> {
   if (!isShared) return localNotes()
