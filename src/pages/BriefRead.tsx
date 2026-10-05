@@ -595,7 +595,7 @@ export default function BriefRead() {
               <a className="bf-channel" href={LINKS.linkedin} target="_blank" rel="noreferrer">
                 <span className="mono">LinkedIn</span>
                 <span>
-                  in/yugjohri <i aria-hidden="true">↗</i>
+                  {LINKS.linkedin.replace(/^https:\/\/(www\.)?linkedin\.com\//, '').replace(/\/$/, '')} <i aria-hidden="true">↗</i>
                 </span>
               </a>
               <a className="bf-channel" href={`tel:${LINKS.phone.replace(/\s/g, '')}`}>

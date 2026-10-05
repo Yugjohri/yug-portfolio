@@ -41,7 +41,7 @@ export const ABOUT_CLOSER = 'bring me something that has to hold up.'
 export const LINKS = {
   email: 'yugjohri8@gmail.com',
   github: 'https://github.com/Yugjohri',
-  linkedin: 'https://www.linkedin.com/',
+  linkedin: 'https://www.linkedin.com/in/yug-johri-3a4373259/',
   site: 'https://yugjohri.me/',
   phone: '+91 99582 71560',
   /** the resume, served from public/ */
