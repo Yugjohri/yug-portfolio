@@ -6,8 +6,11 @@
  * (supabase/migrations/..._notes_board.sql), which keeps it to one note per
  * person. Plain fetch against Supabase's REST API -- no client library.
  *
- * Without them (before the project exists) the board runs as a local
- * preview: notes are kept in this browser only, so it can be tried as built.
+ * Without them the board runs as a local preview -- notes kept in this browser
+ * only -- which is for `npm run dev`. A production build refuses to run
+ * without them (vite.config.ts), so the live site can never quietly fall back
+ * to it. Hidden notes (supabase/migrations/..._notes_moderation.sql) are left
+ * out by the table's own read policy.
  */
 
 export type NoteColor = 'paper' | 'blush' | 'sage' | 'butter'
