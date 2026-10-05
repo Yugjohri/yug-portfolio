@@ -7,6 +7,8 @@ import { useSmoothScroll } from '../lib/useSmoothScroll'
 import { useSectionTransitions } from '../motion/sectionTransitions'
 import SiteHeader from '../components/story/SiteHeader'
 import AboutPanel from '../components/story/AboutPanel'
+import { useEffect } from 'react'
+import { markPage } from '../boot/boot'
 
 /**
  * The Story route -- where the hero's My Story panel leads. Its header, then
@@ -17,6 +19,7 @@ export default function Story() {
   useSmoothScroll()
   // the scroll transitions between sections (each one switched in motion/sectionTransitions.ts)
   useSectionTransitions()
+  useEffect(markPage, [])
 
   return (
     <main className="story">

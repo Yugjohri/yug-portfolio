@@ -1,5 +1,6 @@
 import gsap from 'gsap'
 import { EASE } from './tokens'
+import { afterBoot } from '../boot/boot'
 
 /**
  * Route transitions: a page leaves by collapsing into a primitive, the
@@ -121,7 +122,7 @@ export function whenSettled(go: () => void) {
   let raf = 0
   let last = 0
   let calm = 0
-  const start = performance.now()
+  let start = 0
   const tick = (t: number) => {
     calm = last && t - last < 40 ? calm + 1 : 0
     last = t
@@ -131,8 +132,15 @@ export function whenSettled(go: () => void) {
     }
     raf = requestAnimationFrame(tick)
   }
-  raf = requestAnimationFrame(tick)
-  return () => cancelAnimationFrame(raf)
+  // on a first load, the wait begins once the loading screen is leaving
+  const cancelBoot = afterBoot(() => {
+    start = performance.now()
+    raf = requestAnimationFrame(tick)
+  })
+  return () => {
+    cancelBoot()
+    cancelAnimationFrame(raf)
+  }
 }
 
 class RouteTransitionController {

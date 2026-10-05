@@ -10,6 +10,7 @@ import { LINKS } from '../../data/brief'
 import { loadBrief, loadStory } from '../../routes'
 import { routeTransition, type BandShape } from '../../motion/routeTransition.ts'
 import { EASE, TONE } from '../../motion/tokens'
+import { afterBoot, markBoot, setBootTarget } from '../../boot/boot'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -144,6 +145,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
     if (!source.supported) {
       setUnsupported(true)
       source.dispose()
+      markBoot('scene')
       return
     }
 
@@ -262,7 +264,13 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
       // ...then the full-size pass overwrites the canvas, which *is* the right
       // panel, so what stays on screen carries only the story cursor.
       source.render(time, current.story.x, current.story.y, current.story.amt)
+      // the loading screen waits for this first frame
+      if (!drawnOnce) {
+        drawnOnce = true
+        markBoot('scene')
+      }
     }
+    let drawnOnce = false
 
     const onPointerMove = (event: PointerEvent) => {
       if (leaving) return
@@ -292,6 +300,16 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
     }
 
     measure()
+    if (reduced) markBoot('scene')
+    // the loading screen's hole leaves by flying into this one: where it is, and its size
+    // (from the layout, not the screen: the panels are still offset for their entrance)
+    setBootTarget(() => {
+      const c = box(source.canvas)
+      if (!c || !c.width) return null
+      const at = root.getBoundingClientRect()
+      const h = source.holeCentrePx()
+      return { x: at.left + c.left + h.x, y: at.top + c.top + h.y, r: source.shadowRadiusPx() }
+    })
     const resizeObserver = new ResizeObserver(measure)
     resizeObserver.observe(root)
 
@@ -324,6 +342,7 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
 
     return () => {
       stage.current = null
+      setBootTarget(null)
       cancelAnimationFrame(raf)
       resizeObserver.disconnect()
       intersectionObserver.disconnect()
@@ -337,22 +356,28 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
   // ------------------------------------------------------------------ motion
   // useGSAP scopes the selectors to this component and reverts on unmount.
   const { contextSafe } = useGSAP(
-    () => {
+    (_context, safe) => {
       if (prefersReducedMotion()) return
 
-      gsap
-        .timeline()
-        .from('[data-hero-panel="brief"]', {
-          xPercent: -6,
-          autoAlpha: 0,
-          duration: 0.8,
-          ease: 'expo.out',
-        })
-        .from(
-          '[data-hero-panel="story"]',
-          { xPercent: 6, autoAlpha: 0, duration: 0.8, ease: 'expo.out' },
-          '<',
-        )
+      // on a first load the panels come in as the loading screen leaves (it
+      // covers them until then); otherwise at once
+      const cancelEntrance = afterBoot(
+        safe!(() => {
+          gsap
+            .timeline()
+            .from('[data-hero-panel="brief"]', {
+              xPercent: -6,
+              autoAlpha: 0,
+              duration: 0.8,
+              ease: 'expo.out',
+            })
+            .from(
+              '[data-hero-panel="story"]',
+              { xPercent: 6, autoAlpha: 0, duration: 0.8, ease: 'expo.out' },
+              '<',
+            )
+        }),
+      )
 
       // Scrolling away parts the two halves and hands off to the section below.
       // The inner wrapper is animated so this never fights the entrance tween.
@@ -368,6 +393,8 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
         .to('[data-hero-panel="brief"] [data-hero-shift]', { xPercent: -12, ease: 'none' }, 0)
         .to('[data-hero-panel="story"] [data-hero-shift]', { xPercent: 12, ease: 'none' }, 0)
         .to('[data-hero-shift]', { opacity: 0.15, scale: 0.96, ease: 'none' }, 0)
+
+      return () => cancelEntrance()
     },
     { scope: rootRef },
   )

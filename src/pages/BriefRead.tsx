@@ -6,6 +6,7 @@ import { useGSAP } from '@gsap/react'
 import { useSmoothScroll } from '../lib/useSmoothScroll'
 import { isLight } from '../theme'
 import { routeTransition, whenSettled } from '../motion/routeTransition.ts'
+import { afterBoot, booting, markPage } from '../boot/boot'
 import { NOTES, ROLES, BRIEF_PROJECTS, type Sleeve } from '../data/portfolio'
 // The Brief's ground: the wallpaper clip, referenced where it lives (../my
 // brief backgrounds, beside the app) rather than copied in.
@@ -156,6 +157,7 @@ export default function BriefRead() {
   const [showAll, setShowAll] = useState(false)
 
   useSmoothScroll()
+  useEffect(markPage, [])
 
   // ------------------------------------------------------------- the grain
   // The reference's ground moves: a fine dither that never sits still. A small
@@ -223,7 +225,7 @@ export default function BriefRead() {
 
   // ------------------------------------------------------------- the motion
   useGSAP(
-    () => {
+    (_context, contextSafe) => {
       // arrived by Glyph Drain: the band is still on screen, over a cover
       const arrival = routeTransition.consume('brief')
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -232,18 +234,22 @@ export default function BriefRead() {
       }
 
       // the entrance, which waits for the band when there is one
-      const entrance = gsap
-        .timeline({ defaults: { ease: 'expo.out', duration: 1 }, paused: !!arrival })
-        .from('[data-rise]', { y: 26, autoAlpha: 0, stagger: 0.07 }, 0.15)
-        .from('[data-portrait]', { y: 34, autoAlpha: 0, duration: 1.2 }, 0.3)
-        .from('[data-pillar]', { y: 20, autoAlpha: 0, stagger: 0.08 }, 0.6)
+      const build = (paused: boolean) =>
+        gsap
+          .timeline({ defaults: { ease: 'expo.out', duration: 1 }, paused })
+          .from('[data-rise]', { y: 26, autoAlpha: 0, stagger: 0.07 }, 0.15)
+          .from('[data-portrait]', { y: 34, autoAlpha: 0, duration: 1.2 }, 0.3)
+          .from('[data-pillar]', { y: 20, autoAlpha: 0, stagger: 0.08 }, 0.6)
+      // on a first load it is built once the loading screen begins leaving (which covers the page till then)
+      const held = !arrival && booting()
+      const entrance = held ? null : build(!!arrival)
 
       // The band sweeps down and the page opens from its line; the entrance
       // starts once 40% of the screen is open, and the name takes focus at the end.
       const sweep = arrival
         ? routeTransition.briefIn({
             divider: root.current?.querySelector<HTMLElement>('[data-divider]') ?? null,
-            onOpen: () => entrance.play(),
+            onOpen: () => entrance?.play(),
             onDone: () => {
               const name = root.current?.querySelector<HTMLElement>('.bf-name')
               if (name) {
@@ -255,6 +261,7 @@ export default function BriefRead() {
           })
         : null
       const cancel = sweep ? whenSettled(() => sweep.play()) : null
+      const cancelHeld = held ? afterBoot(contextSafe!(() => void build(false))) : null
 
       // everything below the fold arrives as it comes into frame
       gsap.utils.toArray<HTMLElement>('[data-reveal]').forEach((el) => {
@@ -284,6 +291,7 @@ export default function BriefRead() {
 
       return () => {
         cancel?.()
+        cancelHeld?.()
         sweep?.kill()
       }
     },

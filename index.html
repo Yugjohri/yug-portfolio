@@ -12,8 +12,193 @@
     <!-- self-hosted fonts (src/styles/fonts.css); preloaded: the two every route's first screen sets -->
     <link rel="preload" href="/fonts/jetbrains-mono-latin-v24.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/inter-latin-v20.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- the loading screen's own styles: here, not in the bundle, so it shows before any code arrives (src/boot/boot.ts drives it) -->
+    <style>
+      @font-face {
+        font-family: 'Boot Mono';
+        src: url('/fonts/jetbrains-mono-latin-v24.woff2') format('woff2');
+        font-weight: 100 800;
+        font-display: swap;
+      }
+      #boot {
+        --boot-ground: 1;
+        --boot-p: 0;
+        --boot-ink: #e9e5de;
+        --boot-hot: #ff8a3d;
+        --boot-ember: #d4500a;
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: clamp(2rem, 6vh, 3.5rem);
+        background: rgba(6, 6, 15, var(--boot-ground));
+        color: var(--boot-ink);
+        font-family: 'Boot Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        -webkit-font-smoothing: antialiased;
+      }
+      .boot__stage {
+        position: relative;
+        width: 7.5rem;
+        height: 7.5rem;
+        display: grid;
+        place-items: center;
+      }
+      .boot__hole {
+        position: absolute;
+        inset: 0;
+        will-change: transform;
+      }
+      .boot__hole > * {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+      }
+      /* the disk, seen nearly edge on: drawn twice, its far half behind the shadow and its near half in front */
+      .boot__disc {
+        width: 245%;
+        height: 30%;
+        background: radial-gradient(closest-side, transparent 50%, #ffd2a0 56%, #ff8a3d 63%, rgba(212, 80, 10, 0.6) 78%, transparent 100%);
+        filter: blur(2.5px);
+        rotate: -7deg;
+        animation: boot-breathe 2.2s ease-in-out infinite alternate;
+      }
+      .boot__disc--front {
+        clip-path: inset(50% 0 0 0);
+      }
+      /* the light bent over the top and under the bottom of the shadow, and the glow round it */
+      .boot__ring {
+        width: 74%;
+        height: 74%;
+        background: radial-gradient(circle, transparent 54%, #ffd2a0 58%, rgba(255, 138, 61, 0.75) 64%, rgba(212, 80, 10, 0.25) 76%, transparent 100%);
+        box-shadow: 0 0 2.4rem rgba(212, 80, 10, 0.45);
+      }
+      .boot__ring::after {
+        content: '';
+        position: absolute;
+        inset: -14%;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg, transparent, rgba(255, 210, 160, 0.85) 9%, transparent 22%, rgba(255, 138, 61, 0.6) 42%, transparent 58%, rgba(255, 190, 120, 0.75) 78%, transparent);
+        -webkit-mask: radial-gradient(circle, transparent 50%, #000 56%, #000 64%, transparent 72%);
+        mask: radial-gradient(circle, transparent 50%, #000 56%, #000 64%, transparent 72%);
+        filter: blur(1.5px);
+        animation: boot-turn 2.6s linear infinite;
+      }
+      .boot__shadow {
+        width: 42%;
+        height: 42%;
+        background: #000;
+        box-shadow: 0 0 0 1px rgba(255, 190, 130, 0.55), 0 0 1.2rem rgba(0, 0, 0, 0.9);
+      }
+      .boot__curve {
+        position: absolute;
+        inset: -42%;
+        width: 184%;
+        height: 184%;
+        animation: boot-turn 14s linear infinite;
+        fill: rgba(233, 229, 222, 0.55);
+        font-size: 15px;
+        text-transform: uppercase;
+      }
+      /* the log */
+      .boot__term {
+        width: min(30rem, calc(100vw - 2.5rem));
+        font-size: 0.6875rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .boot__edge {
+        display: flex;
+        justify-content: space-between;
+        color: rgba(233, 229, 222, 0.42);
+        font-size: 0.625rem;
+        letter-spacing: 0.16em;
+      }
+      .boot__log {
+        list-style: none;
+        margin: 1rem 0;
+        padding: 0;
+        display: grid;
+        gap: 0.5rem;
+      }
+      .boot__log li {
+        display: flex;
+        align-items: baseline;
+        gap: 0.75rem;
+        color: rgba(233, 229, 222, 0.38);
+        clip-path: inset(0 100% 0 0);
+        animation: boot-type 0.5s steps(22) forwards;
+      }
+      .boot__log li:nth-child(2) { animation-delay: 0.15s; }
+      .boot__log li:nth-child(3) { animation-delay: 0.3s; }
+      .boot__log li:nth-child(4) { animation-delay: 0.45s; }
+      .boot__log li:nth-child(5) { animation-delay: 0.6s; }
+      .boot__dots {
+        flex: 1;
+        border-bottom: 1px dotted rgba(233, 229, 222, 0.18);
+        transform: translateY(-0.25em);
+      }
+      .boot__v::after {
+        content: '_';
+        animation: boot-blink 0.9s steps(1) infinite;
+      }
+      .boot__log li.is-done { color: rgba(233, 229, 222, 0.62); }
+      .boot__log li.is-done .boot__v { color: var(--boot-hot); }
+      .boot__log li.is-done .boot__v::after { content: none; }
+      .boot__track {
+        height: 1px;
+        background: rgba(233, 229, 222, 0.12);
+        margin-bottom: 0.75rem;
+      }
+      .boot__track i {
+        display: block;
+        height: 100%;
+        background: var(--boot-hot);
+        box-shadow: 0 0 0.5rem var(--boot-ember);
+        transform-origin: left;
+        transform: scaleX(var(--boot-p));
+      }
+      .boot__edge b { font-weight: 500; color: var(--boot-ink); }
+      @keyframes boot-turn { to { transform: rotate(360deg); } }
+      @keyframes boot-breathe { to { transform: translate(-50%, -50%) scale(1.05); } }
+      @keyframes boot-type { to { clip-path: inset(0 0 0 0); } }
+      @keyframes boot-blink { 50% { opacity: 0; } }
+      @media (prefers-reduced-motion: reduce) {
+        #boot *, #boot *::after { animation: none !important; }
+        .boot__log li { clip-path: none; }
+      }
+    </style>
   </head>
   <body>
+    <div id="boot" role="status" aria-label="Loading">
+      <div class="boot__stage" aria-hidden="true">
+        <div class="boot__hole">
+          <div class="boot__disc"></div>
+          <div class="boot__ring"></div>
+          <div class="boot__shadow"></div>
+          <div class="boot__disc boot__disc--front"></div>
+        </div>
+        <svg class="boot__curve" viewBox="0 0 300 300">
+          <path id="boot-path" d="M150,150 m-118,0 a118,118 0 1,1 236,0 a118,118 0 1,1 -236,0" fill="none" />
+          <text textLength="738" lengthAdjust="spacing"><textPath href="#boot-path">loading · loading · loading · loading ·</textPath></text>
+        </svg>
+      </div>
+      <div class="boot__term" aria-hidden="true">
+        <div class="boot__edge"><span>yug johri</span><span>ai engineer</span></div>
+        <ol class="boot__log">
+          <li data-boot-step="code"><span class="boot__k">code</span><span class="boot__dots"></span><span class="boot__v">fetching</span></li>
+          <li data-boot-step="type"><span class="boot__k">type</span><span class="boot__dots"></span><span class="boot__v">setting</span></li>
+          <li data-boot-step="route"><span class="boot__k">route</span><span class="boot__dots"></span><span class="boot__v">resolving</span></li>
+          <li data-boot-step="scene"><span class="boot__k">scene</span><span class="boot__dots"></span><span class="boot__v">compiling</span></li>
+          <li data-boot-step="horizon"><span class="boot__k">event horizon</span><span class="boot__dots"></span><span class="boot__v">approaching</span></li>
+        </ol>
+        <div class="boot__track"><i></i></div>
+        <div class="boot__edge"><span>loading</span><span><b data-boot-num>000</b>%</span></div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
