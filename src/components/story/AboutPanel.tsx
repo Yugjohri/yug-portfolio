@@ -2,11 +2,12 @@ import { useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
+import { SplitText } from 'gsap/SplitText'
 import { ABOUT_PANEL } from '../../data/brief'
 import StackOrbit from './StackOrbit'
 import { layeredHoldPx } from '../../motion/sectionTransitions'
 
-gsap.registerPlugin(useGSAP, ScrollTrigger)
+gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText)
 
 /** A paragraph as words, each its own span (the reveal lights them one by one); the spaces stay text. */
 function Words({ text }: { text: string }) {
@@ -110,6 +111,67 @@ export default function AboutPanel({ variant }: { variant: 'copy' | 'section' })
       onToggle: (self) => el.toggleAttribute('data-shown', self.isActive),
     })
     if (reduced) return
+
+    // The heading answers the hand, after rniswonger's "Variable font hover
+    // animation using Greensock" (codepen.io/rniswonger/pen/oNOBQwq): in the
+    // sans line each letter's weight swells toward 900 the nearer the cursor
+    // is, settling back to 600 as it leaves; the serif line (not variable)
+    // lifts its letters instead. And once, as About lands, a heavier weight
+    // runs along the first line like a wave.
+    const l1 = el.querySelector<HTMLElement>('.apanel__l1')
+    const l2 = el.querySelector<HTMLElement>('.apanel__u')
+    if (l1 && l2) {
+      const s1 = SplitText.create(l1, { type: 'chars', charsClass: 'apanel__ch' })
+      const s2 = SplitText.create(l2, { type: 'chars', charsClass: 'apanel__ch' })
+      const sans = s1.chars as HTMLElement[]
+      const serif = s2.chars as HTMLElement[]
+      const REST = 600
+      const REACH = 170
+      let landed = false
+      // the underline waits undrawn (as on the walls) and draws itself in after the wave
+      gsap.set(l2, { '--ap-ul': '0%' })
+      const wave = () =>
+        gsap.timeline()
+          .to(sans, { fontWeight: 880, duration: 0.35, ease: 'power2.out', stagger: 0.025 })
+          .to(sans, { fontWeight: REST, duration: 0.6, ease: 'power2.inOut', stagger: 0.025 }, 0.3)
+          .to(l2, { '--ap-ul': '100%', duration: 0.9, ease: 'power3.inOut' }, 0.45)
+      ScrollTrigger.create({
+        trigger: el,
+        start: 'top top+=1',
+        end: 'max',
+        refreshPriority: -1,
+        onEnter: () => {
+          if (landed) return
+          landed = true
+          gsap.delayedCall(0.15, wave)
+        },
+      })
+      const near = (c: HTMLElement, x: number, y: number) => {
+        const r = c.getBoundingClientRect()
+        const d = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2))
+        return Math.max(0, 1 - d / REACH)
+      }
+      const onMove = (e: PointerEvent) => {
+        if (e.pointerType !== 'mouse') return
+        sans.forEach((c) => {
+          const k = near(c, e.clientX, e.clientY)
+          gsap.to(c, { fontWeight: REST + (900 - REST) * k * k, duration: 0.5, ease: 'power2', overwrite: 'auto' })
+        })
+        serif.forEach((c) => {
+          const k = near(c, e.clientX, e.clientY)
+          gsap.to(c, { y: -10 * k * k, duration: 0.5, ease: 'power2', overwrite: 'auto' })
+        })
+      }
+      const onLeave = () => {
+        gsap.to(sans, { fontWeight: REST, duration: 0.6, ease: 'power2', overwrite: 'auto' })
+        gsap.to(serif, { y: 0, duration: 0.6, ease: 'power2', overwrite: 'auto' })
+      }
+      const heading = el.querySelector<HTMLElement>('.apanel__heading')
+      const zone = heading?.parentElement ?? el
+      zone.addEventListener('pointermove', onMove)
+      zone.addEventListener('pointerleave', onLeave)
+    }
+
     // the words light up across the stack's run (its pin, StackOrbit's 'about-stack'),
     // done a little before it ends so the last lines are read while the stream still goes
     const pin = () => ScrollTrigger.getById('about-stack')

@@ -1170,7 +1170,7 @@ em.about__pword {
   .apanel__w { opacity: 1; }
 }
 .apanel__l1 {
-  font-family: Inter, 'Inter Fallback', system-ui, sans-serif;
+  font-family: 'Inter Var', Inter, 'Inter Fallback', system-ui, sans-serif;
   font-weight: 600;
 }
 .apanel__l2 {
@@ -1180,12 +1180,11 @@ em.about__pword {
 .apanel__u {
   font-style: italic;
   font-size: 1.05em;
-  text-decoration: underline;
-  text-decoration-color: var(--ap-accent);
-  text-decoration-thickness: 2px;
-  text-underline-offset: 0.16em;
-  text-decoration-skip-ink: none;
+  /* the underline drawn as a line under the whole phrase (its letters are split
+     for the hover, which breaks text-decoration); drawn in once About lands */
+  background: linear-gradient(var(--ap-accent), var(--ap-accent)) 0 calc(100% - 0.06em) / var(--ap-ul, 100%) 2px no-repeat;
 }
+.shero__wall .apanel__u { --ap-ul: 0%; }
 .apanel__rule { display: none; }
 .apanel__body {
   margin-top: clamp(32px, 4.6vh, 56px);
@@ -2035,3 +2034,9 @@ em.about__pword {
   color: var(--red-hot, #bc0202);
   -webkit-text-stroke: 0;
 }
+
+/* About's heading, once landed: the masks stop clipping (the letters swell past
+   them on hover), and each letter can take its own weight */
+#about .apanel__mask { overflow: visible; }
+.apanel__ch { display: inline-block; white-space: pre; }
+.apanel__u .apanel__ch { will-change: transform; }
