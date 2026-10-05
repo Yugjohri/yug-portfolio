@@ -6,7 +6,7 @@ import { useGSAP } from '@gsap/react'
 import { useSmoothScroll } from '../lib/useSmoothScroll'
 import { isLight } from '../theme'
 import { routeTransition, whenSettled } from '../motion/routeTransition.ts'
-import { NOTES, ROLES, SLEEVES, type Sleeve } from '../data/portfolio'
+import { NOTES, ROLES, BRIEF_PROJECTS, type Sleeve } from '../data/portfolio'
 // The Brief's ground: the wallpaper clip, referenced where it lives (../my
 // brief backgrounds, beside the app) rather than copied in.
 import briefWallpaper from '../../../my brief backgrounds/my brief background 1.mp4'
@@ -290,8 +290,8 @@ export default function BriefRead() {
     { scope: root },
   )
 
-  const featured = SLEEVES.slice(0, 3)
-  const more = SLEEVES.slice(3)
+  const featured = BRIEF_PROJECTS.slice(0, 3)
+  const more = BRIEF_PROJECTS.slice(3)
 
   return (
     <main className="brief" ref={root}>
@@ -450,7 +450,7 @@ export default function BriefRead() {
                 onClick={() => setShowAll((v) => !v)}
                 aria-expanded={showAll}
               >
-                {showAll ? 'Show fewer' : `View all (${SLEEVES.length})`}{' '}
+                {showAll ? 'Show fewer' : `View all (${BRIEF_PROJECTS.length})`}{' '}
                 <span aria-hidden="true">{showAll ? '↑' : '↓'}</span>
               </button>
             ) : null}

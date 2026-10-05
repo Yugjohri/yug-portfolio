@@ -216,6 +216,57 @@ export const SLEEVES: Sleeve[] = [
   },
 ]
 
+/**
+ * The Brief's projects: the ribbon's, with the two that have nothing to show
+ * (the multi-agent spotter, the Delite Kom models) swapped for two that do.
+ */
+const BRIEF_EXTRA: Sleeve[] = [
+  {
+    code: 'B3',
+    org: 'Independent',
+    kicker: 'B3 · Independent build',
+    title: 'Frontier LLMs vs a model from scratch',
+    capLines: ['Frontier LLMs', 'vs from scratch'],
+    body:
+      "Can a language model estimate a product's price from its description, and does a purpose-built model beat it? On the same 200 held-out products, a 289M-parameter network trained from scratch on 800,000 items came in at $46.77 average error -- 27% better than the best prompted frontier model, about 25x faster, and free to run.",
+    summary:
+      'Prompted frontier models against a network trained from scratch, on the same 200 products: the purpose-built model wins by 27%.',
+    emoji: '💸',
+    metrics: ['$46.77 avg error', '27% better than GPT', '25x faster'],
+    tags: ['PyTorch', 'OpenAI API', 'GPT-5 nano', 'Vercel'],
+    repo: 'https://github.com/Yugjohri/Product-Price-Prediction-using-Frontier-LLMs',
+    live: 'https://price-predictor-yug20.vercel.app',
+    still: '/brief/frontier.webp',
+    jx: 1,
+    jr: -0.4,
+  },
+  {
+    code: 'D1',
+    org: 'ACM Student Chapter',
+    kicker: 'D1 · ACM Student Chapter · 2024',
+    title: 'Infuturum 2.0, the ACM chapter event site',
+    capLines: ['Infuturum 2.0', 'ACM event site'],
+    body:
+      "The website for Infuturum 2.0, the chapter's celebration of ACM's 76th anniversary: a neon-tunnel hero, the event line-up -- a 26-hour research hackathon, Hackauction, Design-a-thon, Breakout Rooms and Mafia Night -- and registration for each.",
+    summary:
+      "The site for the ACM chapter's biggest event of the year: five events over three days, each with its own registration.",
+    emoji: '🎟️',
+    metrics: ['5 events', '3 days', 'Feb 2024'],
+    tags: ['HTML', 'CSS', 'JavaScript'],
+    repo: 'https://github.com/Yugjohri/infuturum',
+    still: '/brief/acm.webp',
+    jx: -1,
+    jr: 0.4,
+  },
+]
+
+export const BRIEF_PROJECTS: Sleeve[] = [
+  ...SLEEVES.filter((p) => p.code !== 'B2' && p.code !== 'B4').slice(0, 3),
+  BRIEF_EXTRA[0],
+  ...SLEEVES.filter((p) => p.code !== 'B2' && p.code !== 'B4').slice(3),
+  BRIEF_EXTRA[1],
+]
+
 /** A technology on the Stack's ring: its name, a short mark, what it is for. */
 export type Tech = {
   name: string
