@@ -209,7 +209,7 @@ export default function MusicPlayer() {
   const progress = duration ? time / duration : 0
 
   return (
-    <div className="mp" ref={root} data-has={has ? '' : undefined} aria-label="Music player">
+    <div className="mp" ref={root} data-has={has ? '' : undefined} role="region" aria-label="Music player">
       <audio ref={audio} preload="none" />
 
       <div className="mp__row">

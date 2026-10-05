@@ -260,6 +260,8 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
       const glItems: HTMLElement[] = []
       if (surface?.supported) {
         surface.canvas.className = 'pd__gl'
+        // it draws what the DOM under it already says
+        surface.canvas.setAttribute('aria-hidden', 'true')
         sheetEl.appendChild(surface.canvas)
         streamEl.querySelectorAll<HTMLImageElement | HTMLVideoElement>('[data-pd-item] > .pd__media-item').forEach((m) => {
           if (!(m instanceof HTMLImageElement || m instanceof HTMLVideoElement)) return
@@ -547,7 +549,7 @@ export default function ProjectDetail({ project, origin, onCloseStart, onClosed 
             ) : null}
           </div>
 
-          <div className="pd__stream" ref={stream} data-pd-stream>
+          <div className="pd__stream" ref={stream} data-pd-stream tabIndex={0} aria-label="Project details">
             <figure className="pd__item pd__item--lead" ref={lead} data-pd-item>
               <Lead project={project} />
             </figure>

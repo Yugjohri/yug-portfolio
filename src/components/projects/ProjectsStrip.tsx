@@ -227,6 +227,8 @@ export default function ProjectsStrip() {
           return () => rootEl.removeAttribute('data-flat')
         }
         scene.canvas.className = 'work__gl'
+        // readers get the same projects from the column under it
+        scene.canvas.setAttribute('aria-hidden', 'true')
         pinEl.prepend(scene.canvas)
         rootEl.setAttribute('data-stage', '')
         stage.current = { scene, pinEl, corners: gsap.utils.toArray<HTMLElement>('.work__corner', pinEl) }

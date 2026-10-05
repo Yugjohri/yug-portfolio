@@ -13,8 +13,10 @@ import { markBoot } from '../boot/boot'
 export default function Home() {
   useEffect(() => markBoot('route'), [])
   return (
-    <div className="site">
+    <main className="site">
+      {/* the page's heading, for readers; the two panels' names are its h2s */}
+      <h1 className="sr-only">Yug Johri, AI Engineer</h1>
       <SplitHero />
-    </div>
+    </main>
   )
 }
