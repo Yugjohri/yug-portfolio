@@ -6,14 +6,19 @@ import MusicPlayer from './components/MusicPlayer'
 import ClickSpark from './components/ClickSpark'
 import RouteTransition from './motion/RouteTransition.tsx'
 import { applyTheme } from './theme'
+import { applyRouteMeta } from './routeMeta'
 
 const BriefRead = lazy(loadBrief)
 const Story = lazy(loadStory)
 
-/** Each route wears its own theme: the Story is black-and-red, the rest the original dark. */
+/** Each route wears its own theme (the Story is black-and-red, the rest the original dark) and its own title. */
 function ThemeByRoute() {
   const { pathname } = useLocation()
-  useLayoutEffect(() => applyTheme(pathname), [pathname])
+  useLayoutEffect(() => {
+    applyTheme(pathname)
+    // and its title, description and canonical (routeMeta.ts)
+    applyRouteMeta(pathname)
+  }, [pathname])
   return null
 }
 
