@@ -507,6 +507,10 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
           tl.to(chosen.querySelectorAll('.hero__content, .hero__dot'), { autoAlpha: 0, y: 12, duration: 0.25, ease: 'power2.in' }, 0)
         }
         if (other) {
+          // a phone stacks the panels, each with a min-height of half the
+          // screen: released first, or the other panel could not shrink past
+          // half and the chosen one never took the whole screen (no-op side by side)
+          tl.set(other, { minHeight: 0 }, 0)
           tl.to(other, { flexGrow: 0, flexBasis: '0%', duration: 0.55, ease: 'power3.inOut' }, 0)
           tl.to(other.querySelector('[data-hero-shift]'), { autoAlpha: 0, duration: 0.35, ease: 'power2.in' }, 0)
         }
@@ -578,6 +582,8 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
           tl.to(chosen.querySelectorAll('.hero__content, .hero__dot'), { autoAlpha: 0, y: 12, duration: 0.25, ease: 'power2.in' }, 0)
         }
         if (other) {
+          // (as in the dive: a stacked panel's min-height released first)
+          tl.set(other, { minHeight: 0 }, 0)
           tl.to(other, { flexGrow: 0, flexBasis: '0%', duration: 0.5, ease: 'power3.inOut' }, 0)
           tl.to(other.querySelector('[data-hero-shift]'), { autoAlpha: 0, duration: 0.3, ease: 'power2.in' }, 0)
         }

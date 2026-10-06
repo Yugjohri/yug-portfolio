@@ -242,3 +242,48 @@
     --mp-width: 200px;
   }
 }
+
+/* A phone: folded to a round button in the corner (the playing bars while a
+   song plays, a note otherwise) until it is tapped open; open, the whole bar
+   with its seek line (there is no hover to unfold it), and the button, now a
+   close, in its corner. A tap anywhere else folds it (MusicPlayer). */
+.mp__fab { display: none; }
+@media (max-width: 767px) {
+  .mp__fab {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--mp-ink);
+    cursor: pointer;
+  }
+  .mp__fab .mp__icon { width: 18px; height: 18px; }
+  .mp__eq--fab { height: 14px; gap: 3px; }
+  .mp__eq--fab i { width: 3px; }
+  .mp:not([data-open]) {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .mp:not([data-open]) .mp__row,
+  .mp:not([data-open]) .mp__seek { display: none; }
+  .mp[data-open] {
+    width: min(330px, calc(100vw - 2 * var(--mp-inset)));
+    padding-right: 40px;
+  }
+  .mp[data-open] .mp__fab {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 30px;
+    height: 30px;
+  }
+  .mp[data-open] .mp__fab .mp__icon { width: 14px; height: 14px; }
+  /* the seek line stays out: the hover that unfolds it on a desktop is not there */
+  .mp[data-open] .mp__seek { height: 22px !important; opacity: 1 !important; visibility: visible !important; }
+}

@@ -86,6 +86,8 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
   const tint = useRef<HTMLDivElement>(null)
   const wallL = useRef<HTMLDivElement>(null)
   const wallR = useRef<HTMLDivElement>(null)
+  const edgeL = useRef<HTMLDivElement>(null)
+  const edgeR = useRef<HTMLDivElement>(null)
   const title = useRef<HTMLHeadingElement>(null)
   /** 0..1 through the gesture, read by the render loop to know when to stop */
   const progress = useRef(0)
@@ -160,10 +162,20 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
       }
     }
 
+    // On a touchscreen the glass is drawn at 30 frames a second once it is on:
+    // the footage is 30 fps and there is no cursor to answer, so every other
+    // frame was the same picture drawn again -- GPU time a phone needs for the
+    // scroll and the gesture. (The power-on, and the desktop, keep every frame.)
+    const halfRate = window.matchMedia('(pointer: coarse)').matches
+    let odd = false
     const frameLoop = (now: number) => {
       raf = requestAnimationFrame(frameLoop)
       // once the strip has become the rule there is nothing of the glass left
       if (!visible || progress.current > 0.78) return
+      if (halfRate && power.current.v >= 1) {
+        odd = !odd
+        if (odd) return
+      }
       screen.power = power.current.v
       screen.render(now / 1000)
       paintGlow()
@@ -233,7 +245,17 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
       // (offsets, which ignore transforms), so the strip ends up exactly where
       // the rule sits between the words at any viewport, and a refresh
       // mid-gesture cannot poison the numbers.
-      const geometry = () => {
+      // Measured once and kept until the page is measured again (a resize or a
+      // turn of the phone): clipBar runs on every frame of the turn, and
+      // reading layout there forced a reflow per frame -- what made the
+      // gesture stutter on a phone.
+      let geom: ReturnType<typeof measureGeometry> | null = null
+      const dropGeometry = () => {
+        geom = null
+      }
+      ScrollTrigger.addEventListener('refreshInit', dropGeometry)
+      const geometry = () => (geom ??= measureGeometry())
+      const measureGeometry = () => {
         const w = rootEl.clientWidth
         const h = rootEl.clientHeight
         const pad = parseFloat(getComputedStyle(rootEl).getPropertyValue('--st-pad')) || 40
@@ -342,13 +364,16 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
       // 5. the walls: the left half comes down from the top, the right half up
       //    from the bottom, each carrying its half of About, so the section is
       //    whole the moment they meet -- nothing left to scroll for.
-      if (wallL.current && wallR.current) {
+      if (wallL.current && wallR.current && edgeL.current && edgeR.current) {
+        // each wall travels with its edge (the red line and the shadow, an element of their own)
+        const left = [wallL.current, edgeL.current]
+        const right = [wallR.current, edgeR.current]
         // y is pinned to 0 so only the percentage moves them (a remount must not read a stale offset)
-        gsap.set(wallL.current, { y: 0, yPercent: -100, visibility: 'visible' })
-        gsap.set(wallR.current, { y: 0, yPercent: 100, visibility: 'visible' })
+        gsap.set(left, { y: 0, yPercent: -100, visibility: 'visible' })
+        gsap.set(right, { y: 0, yPercent: 100, visibility: 'visible' })
         const WALLS = { at: 0.88, dur: TL_TOTAL - 0.88, ease: 'sine.inOut' }
-        tl.fromTo(wallL.current, { y: 0, yPercent: -100 }, { y: 0, yPercent: 0, duration: WALLS.dur, ease: WALLS.ease }, WALLS.at)
-        tl.fromTo(wallR.current, { y: 0, yPercent: 100 }, { y: 0, yPercent: 0, duration: WALLS.dur, ease: WALLS.ease }, WALLS.at)
+        tl.fromTo(left, { y: 0, yPercent: -100 }, { y: 0, yPercent: 0, duration: WALLS.dur, ease: WALLS.ease }, WALLS.at)
+        tl.fromTo(right, { y: 0, yPercent: 100 }, { y: 0, yPercent: 0, duration: WALLS.dur, ease: WALLS.ease }, WALLS.at)
         // About assembles as the walls close (the left half; the right is the stack's):
         // its heading's lines rise out of their masks, one after the other, and the
         // paragraphs come up from nothing to their faint resting state -- all with
@@ -362,10 +387,13 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
           tl.fromTo(words, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: span * 0.4, ease: 'power2.out', stagger: span * 0.06 }, WALLS.at + span * 0.45)
         }
         // their edges (the red line and the shadow) fade out over the last stretch,
-        // so they are gone as the walls meet and About takes over -- not cut at once
+        // so they are gone as the walls meet and About takes over -- not cut at once.
+        // (Their own opacity, which the compositor fades: it was a CSS variable on
+        // the walls, which restyled every element of both About copies each frame.)
         const EDGE = 0.16
-        tl.fromTo([wallL.current, wallR.current], { '--edge': 1 }, { '--edge': 0, duration: EDGE, ease: 'sine.in' }, TL_TOTAL - EDGE)
+        tl.fromTo([edgeL.current, edgeR.current], { opacity: 1 }, { opacity: 0, duration: EDGE, ease: 'sine.in' }, TL_TOTAL - EDGE)
       }
+      return () => ScrollTrigger.removeEventListener('refreshInit', dropGeometry)
     },
     { scope: root },
   )
@@ -539,9 +567,12 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
       <div className="shero__wall shero__wall--l" ref={wallL} aria-hidden="true">
         <AboutPanel variant="copy" />
       </div>
+      {/* each wall's edge just after it: over its own wall, under the next */}
+      <div className="shero__edge shero__edge--l" ref={edgeL} aria-hidden="true" />
       <div className="shero__wall shero__wall--r" ref={wallR} aria-hidden="true">
         <AboutPanel variant="copy" />
       </div>
+      <div className="shero__edge shero__edge--r" ref={edgeR} aria-hidden="true" />
       <div className="shero__lockup" ref={lockup}>
         <div className="shero__def" data-shero-def>
           <span className="shero__meta">

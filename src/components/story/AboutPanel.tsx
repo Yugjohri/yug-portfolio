@@ -4,7 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { SplitText } from 'gsap/SplitText'
 import { ABOUT_PANEL } from '../../data/brief'
-import StackOrbit from './StackOrbit'
+import StackOrbit, { aboutOverflow } from './StackOrbit'
 import { layeredHoldPx } from '../../motion/sectionTransitions'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText)
@@ -185,8 +185,18 @@ export default function AboutPanel({ variant }: { variant: 'copy' | 'section' })
     }
 
     // the words light up across the stack's run (its pin, StackOrbit's 'about-stack'),
-    // done a little before it ends so the last lines are read while the stream still goes
+    // done a little before it ends so the last lines are read while the stream still goes.
+    // Where About overflows the screen (a phone), its text rises into view over
+    // 30-92% of the run (StackOrbit), so the words light over that stretch instead.
     const pin = () => ScrollTrigger.getById('about-stack')
+    const sheet = el.querySelector<HTMLElement>('.apanel__sheet')
+    const span = (a: number, b: number) => {
+      const p = pin()
+      if (!p) return null
+      const run = p.end - layeredHoldPx() - p.start
+      const tall = sheet ? aboutOverflow(sheet) > 0 : false
+      return p.start + run * (tall ? b : a)
+    }
     gsap.to(words, {
       opacity: 1,
       ease: 'none',
@@ -194,11 +204,8 @@ export default function AboutPanel({ variant }: { variant: 'copy' | 'section' })
       duration: 0.3,
       scrollTrigger: {
         trigger: el,
-        start: () => pin()?.start ?? 'top top',
-        end: () => {
-          const p = pin()
-          return p ? p.start + (p.end - layeredHoldPx() - p.start) * 0.62 : '+=150%'
-        },
+        start: () => span(0, 0.3) ?? 'top top',
+        end: () => span(0.62, 0.95) ?? '+=150%',
         scrub: 0.4,
         invalidateOnRefresh: true,
         refreshPriority: -1,

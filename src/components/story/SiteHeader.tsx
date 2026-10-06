@@ -53,7 +53,9 @@ export default function SiteHeader() {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
       // arrives with the page: a short drop from above
-      if (!reduced) gsap.from(el, { autoAlpha: 0, y: -14, duration: 0.9, delay: 0.5, ease: 'power3.out' })
+      // (the transform is cleared once it lands, so the fixed header is no
+      // containing block for anything inside it)
+      if (!reduced) gsap.from(el, { autoAlpha: 0, y: -14, duration: 0.9, delay: 0.5, ease: 'power3.out', clearProps: 'transform' })
 
       // compact over the glass, full size once the gesture has closed it away
       const hero = document.getElementById('story-top')

@@ -19,6 +19,8 @@ const ICON = {
   pause: 'M4 2.5h2.6v11H4v-11Zm5.4 0H12v11H9.4v-11Z',
   sound: 'M2 5.5h2.6L8.5 2.5v11L4.6 10.5H2v-5Zm9 .3a3 3 0 0 1 0 4.4M11.2 3a5.6 5.6 0 0 1 0 10',
   muted: 'M2 5.5h2.6L8.5 2.5v11L4.6 10.5H2v-5Zm8.2.9 3.6 3.6m0-3.6-3.6 3.6',
+  note: 'M6 12a2 2 0 1 1-2-2 2 2 0 0 1 2 2Zm0 0V3.6l7-1.6v8.4m0 0a2 2 0 1 1-2-2 2 2 0 0 1 2 2Z',
+  close: 'M4.5 4.5l7 7m0-7-7 7',
 }
 
 function Icon({ d, stroke = false }: { d: string; stroke?: boolean }) {
@@ -44,6 +46,8 @@ export default function MusicPlayer() {
   const scrubbing = useRef(false)
 
   const [index, setIndex] = useState(0)
+  // a phone: the player folds to a round button in the corner until it is opened
+  const [open, setOpen] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(false)
   const [time, setTime] = useState(0)
@@ -122,6 +126,16 @@ export default function MusicPlayer() {
     if (playing) void el.play().catch(() => setPlaying(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index])
+
+  // a phone: an open player folds again at a tap anywhere else
+  useEffect(() => {
+    if (!open) return
+    const away = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', away)
+    return () => document.removeEventListener('pointerdown', away)
+  }, [open])
 
   // ----------------------------------------------------------------- hover
   useEffect(() => {
@@ -209,8 +223,30 @@ export default function MusicPlayer() {
   const progress = duration ? time / duration : 0
 
   return (
-    <div className="mp" ref={root} data-has={has ? '' : undefined} role="region" aria-label="Music player">
+    <div className="mp" ref={root} data-has={has ? '' : undefined} data-open={open ? '' : undefined} role="region" aria-label="Music player">
       <audio ref={audio} preload="none" />
+
+      {/* on a phone only (music.css): folded, the player is this button -- the
+          playing bars while a song plays, a note otherwise; open, it closes it */}
+      <button
+        className="mp__fab"
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-label={open ? 'Fold the music player' : 'Open the music player'}
+      >
+        {open ? (
+          <Icon d={ICON.close} stroke />
+        ) : playing ? (
+          <span className="mp__eq mp__eq--fab" data-on="" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+        ) : (
+          <Icon d={ICON.note} stroke />
+        )}
+      </button>
 
       <div className="mp__row">
         <button className="mp__btn" type="button" onClick={prev} disabled={!has} aria-label="Previous">

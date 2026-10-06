@@ -137,6 +137,22 @@ type Props = {
   pin?: React.RefObject<HTMLElement>
 }
 
+/**
+ * How far About's text runs past the bottom of the screen while it is pinned,
+ * px: from the sheet's top to the closing note's bottom, by layout offsets (the
+ * rise and the layered transition's transforms do not count), with a little
+ * room under it. Under 40px it is called 0 -- the text fits, as on a desktop,
+ * and nothing about the pin changes there.
+ */
+export const aboutOverflow = (sheet: HTMLElement) => {
+  const last = sheet.querySelector<HTMLElement>('.apanel__coda') ?? sheet.querySelector<HTMLElement>('.apanel__body')
+  if (!last) return 0
+  let y = last.offsetHeight
+  for (let e: HTMLElement | null = last; e && e !== sheet; e = e.offsetParent as HTMLElement | null) y += e.offsetTop
+  const over = Math.round(y + 32 - window.innerHeight)
+  return over < 40 ? 0 : over
+}
+
 export default function StackOrbit({ mode, pin }: Props) {
   const root = useRef<HTMLDivElement>(null)
   const stage = useRef<HTMLDivElement>(null)
@@ -403,6 +419,19 @@ export default function StackOrbit({ mode, pin }: Props) {
         },
       })
       tl.fromTo(flow, { p: () => win.p0 }, { p: () => win.p1, duration: 1, onUpdate: place }, 0)
+      // Where About is taller than the screen (a phone: one column, the stack
+      // above the text), the pin would hold its top and the rest of the text
+      // would never come into view before Experience covered it. So, once the
+      // stack has streamed a while, the content rises inside the pin by just
+      // what overflows, and the whole text is read (it lights up as it comes,
+      // AboutPanel). Where it fits (the desktop) the overflow is 0 and this is
+      // nothing. (.apanel__wrap, not the sheet: the layered transition owns
+      // the sheet's transform.)
+      const wrap = pinEl.querySelector<HTMLElement>('.apanel__wrap')
+      const sheetEl = pinEl.querySelector<HTMLElement>('.apanel__sheet')
+      if (wrap && sheetEl) {
+        tl.fromTo(wrap, { y: 0 }, { y: () => -aboutOverflow(sheetEl), duration: 0.62, ease: 'power1.inOut' }, 0.3)
+      }
       // nothing moves in the hold: the stream is done, About waits under Experience
       hold = gsap.to({}, { duration: layeredHoldPx() / Math.max(1, streamPx()) })
       tl.add(hold, 1)
