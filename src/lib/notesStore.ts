@@ -103,7 +103,69 @@ export async function addNote(body: string, color: NoteColor, x: number, y: numb
   return { ok: true, note }
 }
 
+// ---------------------------------------------------------------- your own note
+// Only the browser that wrote a note can move or delete it: the server checks
+// this browser's id against the one recorded with the note (migration
+// ..._notes_own.sql).
+
+/** move your note to a new place on the board (shares of its width and height) */
+export async function moveMyNote(x: number, y: number): Promise<boolean> {
+  const id = myNoteId()
+  if (!id) return false
+  if (!isShared) return moveLocal(id, x, y)
+  try {
+    const res = await fetch(`${URL_}/rest/v1/rpc/move_my_note`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ p_client: clientId(), p_x: x, p_y: y }),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+/** take your note down; you may then pin a new one */
+export async function deleteMyNote(): Promise<boolean> {
+  const id = myNoteId()
+  if (!id) return false
+  if (isShared) {
+    try {
+      const res = await fetch(`${URL_}/rest/v1/rpc/delete_my_note`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ p_client: clientId() }),
+      })
+      if (!res.ok) return false
+    } catch {
+      return false
+    }
+  } else {
+    try {
+      localStorage.setItem(LOCAL, JSON.stringify(localNotes().filter((n) => n.id !== id)))
+    } catch {
+      /* nothing kept, nothing to remove */
+    }
+  }
+  try {
+    localStorage.removeItem(MINE)
+  } catch {
+    /* private mode */
+  }
+  return true
+}
+
 // ---------------------------------------------------------------- local preview
+
+function moveLocal(id: string, x: number, y: number) {
+  try {
+    const clampShare = (v: number) => Math.min(1, Math.max(0, v))
+    localStorage.setItem(LOCAL, JSON.stringify(localNotes().map((n) => (n.id === id ? { ...n, x: clampShare(x), y: clampShare(y) } : n))))
+  } catch {
+    /* nothing to keep it in */
+  }
+  return true
+}
 
 const LOCAL = 'notes.local'
 function localNotes(): Note[] {

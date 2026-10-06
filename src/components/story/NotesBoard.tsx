@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import gsap from 'gsap'
 import { Flip } from 'gsap/Flip'
 import { useGSAP } from '@gsap/react'
-import { addNote, isShared, listNotes, myNoteId, type Note, type NoteColor } from '../../lib/notesStore'
+import { addNote, deleteMyNote, isShared, listNotes, moveMyNote, myNoteId, type Note, type NoteColor } from '../../lib/notesStore'
 
 gsap.registerPlugin(useGSAP, Flip)
 
@@ -77,6 +77,8 @@ export default function NotesBoard() {
   const [color, setColor] = useState<NoteColor>('paper')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  // your note's delete asks once more before it goes
+  const [confirmDel, setConfirmDel] = useState(false)
   /** where the blank note is, in board px */
   const draftAt = useRef({ x: WORLD.w / 2 - NOTE / 2, y: WORLD.h / 2 + 150 })
 
@@ -213,8 +215,46 @@ export default function NotesBoard() {
     const t = e.target as HTMLElement
     if (t.closest('button, input, a, [data-note-docked]')) return
     const onDraft = !!t.closest('[data-note-draft]')
+    // your own note, once pinned, can be moved: dragged like the blank one, saved where it is let go
+    const mineEl = t.closest<HTMLElement>('[data-note-mine]')
     const inText = !!t.closest('textarea')
     const b = board.current!
+    if (mineEl) {
+      const from = { left: parseFloat(mineEl.style.left) || 0, top: parseFloat(mineEl.style.top) || 0 }
+      const at = { ...from }
+      let moved = false
+      b.setPointerCapture(e.pointerId)
+      b.dataset.dragging = 'note'
+      const moveMine = (ev: PointerEvent) => {
+        const s = view.current.s
+        const mx = (ev.clientX - e.clientX) / s
+        const my = (ev.clientY - e.clientY) / s
+        if (!moved && Math.hypot(mx * s, my * s) < 6) return
+        moved = true
+        ev.preventDefault()
+        at.left = clamp(0, WORLD.w - NOTE, from.left + mx)
+        at.top = clamp(0, WORLD.h - NOTE, from.top + my)
+        mineEl.style.left = `${at.left}px`
+        mineEl.style.top = `${at.top}px`
+      }
+      const upMine = () => {
+        delete b.dataset.dragging
+        b.removeEventListener('pointermove', moveMine)
+        b.removeEventListener('pointerup', upMine)
+        b.removeEventListener('pointercancel', upMine)
+        if (!moved) return
+        const x = at.left / WORLD.w
+        const y = at.top / WORLD.h
+        setNotes((list) => list.map((n) => (n.id === mine ? { ...n, x, y } : n)))
+        void moveMyNote(x, y).then((ok) => {
+          if (!ok) setMsg(REASON.offline)
+        })
+      }
+      b.addEventListener('pointermove', moveMine)
+      b.addEventListener('pointerup', upMine)
+      b.addEventListener('pointercancel', upMine)
+      return
+    }
     const start = { px: e.clientX, py: e.clientY, vx: view.current.x, vy: view.current.y, dx: draftAt.current.x, dy: draftAt.current.y }
     // on the text, a press only becomes a drag once it has travelled a little
     let dragging = !inText
@@ -401,6 +441,23 @@ export default function NotesBoard() {
     </li>
   )
 
+  /** your note comes down (a second tap confirms); the blank note returns to write another */
+  const removeMine = async () => {
+    if (!confirmDel) {
+      setConfirmDel(true)
+      return
+    }
+    setConfirmDel(false)
+    const id = mine
+    if (!(await deleteMyNote())) {
+      setMsg(REASON.offline)
+      return
+    }
+    setNotes((list) => list.filter((n) => n.id !== id))
+    setMine(null)
+    setMsg(null)
+  }
+
   const count = notes.length
   const placed = (n: Note, i: number) => (n.x == null || n.y == null ? fallback(i) : { x: n.x, y: n.y })
 
@@ -443,9 +500,21 @@ export default function NotesBoard() {
                   key={n.id}
                   className={`note note--${n.color}${n.id === mine ? ' note--mine' : ''}`}
                   data-note={n.id}
+                  data-note-mine={n.id === mine ? '' : undefined}
                   style={{ left: at.x * WORLD.w, top: at.y * WORLD.h, '--tilt': `${n.tilt}deg` } as React.CSSProperties}
                 >
                   <span className="note__pin" aria-hidden="true" />
+                  {n.id === mine ? (
+                    <button
+                      type="button"
+                      className={`mono note__del${confirmDel ? ' note__del--ask' : ''}`}
+                      onClick={removeMine}
+                      onBlur={() => setConfirmDel(false)}
+                      aria-label={confirmDel ? 'Delete your note: tap again to confirm' : 'Delete your note'}
+                    >
+                      {confirmDel ? 'delete?' : '×'}
+                    </button>
+                  ) : null}
                   <p className="note__body">{n.body}</p>
                   <span className="mono note__meta">
                     {n.id === mine ? 'yours · ' : ''}
