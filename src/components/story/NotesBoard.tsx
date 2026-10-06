@@ -27,6 +27,10 @@ const NOTE = 200
 const MAX = 140
 const PAPERS: NoteColor[] = ['paper', 'blush', 'sage', 'butter']
 /** Yug's own note, pinned up and to the left of the title */
+/** Dexter, a friend's drawing: lifted off a photo of the sticky note (the ink
+ *  alone, public/notes/dexter.webp) and pinned on a clean yellow note of the
+ *  board's own, under the title -- in view docked and opened */
+const DEXTER = { x: 0.37, y: 0.585, tilt: 3 }
 const NOW = { body: 'now: just finished at CFEES, DRDO. open to AI engineering roles from October 2026.', x: 0.385, y: 0.29 }
 /** docked, the board shows its middle this wide (in board px), so the title reads */
 const DOCK_VIEW = 1350
@@ -411,6 +415,10 @@ export default function NotesBoard() {
               <span className="note__pin" aria-hidden="true" />
               <p className="note__body">{NOW.body}</p>
               <span className="mono note__meta">— yug</span>
+            </li>
+            <li className="note note--butter note--art" data-note="dexter" style={{ left: DEXTER.x * WORLD.w, top: DEXTER.y * WORLD.h, '--tilt': `${DEXTER.tilt}deg` } as React.CSSProperties}>
+              <span className="note__pin" aria-hidden="true" />
+              <img className="note__art" src="/notes/dexter.webp" width={640} height={646} alt="Dexter: a little robot with big round eyes and an antenna, drawn in pen on a sticky note by a friend" loading="lazy" decoding="async" />
             </li>
             {notes.map((n, i) => {
               const at = placed(n, i)

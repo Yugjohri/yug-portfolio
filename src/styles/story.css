@@ -1917,6 +1917,9 @@ em.about__pword {
 .note--now { --paper: var(--red-hot, #bc0202); color: #fff4f0; }
 .note--now .note__meta { color: rgb(255 244 240 / 0.75); }
 .note--mine { outline: 2px dashed rgb(26 22 24 / 0.35); outline-offset: 4px; }
+/* a drawing on a note (Dexter): the ink sits straight on the board's own paper */
+.nboard .note--art { width: 236px; min-height: 0; padding: 1.15rem 0.7rem 0.7rem; }
+.note__art { display: block; width: 100%; height: auto; mix-blend-mode: multiply; pointer-events: none; user-select: none; }
 .note__pin {
   position: absolute;
   left: 50%;
