@@ -62,6 +62,15 @@ export default function NotesBoard() {
   /** the board's view: pan (px) and scale */
   const view = useRef({ x: 0, y: 0, s: 1 })
   const [open, setOpen] = useState(false)
+  // a phone: docked, the blank note is drawn at the cork's own scale, as small
+  // as the notes on it, and a tap on it opens the board to write there
+  const [phone, setPhone] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 699px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 699px)')
+    const on = () => setPhone(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
   const [notes, setNotes] = useState<Note[]>([])
   const [mine, setMine] = useState<string | null>(null)
   const [text, setText] = useState('')
@@ -142,6 +151,8 @@ export default function NotesBoard() {
   const apply = (v: { s: number; x: number; y: number }) => {
     view.current = v
     if (world.current) gsap.set(world.current, { x: v.x, y: v.y, scale: v.s, transformOrigin: '0 0' })
+    // the cork's scale, for the docked blank note on a phone (story.css)
+    board.current?.style.setProperty('--dock-k', String(v.s))
   }
 
   // docked: keep the board fitted as the column resizes
@@ -334,6 +345,7 @@ export default function NotesBoard() {
   }
 
   /** the blank note: on the open board ('board', draggable) or docked over the board's corner ('docked') */
+  const mini = phone && !open
   const blank = (where: 'board' | 'docked') => (
     <li
       ref={where === 'board' ? draft : undefined}
@@ -341,7 +353,7 @@ export default function NotesBoard() {
       data-note={where === 'board' ? 'new' : undefined}
       data-note-draft={where === 'board' ? '' : undefined}
       data-note-docked={where === 'docked' ? '' : undefined}
-      onPointerDown={where === 'docked' ? onDockDown : undefined}
+      onPointerDown={where === 'docked' && !mini ? onDockDown : undefined}
       style={
         where === 'board'
           ? ({ left: 0, top: 0, transform: `translate(${draftAt.current.x}px, ${draftAt.current.y}px)`, '--tilt': '0deg' } as React.CSSProperties)
@@ -349,7 +361,11 @@ export default function NotesBoard() {
       }
     >
       <span className="note__pin" aria-hidden="true" />
-      <form className="note__form" onSubmit={submit}>
+      {where === 'docked' && mini ? (
+        <button type="button" className="note__open" onClick={toggle} aria-label="Write a note (opens the board)" />
+      ) : null}
+      {/* (inert while it is only the small picture of the note: React 18 knows the attribute only in lowercase) */}
+      <form className="note__form" onSubmit={submit} {...(where === 'docked' && mini ? ({ inert: '' } as Record<string, string>) : {})}>
         <label className="note__label mono" htmlFor={`note-text-${where}`}>
           your note · drag me
         </label>

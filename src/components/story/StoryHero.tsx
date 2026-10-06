@@ -132,9 +132,19 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
       glowEl.height = 18
     }
     let glowFrame = 0
+    let glowOpacity = ''
+    // On a touchscreen the glow is blurred inside its 32x18 canvas (3px there is
+    // the CSS 40-90px once scaled up), not by a CSS blur over its large on-screen
+    // box -- which the GPU redid at 15 fps while the header was on screen.
+    if (glowEl && glowCtx && window.matchMedia('(pointer: coarse)').matches && 'filter' in glowCtx) {
+      glowCtx.filter = 'blur(3px) saturate(1.35)'
+      glowEl.style.filter = 'none'
+    }
     const paintGlow = () => {
       if (!glowEl || !glowCtx) return
-      glowEl.style.opacity = String(0.17 * Math.max(0, Math.min(1, screen.power)))
+      // (written only when it changes: a style write every frame restyled the page every frame)
+      const o = String(0.17 * Math.max(0, Math.min(1, screen.power)))
+      if (o !== glowOpacity) glowEl.style.opacity = glowOpacity = o
       const src = screen.source
       if (!src || glowFrame++ % 4) return
       glowCtx.drawImage(src, 0, 0, glowEl.width, glowEl.height)

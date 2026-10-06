@@ -1851,8 +1851,29 @@ em.about__pword {
   /* a phone: a taller board -- the title above, the blank note under it, the label below that */
   .nboard-slot { aspect-ratio: 3 / 4; }
   .nboard__dock-note { right: 50%; translate: 50% 0; bottom: 58px; }
-  .nboard:not(.nboard--open) .nboard__dock-note .note { width: 180px; padding: 1.3rem 0.9rem 0.8rem; }
-  .nboard:not(.nboard--open) .nboard__dock-note .note__input { min-height: 3.6em; font-size: 1.1rem; }
+  /* docked, the blank note is drawn as the notes on the cork are -- their
+     width, scaled by the cork's own scale (--dock-k, NotesBoard) -- and a tap
+     on it opens the board, where it is written at the same size as them */
+  .nboard:not(.nboard--open) .nboard__dock-note .note {
+    width: 200px;
+    min-height: 190px;
+    scale: var(--dock-k, 0.33);
+    transform-origin: 50% 100%;
+    cursor: pointer;
+  }
+  .note__open {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+  /* open: the blank note no taller than the others -- three lines to write in */
+  .nboard--open .note--new { min-height: 190px; }
+  .nboard--open .note--new .note__form { gap: 0.45rem; }
+  .nboard--open .note--new .note__input { min-height: 0; height: 3.75em; }
 }
 /* the round glass button */
 .nboard__toggle {
