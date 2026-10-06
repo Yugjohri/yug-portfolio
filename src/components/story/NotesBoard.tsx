@@ -74,6 +74,8 @@ export default function NotesBoard() {
   const [notes, setNotes] = useState<Note[]>([])
   const [mine, setMine] = useState<string | null>(null)
   const [text, setText] = useState('')
+  // the signature in the note's corner (a name, a nickname, initials -- or nothing)
+  const [sign, setSign] = useState('')
   const [color, setColor] = useState<NoteColor>('paper')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
@@ -371,13 +373,14 @@ export default function NotesBoard() {
     if (busy || mine) return
     setBusy(true)
     setMsg(null)
-    const r = await addNote(text, color, draftAt.current.x / WORLD.w, draftAt.current.y / WORLD.h)
+    const r = await addNote(text, color, draftAt.current.x / WORLD.w, draftAt.current.y / WORLD.h, sign)
     setBusy(false)
     if (r.ok) {
       dropped.current = r.note.id
       setNotes((n) => [r.note, ...n.filter((x) => x.id !== r.note.id)])
       setMine(r.note.id)
       setText('')
+      setSign('')
     } else {
       if (r.reason === 'already_posted') setMine(myNoteId())
       setMsg(REASON[r.reason])
@@ -418,6 +421,18 @@ export default function NotesBoard() {
           placeholder="say hi, leave a thought, a tip, a joke…"
           onChange={(e) => setText(e.target.value)}
         />
+        {/* signed in the corner, as Yug's own note is */}
+        <label className="note__sign">
+          <span aria-hidden="true">-</span>
+          <input
+            className="note__sign-input"
+            value={sign}
+            maxLength={24}
+            placeholder="your name"
+            aria-label="Sign it: your name, a nickname or initials (optional)"
+            onChange={(e) => setSign(e.target.value)}
+          />
+        </label>
         <div className="note__row">
           <div className="note__papers" role="radiogroup" aria-label="Paper">
             {PAPERS.map((p) => (
@@ -516,6 +531,7 @@ export default function NotesBoard() {
                     </button>
                   ) : null}
                   <p className="note__body">{n.body}</p>
+                  {n.name ? <span className="note__by">- {n.name}</span> : null}
                   <span className="mono note__meta">
                     {n.id === mine ? 'yours · ' : ''}
                     {when(n.created_at)}

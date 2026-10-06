@@ -15,7 +15,8 @@
 
 export type NoteColor = 'paper' | 'blush' | 'sage' | 'butter'
 /** x, y: where it is pinned on the board, as shares of the board's width and height (null: older notes, laid out in order) */
-export type Note = { id: string; body: string; color: NoteColor; tilt: number; x: number | null; y: number | null; created_at: string }
+/** name: what its writer signed it with, after a "-" in its corner (optional) */
+export type Note = { id: string; body: string; color: NoteColor; tilt: number; x: number | null; y: number | null; created_at: string; name?: string | null }
 
 export type AddResult = { ok: true; note: Note } | { ok: false; reason: 'already_posted' | 'not_allowed' | 'bad_length' | 'offline' }
 
@@ -67,23 +68,30 @@ const headers = (): Record<string, string> => ({
 
 export async function listNotes(): Promise<Note[]> {
   if (!isShared) return localNotes()
-  const res = await fetch(`${URL_}/rest/v1/notes?select=id,body,color,tilt,x,y,created_at&order=created_at.desc&limit=${LIMIT}`, {
-    headers: headers(),
-  })
+  const get = (cols: string) =>
+    fetch(`${URL_}/rest/v1/notes?select=${cols}&order=created_at.desc&limit=${LIMIT}`, { headers: headers() })
+  // with the signatures; without them where the project has not had that migration yet
+  let res = await get('id,body,color,tilt,x,y,created_at,name')
+  if (res.status === 400) res = await get('id,body,color,tilt,x,y,created_at')
   if (!res.ok) throw new Error(`notes ${res.status}`)
   return res.json()
 }
 
-export async function addNote(body: string, color: NoteColor, x: number, y: number): Promise<AddResult> {
+export async function addNote(body: string, color: NoteColor, x: number, y: number, name = ''): Promise<AddResult> {
   if (myNoteId()) return { ok: false, reason: 'already_posted' }
-  if (!isShared) return addLocal(body, color, x, y)
-  let res: Response
-  try {
-    res = await fetch(`${URL_}/rest/v1/rpc/add_note`, {
+  const signed = name.replace(/\s+/g, ' ').trim().slice(0, 24)
+  if (!isShared) return addLocal(body, color, x, y, signed)
+  const post = (withName: boolean) =>
+    fetch(`${URL_}/rest/v1/rpc/add_note`, {
       method: 'POST',
       headers: headers(),
-      body: JSON.stringify({ p_body: body, p_color: color, p_client: clientId(), p_x: x, p_y: y }),
+      body: JSON.stringify({ p_body: body, p_color: color, p_client: clientId(), p_x: x, p_y: y, ...(withName ? { p_name: signed } : {}) }),
     })
+  let res: Response
+  try {
+    res = await post(!!signed)
+    // a project without the signatures migration does not know p_name: pinned unsigned rather than not at all
+    if (signed && res.status === 404) res = await post(false)
   } catch {
     return { ok: false, reason: 'offline' }
   }
@@ -175,7 +183,7 @@ function localNotes(): Note[] {
     return []
   }
 }
-function addLocal(body: string, color: NoteColor, x: number, y: number): AddResult {
+function addLocal(body: string, color: NoteColor, x: number, y: number, name = ''): AddResult {
   const text = body.replace(/\s+/g, ' ').trim()
   if (!text || text.length > 140) return { ok: false, reason: 'bad_length' }
   if (/(https?:\/\/|www\.)/i.test(text)) return { ok: false, reason: 'not_allowed' }
@@ -187,6 +195,7 @@ function addLocal(body: string, color: NoteColor, x: number, y: number): AddResu
     x: Math.min(1, Math.max(0, x)),
     y: Math.min(1, Math.max(0, y)),
     created_at: new Date().toISOString(),
+    name: name || null,
   }
   try {
     localStorage.setItem(LOCAL, JSON.stringify([note, ...localNotes()].slice(0, LIMIT)))

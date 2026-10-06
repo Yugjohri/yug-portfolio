@@ -1954,6 +1954,45 @@ em.about__pword {
 .note--now { --paper: var(--red-hot, #bc0202); color: #fff4f0; }
 .note--now .note__meta { color: rgb(255 244 240 / 0.75); }
 .note--mine { outline: 2px dashed rgb(26 22 24 / 0.35); outline-offset: 4px; }
+/* the signature: "- name" in the note's bottom corner -- written on the blank
+   note in its handwriting face, shown on the pinned ones beside the date */
+.note__sign {
+  display: flex;
+  align-self: flex-end;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-family: var(--st-serif, 'Instrument Serif', Georgia, serif);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: rgb(26 22 24 / 0.7);
+}
+.note__sign-input {
+  flex: none;
+  width: 7.5em;
+  padding: 0 0 1px;
+  border: 0;
+  border-bottom: 1px dashed rgb(26 22 24 / 0.3);
+  background: transparent;
+  font: inherit;
+  color: #1a1618;
+  outline: none;
+}
+.note__sign-input::placeholder { color: rgb(26 22 24 / 0.35); }
+.note__sign-input:focus { border-bottom-color: rgb(26 22 24 / 0.6); }
+.note__by {
+  align-self: flex-end;
+  max-width: 100%;
+  margin-top: auto;
+  color: rgb(26 22 24 / 0.75);
+  font-family: var(--st-serif, 'Instrument Serif', Georgia, serif);
+  font-style: italic;
+  font-size: 1.05rem;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 /* your own note, on the open board: it moves under the hand, and comes down from its corner */
 .nboard--open .note--mine { cursor: move; touch-action: none; }
 .note__del { display: none; }
