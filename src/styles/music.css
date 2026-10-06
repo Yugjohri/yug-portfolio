@@ -129,7 +129,8 @@
   text-transform: none;
 }
 .mp__name b { font-weight: 600; }
-.mp__artist { color: var(--mp-dim); }
+/* a step brighter than the other dim marks: it is text to read (4.5:1 against the plate over the cream) */
+.mp__artist { color: rgb(241 235 232 / 0.8); }
 .mp__marquee {
   display: flex;
   min-width: 0;

@@ -29,8 +29,13 @@ export const SECTION_TRANSITIONS = {
  *  after its stream is done, for Experience to slide over it: one screen
  *  while "layered" is on, nothing otherwise. One pin does it all -- a second
  *  pin wrapped round the first broke the page when scrolling back up. */
-export const layeredHoldPx = () =>
-  SECTION_TRANSITIONS.layered && !window.matchMedia('(prefers-reduced-motion: reduce)').matches ? window.innerHeight : 0
+// (the media query is asked once and followed, not asked again on every one of the many refreshes that read this)
+const reducedMq = typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null
+// and the screen's height kept from the last resize: reading innerHeight in the
+// middle of a refresh made the browser lay the page out again, every time
+let screenH = typeof window !== 'undefined' ? window.innerHeight : 0
+if (typeof window !== 'undefined') window.addEventListener('resize', () => (screenH = window.innerHeight), { passive: true })
+export const layeredHoldPx = () => (SECTION_TRANSITIONS.layered && !reducedMq?.matches ? screenH : 0)
 
 export function useSectionTransitions() {
   useEffect(() => {

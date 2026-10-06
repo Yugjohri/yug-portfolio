@@ -330,21 +330,21 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
   if (!shader) return null
   gl.shaderSource(shader, src)
   gl.compileShader(shader)
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    console.error('[hero] shader compile failed:', gl.getShaderInfoLog(shader))
-    gl.deleteShader(shader)
-    return null
-  }
+  // (its status is not asked for here: asking makes the compile finish on the
+  // spot, on the main thread -- see HeroSource.finish)
   return shader
 }
 
 export class HeroSource {
   /** The one canvas both panels read from. */
   readonly canvas: HTMLCanvasElement
-  readonly video: HTMLVideoElement | null = null
+  video: HTMLVideoElement | null = null
 
   private gl: WebGLRenderingContext | null = null
   private program: WebGLProgram | null = null
+  /** linked but not yet known to be done (KHR_parallel_shader_compile): finish() completes it */
+  private pending: { program: WebGLProgram; vs: WebGLShader; fs: WebGLShader; videoSrc?: string } | null = null
+  private parallel: { COMPLETION_STATUS_KHR: number } | null = null
   private buffer: WebGLBuffer | null = null
   private texture: WebGLTexture | null = null
   private u: Record<string, WebGLUniformLocation | null> = {}
@@ -395,9 +395,35 @@ export class HeroSource {
     gl.attachShader(program, vs)
     gl.attachShader(program, fs)
     gl.linkProgram(program)
+    // The shader is large (a ray-traced hole), and compiling it was the page's
+    // longest task: half a second on a phone, all at once. Where the browser
+    // can compile in the background, it is left to; the first frame is drawn
+    // once it says it is done (ready / render), not waited for here.
+    this.gl = gl
+    this.parallel = gl.getExtension('KHR_parallel_shader_compile') as { COMPLETION_STATUS_KHR: number } | null
+    this.pending = { program, vs, fs, videoSrc }
+    if (!this.parallel) this.finish()
+  }
+
+  /** Whether the program is linked and set up, finishing it if the compile is done. Never blocks where the browser compiles in the background. */
+  get ready() {
+    if (this.program) return true
+    const gl = this.gl
+    const p = this.pending
+    if (!gl || !p) return false
+    if (this.parallel && !gl.getProgramParameter(p.program, this.parallel.COMPLETION_STATUS_KHR)) return false
+    return this.finish()
+  }
+
+  private finish(): boolean {
+    const gl = this.gl
+    const pend = this.pending
+    if (!gl || !pend) return false
+    this.pending = null
+    const { program, vs, fs, videoSrc } = pend
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      console.error('[hero] program link failed:', gl.getProgramInfoLog(program))
-      return
+      console.error('[hero] program link failed:', gl.getProgramInfoLog(program), gl.getShaderInfoLog(vs), gl.getShaderInfoLog(fs))
+      return false
     }
     gl.deleteShader(vs)
     gl.deleteShader(fs)
@@ -420,7 +446,6 @@ export class HeroSource {
     gl.uniform3f(this.u.uInk, INK.r, INK.g, INK.b)
     gl.uniform3f(this.u.uInkDeep, INK_DEEP.r, INK_DEEP.g, INK_DEEP.b)
 
-    this.gl = gl
     this.program = program
 
     if (videoSrc) {
@@ -443,6 +468,7 @@ export class HeroSource {
       this.video = video
       this.texture = texture
     }
+    return true
   }
 
   get supported() {
@@ -518,7 +544,7 @@ export class HeroSource {
     which: 'brief' | 'story' = 'story',
   ) {
     const gl = this.gl
-    if (!gl || !this.program) return
+    if (!gl || !this.ready || !this.program) return
 
     const w = width ?? this.canvas.width
     const h = height ?? this.canvas.height

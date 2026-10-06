@@ -22,12 +22,12 @@
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
-      "source": "/(video|audio|brief)/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }]
+      "source": "/(video|audio|brief|notes)/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=604800" }]
     },
     {
-      "source": "/(story-header.mp4|story-header.webm|story-header-poster.webp|portrait.webp|grain.webp|yug-johri-mark.webp|yug-johri-resume.pdf)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }]
+      "source": "/(story-header.mp4|story-header.webm|story-header-mobile.mp4|story-header-mobile.webm|story-header-poster.webp|portrait.webp|portrait-450.webp|portrait-560.webp|grain.webp|yug-johri-mark.webp|og-image.jpg|favicon.svg|favicon-32x32.png|favicon-16x16.png|apple-touch-icon.png)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=604800" }]
     },
     {
       "source": "/(|index.html|story|brief)",

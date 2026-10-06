@@ -506,9 +506,19 @@ export default function ProjectsStrip() {
           },
         })
 
+        // Re-measured when the stage really changes size -- not on the report a
+        // ResizeObserver always makes as it starts, which cost every load an
+        // extra full ScrollTrigger refresh (a long task on a phone) -- and the
+        // refreshes of a burst of changes (a window being dragged) made as one.
+        let size = `${pinEl.offsetWidth}x${pinEl.offsetHeight}`
+        let refreshSoon = 0
         const ro = new ResizeObserver(() => {
+          const now = `${pinEl.offsetWidth}x${pinEl.offsetHeight}`
+          if (now === size) return
+          size = now
           measure()
-          ScrollTrigger.refresh()
+          clearTimeout(refreshSoon)
+          refreshSoon = window.setTimeout(() => ScrollTrigger.refresh(), 120)
         })
         ro.observe(pinEl)
 
@@ -526,6 +536,7 @@ export default function ProjectsStrip() {
           rootEl.removeEventListener('keydown', onKey)
           arrowEls.forEach((el, i) => el.removeEventListener('click', arrowClick[i]))
           ro.disconnect()
+          clearTimeout(refreshSoon)
           stopFling()
           window.removeEventListener('pointermove', track)
           pinEl.removeEventListener('pointerdown', onDown)

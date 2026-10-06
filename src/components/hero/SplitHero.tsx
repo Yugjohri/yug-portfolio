@@ -9,7 +9,7 @@ import { LINKS } from '../../data/brief'
 import { loadBrief, loadStory } from '../../routes'
 import { routeTransition, type BandShape } from '../../motion/routeTransition.ts'
 import { EASE, TONE } from '../../motion/tokens'
-import { afterBoot, markBoot } from '../../boot/boot'
+import { afterBoot, booting, markBoot } from '../../boot/boot'
 import { softwareGpu } from '../../lib/gpu'
 
 gsap.registerPlugin(useGSAP)
@@ -293,6 +293,10 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame)
       if (!visible) return
+      // behind the loading screen one frame is drawn (it is what the screen
+      // waits for) and then nothing until it lifts: frames nobody sees were
+      // most of the landing's main-thread time on a phone
+      if (drawnOnce && booting()) return
       pacing(now)
 
       // ease each cursor so its distortion trails it instead of snapping
@@ -315,19 +319,26 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
       // Two passes, one clock. Identical `time` means both panels always show
       // the same moment of the same source; only the warp differs. The ASCII
       // pass runs first, at reduced size, and is read back immediately...
-      source.render(time, current.brief.x, current.brief.y, current.brief.amt, aw, ah, 'lit', 'brief')
-      ascii.draw(source.canvas, 0, source.canvas.height - ah, aw, ah)
+      // (the ASCII half at 30 frames a second: reading the picture back and
+      // setting it as text is the costly part of a frame, and type re-drawn at
+      // 60 fps reads the same -- half the main-thread work on a phone)
+      asciiOdd = !asciiOdd
+      if (asciiOdd) {
+        source.render(time, current.brief.x, current.brief.y, current.brief.amt, aw, ah, 'lit', 'brief')
+        ascii.draw(source.canvas, 0, source.canvas.height - ah, aw, ah)
+      }
 
       // ...then the full-size pass overwrites the canvas, which *is* the right
       // panel, so what stays on screen carries only the story cursor.
       source.render(time, current.story.x, current.story.y, current.story.amt)
-      // the loading screen waits for this first frame
-      if (!drawnOnce) {
+      // the loading screen waits for this first frame (once one has truly been drawn)
+      if (!drawnOnce && source.ready) {
         drawnOnce = true
         markBoot('scene')
       }
     }
     let drawnOnce = false
+    let asciiOdd = false
 
     const onPointerMove = (event: PointerEvent) => {
       if (leaving) return
@@ -357,7 +368,18 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
     }
 
     measure()
-    if (still) markBoot('scene')
+    // still (reduced motion, or a software renderer): the one frame waits for the program
+    if (still) {
+      const once = () => {
+        if (!source.ready) {
+          requestAnimationFrame(once)
+          return
+        }
+        measure()
+        markBoot('scene')
+      }
+      once()
+    }
     const resizeObserver = new ResizeObserver(measure)
     resizeObserver.observe(root)
 

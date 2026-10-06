@@ -415,7 +415,7 @@ export default function BriefRead() {
               {/* the page's largest picture, so fetched first; a 1x screen gets the smaller copy */}
               <img
                 src="/portrait.webp"
-                srcSet="/portrait-450.webp 450w, /portrait.webp 676w"
+                srcSet="/portrait-450.webp 450w, /portrait-560.webp 560w, /portrait.webp 676w"
                 sizes="(max-width: 899px) 92vw, 440px"
                 alt="Yug Johri"
                 {...{ fetchpriority: 'high' } /* React 18 knows only the lowercase attribute */}

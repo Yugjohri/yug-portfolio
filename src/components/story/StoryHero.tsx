@@ -262,6 +262,8 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
       let geom: ReturnType<typeof measureGeometry> | null = null
       const dropGeometry = () => {
         geom = null
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        closeAt = null
       }
       ScrollTrigger.addEventListener('refreshInit', dropGeometry)
       const geometry = () => (geom ??= measureGeometry())
@@ -358,9 +360,14 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
 
       // 4. the red line draws in from both ends while the words close on it,
       //    until the name stands as one line: "Yug Johri"
+      // (measured with the rest of the geometry, once per refresh)
+      let closeAt: number | null = null
       const closeBy = () => {
-        const gap = parseFloat(getComputedStyle(lockupEl).columnGap) || 24
-        return (ruleEl.offsetWidth + gap) / 2
+        if (closeAt === null) {
+          const gap = parseFloat(getComputedStyle(lockupEl).columnGap) || 24
+          closeAt = (ruleEl.offsetWidth + gap) / 2
+        }
+        return closeAt
       }
       // One progress for both, on one curve: the line's length shrinks exactly as
       // fast as the gap between the words closes, so it is always shorter than

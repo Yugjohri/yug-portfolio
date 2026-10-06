@@ -171,6 +171,14 @@ export default function StackOrbit({ mode, pin }: Props) {
       const statementEl = stageEl?.querySelector<HTMLElement>('.stack__statement') ?? null
       const tipEl = tip.current
       if (!rootEl || !stageEl || !spaceEl || !ringEl || !floorEl || !tipEl) return
+      // The walls' copies show the stack's first frame, which is empty (the
+      // stream enters from out of sight): nothing to measure or place there.
+      // Setting them up forced two whole-page style recalculations on load,
+      // the Story's longest task on a phone.
+      if (mode === 'still') {
+        stageEl.style.visibility = 'hidden'
+        return
+      }
 
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       // narrow screens show fewer cards (stack.css); only the shown ones fly
@@ -384,7 +392,7 @@ export default function StackOrbit({ mode, pin }: Props) {
       // (and there only) run -- the pin was never made, and Experience slid
       // over About at once. (Development runs effects twice, which hid it.)
       const pinEl = pin?.current ?? rootEl.closest<HTMLElement>('.apanel--section')
-      if (mode === 'still' || reduced || !pinEl) {
+      if (reduced || !pinEl) {
         // the first frame of the live stack (or, reduced, a still half way through)
         flow.p = reduced ? 0.5 : win.p0
         place()
