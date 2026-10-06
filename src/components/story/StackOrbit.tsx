@@ -171,15 +171,6 @@ export default function StackOrbit({ mode, pin }: Props) {
       const statementEl = stageEl?.querySelector<HTMLElement>('.stack__statement') ?? null
       const tipEl = tip.current
       if (!rootEl || !stageEl || !spaceEl || !ringEl || !floorEl || !tipEl) return
-      // The walls' copies show the stack's first frame, which is empty (the
-      // stream enters from out of sight): nothing to measure or place there.
-      // Setting them up forced two whole-page style recalculations on load,
-      // the Story's longest task on a phone.
-      if (mode === 'still') {
-        stageEl.style.visibility = 'hidden'
-        return
-      }
-
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       // narrow screens show fewer cards (stack.css); only the shown ones fly
       const cards = gsap.utils.toArray<HTMLElement>('[data-stack-card]', ringEl).filter((el) => getComputedStyle(el).display !== 'none')
@@ -256,6 +247,22 @@ export default function StackOrbit({ mode, pin }: Props) {
           }
           rootEl.style.marginTop = `${(offTop(body) - drop - grown - 15 - offTop(side) - bleed).toFixed(1)}px`
         }
+      }
+      // The walls' copies show the stack's first frame, which is empty (the
+      // stream enters from out of sight): no cards to place there. Setting
+      // them up forced two whole-page style recalculations on load, the
+      // Story's longest task on a phone. They are still fitted, though: that
+      // sets the heading's size and the column's place, and without it the
+      // copy did not match the section that takes over from it (the text
+      // jumped left and the heading grew at the handoff).
+      if (mode === 'still') {
+        stageEl.style.visibility = 'hidden'
+        fit()
+        const still = new ResizeObserver(() => fit())
+        still.observe(rootEl)
+        const text = rootEl.closest('.apanel__sheet')?.querySelector<HTMLElement>('.apanel__body')
+        if (text) still.observe(text)
+        return () => still.disconnect()
       }
       const measure = () => {
         fit()
