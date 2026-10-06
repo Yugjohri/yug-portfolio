@@ -18,7 +18,7 @@ export type NoteColor = 'paper' | 'blush' | 'sage' | 'butter'
 /** name: what its writer signed it with, after a "-" in its corner (optional) */
 export type Note = { id: string; body: string; color: NoteColor; tilt: number; x: number | null; y: number | null; created_at: string; name?: string | null }
 
-export type AddResult = { ok: true; note: Note } | { ok: false; reason: 'already_posted' | 'not_allowed' | 'bad_length' | 'offline' }
+export type AddResult = { ok: true; note: Note } | { ok: false; reason: 'already_posted' | 'not_allowed' | 'bad_length' | 'blocked_spot' | 'offline' }
 
 const URL_ = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
@@ -104,6 +104,7 @@ export async function addNote(body: string, color: NoteColor, x: number, y: numb
     }
     if (msg.includes('not_allowed')) return { ok: false, reason: 'not_allowed' }
     if (msg.includes('bad_length')) return { ok: false, reason: 'bad_length' }
+    if (msg.includes('blocked_spot')) return { ok: false, reason: 'blocked_spot' }
     return { ok: false, reason: 'offline' }
   }
   const note: Note = await res.json()

@@ -7,9 +7,12 @@
  * held still; the Story's screens take the paths they already have for no
  * WebGL at all.
  *
- * Two signals, either is enough: the browser refusing a context that has "a
- * major performance caveat" while granting an ordinary one, and the renderer's
- * own name. Probed once, with a throwaway context.
+ * The renderer's own name decides. Only when a browser hides it is the other
+ * signal used: refusing a context that has "a major performance caveat" while
+ * granting an ordinary one. (That refusal alone misfires on real chips --
+ * a GPU process still busy at page load, or one just recovered from a lost
+ * context -- and froze the landing's hole on a machine that could run it.)
+ * Probed once, with a throwaway context.
  */
 let cached: boolean | null = null
 
@@ -25,11 +28,12 @@ export function softwareGpu(): boolean {
     const probe = document.createElement('canvas')
     const gl = probe.getContext('webgl')
     if (!gl) return cached
-    const fast = document.createElement('canvas').getContext('webgl', { failIfMajorPerformanceCaveat: true })
     const info = gl.getExtension('WEBGL_debug_renderer_info')
-    const name = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) ?? '')
-    cached = !fast || SOFTWARE.test(name)
+    const name = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL) ?? '') : ''
     gl.getExtension('WEBGL_lose_context')?.loseContext()
+    if (name) return (cached = SOFTWARE.test(name))
+    const fast = document.createElement('canvas').getContext('webgl', { failIfMajorPerformanceCaveat: true })
+    cached = !fast
     ;(fast as WebGLRenderingContext | null)?.getExtension('WEBGL_lose_context')?.loseContext()
   } catch {
     cached = false

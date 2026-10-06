@@ -191,6 +191,9 @@
 }
 .xp__name {
   display: block;
+  /* room for a comma's tail under the line, so rolled up it leaves the
+     window with the rest (it hung in at the top on hover) */
+  padding-bottom: 0.25em;
   color: var(--text);
 }
 /* devales's hover: the letters become their outline, in the accent */
@@ -1995,8 +1998,15 @@ em.about__pword {
 }
 /* your own note, on the open board: it moves under the hand, and comes down from its corner */
 .nboard--open .note--mine { cursor: move; touch-action: none; }
+/* ...and on the small board too: yours takes the hand, the others stay out of its way */
+.nboard:not(.nboard--open) .note--mine { pointer-events: auto; cursor: move; touch-action: none; }
 .note__del { display: none; }
-.nboard--open .note__del {
+/* its delete, at a size a finger can hit whatever the cork's scale (--dock-k, NotesBoard) */
+.nboard:not(.nboard--open) .note--mine .note__del {
+  transform: scale(calc(1 / var(--dock-k, 1) * 0.55));
+  transform-origin: top right;
+}
+.nboard .note--mine .note__del {
   position: absolute;
   top: 6px;
   right: 6px;
@@ -2015,9 +2025,9 @@ em.about__pword {
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
 }
-.nboard--open .note__del:hover,
-.nboard--open .note__del:focus-visible { background: rgb(26 22 24 / 0.16); color: #1a1618; outline: none; }
-.nboard--open .note__del.note__del--ask, .nboard--open .note__del.note__del--ask:hover { background: var(--red-hot, #bc0202); color: #fff4f0; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+.nboard .note__del:hover,
+.nboard .note__del:focus-visible { background: rgb(26 22 24 / 0.16); color: #1a1618; outline: none; }
+.nboard .note__del.note__del--ask, .nboard .note__del.note__del--ask:hover { background: var(--red-hot, #bc0202); color: #fff4f0; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
 /* a drawing on a note (Dexter): the ink sits straight on the board's own paper */
 .nboard .note--art { width: 236px; min-height: 0; padding: 1.15rem 0.7rem 0.7rem; }
 .note__art { display: block; width: 100%; height: auto; mix-blend-mode: multiply; pointer-events: none; user-select: none; }

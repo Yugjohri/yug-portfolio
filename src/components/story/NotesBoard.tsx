@@ -34,10 +34,13 @@ const DEXTER = { x: 0.37, y: 0.585, tilt: 3 }
 const NOW = { body: 'now: just finished at CFEES, DRDO. open to AI engineering roles from October 2026.', x: 0.385, y: 0.29 }
 /** docked, the board shows its middle this wide (in board px), so the title reads */
 const DOCK_VIEW = 1350
+/** room kept clear round Yug's note and Dexter, world px */
+const GUARD_AIR = 14
 const REASON: Record<string, string> = {
   already_posted: 'one note each, and yours is already up. thank you!',
   not_allowed: "that one can't go up (no links or rude words, please).",
   bad_length: 'a note needs a few words, at most 140 characters.',
+  blocked_spot: "that spot covers one of the pinned notes; try a little to the side.",
   offline: "couldn't reach the board just now; try again in a moment.",
 }
 
@@ -212,13 +215,42 @@ export default function NotesBoard() {
 
   // ------------------------------------------------------------- dragging
   // on the open board: the background pans it; the blank note moves itself
+  /**
+   * The two notes nobody may cover -- Yug's own and Dexter -- as boxes on the
+   * cork (world px, with a little air round them), and the nearest place for a
+   * note of size w x h that covers neither: pushed out past the side it is
+   * least far into, and kept on the board. (The server holds to the same.)
+   */
+  const guarded = () =>
+    (['now', 'dexter'] as const)
+      .map((k) => world.current?.querySelector<HTMLElement>(`[data-note="${k}"]`))
+      .filter((el): el is HTMLElement => !!el)
+      .map((el) => ({ x1: el.offsetLeft - GUARD_AIR, y1: el.offsetTop - GUARD_AIR, x2: el.offsetLeft + el.offsetWidth + GUARD_AIR, y2: el.offsetTop + el.offsetHeight + GUARD_AIR }))
+  const clearSpot = (x: number, y: number, w: number, h: number) => {
+    const boxes = guarded()
+    const hits = (px: number, py: number) => boxes.find((r) => px < r.x2 && px + w > r.x1 && py < r.y2 && py + h > r.y1)
+    const keep = (px: number, py: number) => ({ x: clamp(0, WORLD.w - w, px), y: clamp(0, WORLD.h - h, py) })
+    let at = keep(x, y)
+    for (let i = 0; i < 4; i++) {
+      const r = hits(at.x, at.y)
+      if (!r) return at
+      const ways = [keep(r.x1 - w, at.y), keep(r.x2, at.y), keep(at.x, r.y1 - h), keep(at.x, r.y2)]
+        .filter((c) => !hits(c.x, c.y))
+        .sort((a, b) => Math.hypot(a.x - at.x, a.y - at.y) - Math.hypot(b.x - at.x, b.y - at.y))
+      at = ways[0] ?? keep(r.x2, r.y2)
+    }
+    return at
+  }
+
   const onDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!open || e.button !== 0) return
+    if (e.button !== 0) return
     const t = e.target as HTMLElement
     if (t.closest('button, input, a, [data-note-docked]')) return
-    const onDraft = !!t.closest('[data-note-draft]')
-    // your own note, once pinned, can be moved: dragged like the blank one, saved where it is let go
+    // your own note, once pinned, can be moved -- on the open board and the small one alike:
+    // dragged like the blank one, saved where it is let go
     const mineEl = t.closest<HTMLElement>('[data-note-mine]')
+    if (!open && !mineEl) return
+    const onDraft = !!t.closest('[data-note-draft]')
     const inText = !!t.closest('textarea')
     const b = board.current!
     if (mineEl) {
@@ -245,6 +277,13 @@ export default function NotesBoard() {
         b.removeEventListener('pointerup', upMine)
         b.removeEventListener('pointercancel', upMine)
         if (!moved) return
+        // never over Yug's note or Dexter: slid off them to the nearest clear place
+        const c = clearSpot(at.left, at.top, mineEl.offsetWidth, mineEl.offsetHeight)
+        if (c.x !== at.left || c.y !== at.top) {
+          at.left = c.x
+          at.top = c.y
+          gsap.to(mineEl, { left: c.x, top: c.y, duration: 0.35, ease: 'power3.out' })
+        }
         const x = at.left / WORLD.w
         const y = at.top / WORLD.h
         setNotes((list) => list.map((n) => (n.id === mine ? { ...n, x, y } : n)))
@@ -292,6 +331,16 @@ export default function NotesBoard() {
       b.removeEventListener('pointermove', move)
       b.removeEventListener('pointerup', up)
       b.removeEventListener('pointercancel', up)
+      // the blank note let go over Yug's note or Dexter: slid off to the nearest clear place
+      if (onDraft && draft.current) {
+        const c = clearSpot(draftAt.current.x, draftAt.current.y, draft.current.offsetWidth, draft.current.offsetHeight)
+        if (c.x !== draftAt.current.x || c.y !== draftAt.current.y) {
+          draftAt.current = c
+          gsap.to(draft.current, { x: c.x, y: c.y, duration: 0.35, ease: 'power3.out', onComplete: () => {
+            if (draft.current) draft.current.style.transform = `translate(${c.x}px, ${c.y}px)`
+          } })
+        }
+      }
     }
     b.addEventListener('pointermove', move)
     b.addEventListener('pointerup', up)
@@ -373,6 +422,8 @@ export default function NotesBoard() {
     if (busy || mine) return
     setBusy(true)
     setMsg(null)
+    // (pinned only where it covers neither of the two that stay: from the small board too)
+    draftAt.current = clearSpot(draftAt.current.x, draftAt.current.y, draft.current?.offsetWidth || NOTE, draft.current?.offsetHeight || 230)
     const r = await addNote(text, color, draftAt.current.x / WORLD.w, draftAt.current.y / WORLD.h, sign)
     setBusy(false)
     if (r.ok) {
