@@ -394,7 +394,8 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
 
       power.current.v = 0
       const corners = gsap.utils.toArray<HTMLElement>(':scope > .st-corner', rootEl)
-      gsap.set(corners, { autoAlpha: 0 })
+      // (the header has no corner labels at present; GSAP warns on an empty target)
+      if (corners.length) gsap.set(corners, { autoAlpha: 0 })
 
       // where the tube powers on from, measured live
       const line = () => {
@@ -445,7 +446,7 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
         undefined,
         on + 0.7,
       )
-      tl.to(corners, { autoAlpha: 1, duration: BEAT, ease: EASE.unfold }, titleAt)
+      if (corners.length) tl.to(corners, { autoAlpha: 1, duration: BEAT, ease: EASE.unfold }, titleAt)
 
       // The title rises a line at a time out of its own mask. SplitText
       // names the h1 from its text, which loses the line break's space, so

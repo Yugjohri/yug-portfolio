@@ -413,7 +413,7 @@ export default function BriefRead() {
                 srcSet="/portrait-450.webp 450w, /portrait.webp 676w"
                 sizes="(max-width: 899px) 92vw, 440px"
                 alt="Yug Johri"
-                fetchPriority="high"
+                {...{ fetchpriority: 'high' } /* React 18 knows only the lowercase attribute */}
                 decoding="async"
               />
               <i className="bf-portrait__tick" aria-hidden="true" />

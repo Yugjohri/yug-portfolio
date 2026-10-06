@@ -362,7 +362,13 @@ export default function StackOrbit({ mode, pin }: Props) {
       const bodyEl = rootEl.closest('.apanel__sheet')?.querySelector<HTMLElement>('.apanel__body')
       if (bodyEl) ro.observe(bodyEl)
 
-      if (mode === 'still' || reduced || !pin?.current) {
+      // The section to pin. Read from the page, not only from the ref: React
+      // sets a parent's ref after its children's layout effects have run, so
+      // in a production build `pin.current` is still null here on the first
+      // (and there only) run -- the pin was never made, and Experience slid
+      // over About at once. (Development runs effects twice, which hid it.)
+      const pinEl = pin?.current ?? rootEl.closest<HTMLElement>('.apanel--section')
+      if (mode === 'still' || reduced || !pinEl) {
         // the first frame of the live stack (or, reduced, a still half way through)
         flow.p = reduced ? 0.5 : win.p0
         place()
@@ -370,7 +376,6 @@ export default function StackOrbit({ mode, pin }: Props) {
       }
 
       // ---------------------------------------- live: the section pins, the scroll carries it
-      const pinEl = pin.current
       // the hold after the stream (set once the timeline exists; onRefresh can fire while it is being made)
       let hold: gsap.core.Tween | null = null
       const streamPx = () => Math.round(span() * (win.p1 - win.p0) * Math.max(dims.W, dims.H * 0.9) * SCROLL_RATE)
