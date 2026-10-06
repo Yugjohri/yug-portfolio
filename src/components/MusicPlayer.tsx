@@ -119,10 +119,13 @@ export default function MusicPlayer() {
   useEffect(() => {
     const el = audio.current
     if (!el || !track) return
-    el.src = track.src
-    el.load()
     setTime(0)
     setDuration(track.duration ?? 0)
+    // nothing is fetched until something is played: a song loading with the
+    // page was a tenth of a megabyte competing with the page's own files
+    if (!el.getAttribute('src')) return
+    el.src = track.src
+    el.load()
     if (playing) void el.play().catch(() => setPlaying(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index])
@@ -165,9 +168,14 @@ export default function MusicPlayer() {
   }, [])
 
   // -------------------------------------------------------------- controls
+  /** the track's file, set on the first play (see the track change above) */
+  const ensure = (el: HTMLAudioElement) => {
+    if (!el.getAttribute('src') && track) el.src = track.src
+  }
   const toggle = () => {
     const el = audio.current
     if (!el || !has) return
+    ensure(el)
     if (el.paused) void el.play().catch(() => setPlaying(false))
     else el.pause()
   }
@@ -204,6 +212,7 @@ export default function MusicPlayer() {
     const r = b.getBoundingClientRect()
     const f = Math.min(1, Math.max(0, (clientX - r.left) / r.width))
     setTime(f * duration)
+    ensure(el)
     el.currentTime = f * duration
   }
   const onBarDown = (e: React.PointerEvent<HTMLDivElement>) => {

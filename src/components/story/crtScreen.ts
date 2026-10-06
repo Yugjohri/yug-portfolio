@@ -562,6 +562,9 @@ export class CrtScreen {
   /** stops the footage's deferred start, if it has not run yet */
   private cancelStart: () => void = () => {}
 
+  /** the footage's time when it was last copied in (-1: never) */
+  private uploadedAt = -1
+
   private upload(source: TexImageSource, w: number, h: number) {
     const gl = this.gl
     gl.activeTexture(gl.TEXTURE0)
@@ -636,8 +639,14 @@ export class CrtScreen {
     const nowMs = time * 1000
     const n = this.stepTrail(nowMs)
 
+    // the footage is copied in only when it has moved on to a new frame (it
+    // runs at ~25 fps; copying it every drawn frame was the page's costliest
+    // single call on a phone)
     const video = this.video
-    if (video && video.readyState >= 2) this.upload(video, video.videoWidth, video.videoHeight)
+    if (video && video.readyState >= 2 && video.currentTime !== this.uploadedAt) {
+      this.uploadedAt = video.currentTime
+      this.upload(video, video.videoWidth, video.videoHeight)
+    }
 
     gl.useProgram(this.prog)
     const u = (k: string) => this.u.get(k) ?? null
