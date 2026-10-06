@@ -144,7 +144,9 @@ function maybeLeave() {
   leaving = true
   const min = seenBefore() ? MIN_AGAIN : MIN_FIRST
   const wait = Math.max(0, min - performance.now() / 1000)
-  gsap.delayedCall(wait, leave)
+  // a plain timer, not GSAP's clock: that clock runs on animation frames,
+  // which a hidden tab does not get, and the screen must still lift there
+  window.setTimeout(leave, wait * 1000)
 }
 
 function leave() {
@@ -161,6 +163,14 @@ function leave() {
   shown.n = 1
   draw()
   settle('horizon', 'crossed')
+
+  // A tab opened in the background gets no animation frames, so nothing
+  // animated would ever finish: the screen simply goes, and the page is
+  // there when the tab is looked at.
+  if (document.hidden) {
+    finish()
+    return
+  }
 
   if (reduced()) {
     gsap.to(root, { autoAlpha: 0, duration: 0.3, delay: 0.25, onStart: reveal, onComplete: finish })
