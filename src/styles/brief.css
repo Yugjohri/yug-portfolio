@@ -602,6 +602,20 @@
   line-height: 1.6;
   color: var(--bf-dim);
 }
+/* what it is: My Story's lines (the resume's), a short list */
+.bf-tile__points {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--bf-dim);
+}
+.bf-tile__points li { position: relative; padding-left: 12px; }
+@media (min-width: 900px) { .bf-tile__points li + li { display: none; } }
+.bf-tile__points li::before { content: '–'; position: absolute; left: 0; color: var(--bf-label); }
 .bf-tile__metrics {
   font-size: 10px !important;
   letter-spacing: 0.12em !important;

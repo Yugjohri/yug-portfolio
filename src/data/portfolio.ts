@@ -241,6 +241,10 @@ const BRIEF_EXTRA: Sleeve[] = [
       "Can a language model estimate a product's price from its description, and does a purpose-built model beat it? On the same 200 held-out products, a 289M-parameter network trained from scratch on 800,000 items came in at $46.77 average error -- 27% better than the best prompted frontier model, about 25x faster, and free to run.",
     summary:
       'Prompted frontier models against a network trained from scratch, on the same 200 products: the purpose-built model wins by 27%.',
+    points: [
+      "Trained a 289M-parameter price model from scratch on 800,000 products and pitted it against prompted frontier LLMs on 200 it had never seen.",
+      "It won: $46.77 average error, 27% better than the best frontier model, about 25x faster, and free to run.",
+    ],
     emoji: '💸',
     metrics: ['$46.77 avg error', '27% better than GPT', '25x faster'],
     tags: ['PyTorch', 'OpenAI API', 'GPT-5 nano', 'Vercel'],
@@ -260,6 +264,10 @@ const BRIEF_EXTRA: Sleeve[] = [
       "The website for Infuturum 2.0, the chapter's celebration of ACM's 76th anniversary: a neon-tunnel hero, the event line-up -- a 26-hour research hackathon, Hackauction, Design-a-thon, Breakout Rooms and Mafia Night -- and registration for each.",
     summary:
       "The site for the ACM chapter's biggest event of the year: five events over three days, each with its own registration.",
+    points: [
+      "Built the website for Infuturum 2.0, the ACM student chapter's biggest event of the year, held for ACM's 76th anniversary.",
+      "Five events over three days, from a 26-hour research hackathon to Mafia Night, each with its own registration.",
+    ],
     emoji: '🎟️',
     metrics: ['5 events', '3 days', 'Feb 2024'],
     tags: ['HTML', 'CSS', 'JavaScript'],
@@ -399,26 +407,26 @@ export const NOTES: { n: string; text: string; color: string; rotate: number }[]
   {
     n: '01',
     text:
-      'Benchmarking local models and self-hosted Postgres against the interim Supabase + Ollama stack at CFEES.',
+      'small open models, run on my own machine, doing work people assume needs a big paid api. the price model and the offline assistant at DRDO both started there.',
     color: '#F3DE8A',
     rotate: -3.2,
   },
   {
     n: '02',
     text:
-      'Agreeing one shared database schema with the parallel teams — cross-linked modules, a single source of truth.',
+      'fitting training built for an 80 GB graphics card into a 16 GB one. limits like that teach you what actually matters.',
     color: '#CFE3D4',
     rotate: 2.4,
   },
   {
     n: '03',
-    text: 'Eval harnesses for retrieval quality, so a model change is measurable instead of vibes.',
+    text: "testing every change against a fixed set of questions, so 'better' is a number and not a feeling.",
     color: '#F1CFC7',
     rotate: -1.8,
   },
   {
     n: '04',
-    text: 'Reading about small-model distillation. The offline constraint keeps getting more interesting.',
+    text: 'reading about teaching small models what big ones know. working offline keeps making it more interesting.',
     color: '#CBD9EC',
     rotate: 3,
   },

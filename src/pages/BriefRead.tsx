@@ -75,7 +75,9 @@ function Divider() {
  *  set large along the bottom and a panel that reads on hover, as the reference's. */
 function ProjectTile({ project, index }: { project: Sleeve; index: number }) {
   const [lead, ...rest] = project.metrics
-  const summary = project.body.split(/(?<=\.)\s/)[0]
+  // what it is, in the words My Story uses (the resume's lines); the body's first sentence where there are none
+  const lines = project.points?.length ? project.points.slice(0, 2) : [project.body.split(/(?<=\.)\s/)[0]]
+  // (a desktop tile has room for the first line; the second shows where the tile is taller -- a phone's)
   return (
     <article className="bf-tile" data-tile style={{ '--i': index } as React.CSSProperties}>
       <div className={project.still ? 'bf-tile__plate bf-tile__plate--photo' : 'bf-tile__plate'} aria-hidden="true">
@@ -95,15 +97,18 @@ function ProjectTile({ project, index }: { project: Sleeve; index: number }) {
 
       <div className="bf-tile__name">
         <h3>{project.capLines[0]}</h3>
-        <span className="mono">Hover to read</span>
+        <span className="mono">Read more</span>
       </div>
 
       <div className="bf-tile__read">
         <h3 className="mono">
           {project.title} <span aria-hidden="true">→</span>
         </h3>
-        <p>{summary}</p>
-        <p className="mono bf-tile__metrics">{project.metrics.join(' · ')}</p>
+        <ul className="bf-tile__points">
+          {lines.map((l) => (
+            <li key={l}>{l}</li>
+          ))}
+        </ul>
         <div className="bf-tags">
           {project.tags.map((t) => (
             <span key={t}>{t}</span>
@@ -468,9 +473,9 @@ export default function BriefRead() {
         <section className="bf-section" data-reveal>
           <SectionLabel id="projects">Projects</SectionLabel>
           <p className="bf-lede">
-            Systems built where failure is expensive — a defence-lab platform on an
-            air-gapped network, retrieval that cites its sources, a fine-tune that fits on
-            one GPU.
+            things that had to work: an inventory system for a defence lab with no
+            internet, a search that shows where every answer came from, and a small model
+            trained on one graphics card that beat the big paid ones.
           </p>
 
           <TileGrid items={featured} onScroll />
@@ -489,7 +494,7 @@ export default function BriefRead() {
               </button>
             ) : null}
             <Link className="bf-link mono" to="/story">
-              Open the story <span aria-hidden="true">→</span>
+              The long version, in My Story <span aria-hidden="true">→</span>
             </Link>
             <a className="bf-link mono" href={LINKS.github} target="_blank" rel="noreferrer">
               GitHub <span aria-hidden="true">↗</span>
@@ -555,8 +560,7 @@ export default function BriefRead() {
         <section className="bf-section" data-reveal>
           <SectionLabel id="notes">Notes</SectionLabel>
           <p className="bf-lede">
-            Working notes — what is on the bench right now, before it is finished enough
-            to be a project.
+            what i'm thinking about at the moment, before it turns into a project.
           </p>
           <ol className="bf-notes">
             {NOTES.map((n) => (
@@ -581,9 +585,8 @@ export default function BriefRead() {
                 together<em>.</em>
               </h2>
               <p className="bf-lede">
-                Open to AI engineering roles from October 2026 — retrieval, agents and
-                fine-tuned models that have to hold up in production. Bring me something
-                that has to work.
+                just finished at CFEES, DRDO, and open to AI engineering roles from October
+                2026. bring me something that has to hold up.
               </p>
               <dl className="bf-facts mono">
                 <div>
@@ -631,20 +634,20 @@ export default function BriefRead() {
               <Link className="bf-channel" to="/story">
                 <span className="mono">My Story</span>
                 <span>
-                  An immersive tour <i aria-hidden="true">→</i>
+                  The long version <i aria-hidden="true">→</i>
                 </span>
               </Link>
               <Link className="bf-channel" to="/">
                 <span className="mono">Home</span>
                 <span>
-                  Back to the split <i aria-hidden="true">←</i>
+                  Back to the start <i aria-hidden="true">←</i>
                 </span>
               </Link>
             </aside>
           </div>
 
           <div className="bf-foot mono">
-            <span>Yug Johri — AI &amp; full-stack engineer</span>
+            <span>Yug Johri · AI engineer</span>
             <span>Delhi, India</span>
             <span>© 2026</span>
           </div>

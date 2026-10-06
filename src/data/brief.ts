@@ -6,25 +6,26 @@
  */
 
 export const BRIEF = {
-  eyebrow: ['AI', 'RETRIEVAL', 'LLM EVALS'],
+  // the Story's own running band
+  eyebrow: ['AI ENGINEERING', 'RAG', 'FULL-STACK'],
   name: 'Yug Johri',
   role: 'AI Engineer',
   location: 'Delhi, India',
   leadIn: 'i am not easily impressed.',
   intro:
-    'that includes my own work. most of what i do is checking — the building tends to be the quick part.',
+    'that includes my own work: most of what i do is checking, and the building tends to be the quick part.',
 }
 
 export const PILLARS: { label: string; text: string }[] = [
-  { label: 'Retrieval', text: 'say where you got that' },
-  { label: 'Constraint', text: 'limits make better arguments' },
-  { label: 'Evals', text: 'i would rather measure than argue' },
+  { label: 'Sources', text: 'say where you got that' },
+  { label: 'Limits', text: 'a small budget forces a better idea' },
+  { label: 'Proof', text: "i'd rather measure than argue" },
 ]
 
 export const HIGHLIGHTS: { label: string; value: string }[] = [
   { label: 'Award', value: '2nd place, SEAS Ideathon 3.0' },
   { label: 'Education', value: 'B.Tech CSE, Bennett University · 8.0 CGPA' },
-  { label: 'Scale', value: '500+ personnel served · 10k+ assets tracked' },
+  { label: 'Built for', value: '500+ staff and 10,000+ assets at CFEES, DRDO' },
 ]
 
 export const ABOUT_HEADING =
@@ -50,8 +51,8 @@ export const LINKS = {
 
 export const SKILLS: { group: string; items: string[] }[] = [
   { group: 'AI', items: ['RAG', 'LangChain', 'Multi-agent systems', 'QLoRA', 'PyTorch', 'Hugging Face'] },
-  { group: 'Serving', items: ['Ollama', 'FAISS', 'ChromaDB', 'OpenAI API', 'PEFT'] },
-  { group: 'Platform', items: ['Python', 'React', 'PostgreSQL', 'Supabase', 'Docker'] },
+  { group: 'Models & search', items: ['Ollama', 'FAISS', 'ChromaDB', 'OpenAI API', 'PEFT'] },
+  { group: 'Apps & backend', items: ['Python', 'React', 'PostgreSQL', 'Supabase', 'Docker'] },
   { group: 'Data', items: ['Pandas', 'SQL', 'Power BI', 'Power Query', 'ETL'] },
 ]
 
