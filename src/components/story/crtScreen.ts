@@ -382,6 +382,9 @@ type Options = {
   videoSrc?: string
   /** The still the screen shows until (or unless) a clip is given. */
   posterSrc: string
+  /** Its sizes, as an img's srcset and sizes (the page preloads the same pair, so it is fetched once) */
+  posterSrcSet?: string
+  posterSizes?: string
   /** How the picture is read: lit in glass, printed on paper, or graded toward ember. */
   grade?: Grade
 }
@@ -444,7 +447,7 @@ export class CrtScreen {
   /** How wide the tube is across its middle, where it powers on from, as a share of the canvas' width. */
   static readonly lineWidth = TUBE_W + BULGE_SIDE
 
-  constructor({ videoSrc, posterSrc, grade = 'lit' }: Options) {
+  constructor({ videoSrc, posterSrc, posterSrcSet, posterSizes, grade = 'lit' }: Options) {
     this.canvas = document.createElement('canvas')
     this.grade = grade
     this.energyTo = gsap.quickTo(this.energy, 'v', { duration: 0.45, ease: 'power2.out' })
@@ -495,7 +498,7 @@ export class CrtScreen {
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
     gl.disable(gl.DEPTH_TEST)
 
-    this.load(videoSrc, posterSrc)
+    this.load(videoSrc, posterSrc, posterSrcSet, posterSizes)
   }
 
   // ---------------------------------------------------------------- setup
@@ -519,10 +522,15 @@ export class CrtScreen {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, glyphAtlas(GLYPHS + SCRAMBLE))
   }
 
-  private load(videoSrc: string | undefined, posterSrc: string) {
+  private load(videoSrc: string | undefined, posterSrc: string, srcSet?: string, sizes?: string) {
     const img = new Image()
-    img.crossOrigin = 'anonymous'
+    // (no crossOrigin: the still is the site's own, so it does not taint the
+    // texture, and a plain request is the one story.html preloads)
     img.decoding = 'async'
+    if (srcSet) {
+      img.sizes = sizes ?? '100vw'
+      img.srcset = srcSet
+    }
     img.onload = () => {
       if (this.video?.readyState) return
       this.upload(img, img.naturalWidth, img.naturalHeight)

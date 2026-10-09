@@ -1,3 +1,8 @@
+// this page's styles, loaded with it (in the order index.css had them)
+import '../styles/projects.css'
+import '../styles/story.css'
+import '../styles/detail.css'
+import '../styles/stack.css'
 import StoryHero from '../components/story/StoryHero'
 import ProjectsStrip from '../components/projects/ProjectsStrip'
 import Experience from '../components/story/Experience'

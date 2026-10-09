@@ -1,10 +1,8 @@
 @import './fonts.css';
 @import './hero.css';
-@import './projects.css';
-@import './story.css';
-@import './brief.css';
-@import './detail.css';
-@import './stack.css';
+/* story.css, stack.css, projects.css and detail.css load with the Story page,
+   brief.css with the Brief (pages/Story.tsx, pages/BriefRead.tsx): each page
+   no longer waits on the other's styles before it can paint */
 @import './music.css';
 /* the white-and-red pass; active while <html data-theme="light"> (see theme.ts) */
 @import './theme-light.css';
@@ -20,6 +18,16 @@
   --bg: #06060f;
   --text: #f6f1ea;
   --muted: #9c9da8;
+}
+
+/* text for screen readers only (here, not with the projects' styles: the landing uses it too) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* ---------- reset ---------- */

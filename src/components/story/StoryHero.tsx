@@ -88,7 +88,15 @@ type StoryHeroProps = {
   posterSrc?: string
 }
 
-export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.webp' }: StoryHeroProps) {
+/** The header's still, in two sizes: a phone's screen is ~90% of its width, a
+ *  wider one's 60%. story.html (vite.config.ts) preloads exactly this pair. */
+export const POSTER = {
+  src: '/story-header-poster.webp',
+  srcSet: '/story-header-poster-760.webp 760w, /story-header-poster.webp 1280w',
+  sizes: '(max-width: 899px) 90vw, 60vw',
+}
+
+export default function StoryHero({ videoSrc, posterSrc = POSTER.src }: StoryHeroProps) {
   const root = useRef<HTMLElement>(null)
   const frame = useRef<HTMLDivElement>(null)
   const media = useRef<HTMLDivElement>(null)
@@ -118,13 +126,26 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
 
     // 'lit' reads the footage as it is; the ember grade that pulled it toward
     // crimson is still in the shader, unused
-    const screen = new CrtScreen({ videoSrc, posterSrc, grade: 'lit' })
+    const sized = posterSrc === POSTER.src
+    const screen = new CrtScreen({
+      videoSrc,
+      posterSrc,
+      posterSrcSet: sized ? POSTER.srcSet : undefined,
+      posterSizes: sized ? POSTER.sizes : undefined,
+      grade: 'lit',
+    })
     if (!screen.supported) {
       screen.dispose()
       // no WebGL, or a software renderer (lib/gpu.ts): the footage's own still,
       // in the glass's place, rather than an empty screen
       const still = document.createElement('img')
       still.className = 'shero__canvas shero__still'
+      // the page's largest picture here: fetched first, at the size it is shown
+      still.setAttribute('fetchpriority', 'high')
+      if (sized) {
+        still.sizes = POSTER.sizes
+        still.srcset = POSTER.srcSet
+      }
       still.src = posterSrc
       still.alt = ''
       host.appendChild(still)

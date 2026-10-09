@@ -26,6 +26,33 @@ const vercelInsightsStub = (): Plugin => ({
   },
 })
 
+/** The Story's own copy of index.html, served for /story (vercel.json): the
+ *  same page, plus a head that asks at once for what the Story's first screen
+ *  needs, instead of waiting for the code to ask -- the header's still (its
+ *  largest picture) and the type its headline is set in. (Preloading the
+ *  page's code and styles as well was tried: they competed with the first
+ *  paint, which came later.) Keep the poster pair in step with POSTER in
+ *  StoryHero.tsx. */
+const storyHtml = (): Plugin => ({
+  name: 'story-html',
+  apply: 'build',
+  writeBundle(options) {
+    const dir = options.dir ?? path.resolve(__dirname, 'dist')
+    const head = [
+      '<link rel="preload" as="image" href="/story-header-poster.webp" imagesrcset="/story-header-poster-760.webp 760w, /story-header-poster.webp 1280w" imagesizes="(max-width: 899px) 90vw, 60vw" fetchpriority="high" />',
+      ...['instrument-serif-italic-latin-v5', 'instrument-serif-latin-v5', 'anton-latin-v27'].map(
+        (f) => `<link rel="preload" href="/fonts/${f}.woff2" as="font" type="font/woff2" crossorigin />`,
+      ),
+    ]
+    for (const f of ['instrument-serif-italic-latin-v5', 'instrument-serif-latin-v5', 'anton-latin-v27']) {
+      if (!fs.existsSync(path.resolve(__dirname, 'public/fonts', `${f}.woff2`))) throw new Error(`story-html: no font ${f}`)
+    }
+    const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8')
+    if (!html.includes('</head>')) throw new Error('story-html: index.html has no </head>')
+    fs.writeFileSync(path.join(dir, 'story.html'), html.replace('</head>', `    ${head.join('\n    ')}\n  </head>`))
+  },
+})
+
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
   if (command === 'build') {
@@ -42,7 +69,7 @@ export default defineConfig(({ command, mode }) => {
     }
   }
   return {
-    plugins: [react(), vercelInsightsStub()],
+    plugins: [react(), vercelInsightsStub(), storyHtml()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
