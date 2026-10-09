@@ -14,6 +14,9 @@ export type HeroSourceOptions = {
   videoSrc?: string
   /** How the frame is read: lit, printed on paper, or graded toward ember. */
   grade?: Grade
+  /** Ask for WebGL2 (the same shader runs on it), for readAsync. The still
+   *  frame on a software renderer uses it; elsewhere the context is as it was. */
+  webgl2?: boolean
 }
 
 import { GRADE_ID, INK, INK_DEEP, PAPER, type Grade } from '../../theme'
@@ -372,11 +375,11 @@ export class HeroSource {
    *  in ASCII and the Story its right half, lit. Set by the hero from layout. */
   centers: Record<'brief' | 'story', { x: number; y: number }> = { brief: { x: 0, y: 0 }, story: { x: 0, y: 0 } }
 
-  constructor({ videoSrc, grade = 'lit' }: HeroSourceOptions = {}) {
+  constructor({ videoSrc, grade = 'lit', webgl2 = false }: HeroSourceOptions = {}) {
     this.canvas = document.createElement('canvas')
     this.grade = grade
 
-    const gl = this.canvas.getContext('webgl', {
+    const attrs: WebGLContextAttributes = {
       alpha: false,
       antialias: false,
       depth: false,
@@ -384,7 +387,9 @@ export class HeroSource {
       powerPreference: 'high-performance',
       // the ASCII pass reads this canvas back every frame
       preserveDrawingBuffer: true,
-    }) as WebGLRenderingContext | null
+    }
+    const gl = ((webgl2 ? this.canvas.getContext('webgl2', attrs) : null) ??
+      this.canvas.getContext('webgl', attrs)) as WebGLRenderingContext | null
     if (!gl) return
 
     const vs = compile(gl, gl.VERTEX_SHADER, VERT)
@@ -473,6 +478,58 @@ export class HeroSource {
 
   get supported() {
     return this.gl !== null
+  }
+
+  /**
+   * The bottom-left `width` x `height` of the canvas, as it stands now, read
+   * back without waiting: the pixels are copied into a buffer on the GPU and
+   * fetched once a fence says the copy (and the drawing before it) is done, so
+   * the page is never held while the frame is drawn -- on a software renderer
+   * that took over half a second. Rows top-down, as the 2D canvas has them.
+   * Null without WebGL2 (the caller reads the canvas directly instead).
+   */
+  readAsync(width: number, height: number): Promise<ImageData> | null {
+    const gl = this.gl
+    if (typeof WebGL2RenderingContext === 'undefined' || !(gl instanceof WebGL2RenderingContext)) return null
+    const w = Math.max(1, Math.round(width))
+    const h = Math.max(1, Math.round(height))
+    const buffer = gl.createBuffer()
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer)
+    gl.bufferData(gl.PIXEL_PACK_BUFFER, w * h * 4, gl.STREAM_READ)
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, 0)
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
+    const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)
+    gl.flush()
+    return new Promise((resolve, reject) => {
+      const poll = () => {
+        if (gl.isContextLost() || !sync) {
+          reject(new Error('context lost'))
+          return
+        }
+        const state = gl.clientWaitSync(sync, 0, 0)
+        if (state === gl.TIMEOUT_EXPIRED) {
+          window.setTimeout(poll, 8)
+          return
+        }
+        gl.deleteSync(sync)
+        if (state === gl.WAIT_FAILED) {
+          gl.deleteBuffer(buffer)
+          reject(new Error('readback failed'))
+          return
+        }
+        const px = new Uint8Array(w * h * 4)
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer)
+        gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, px)
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
+        gl.deleteBuffer(buffer)
+        // GL's rows run bottom-up
+        const out = new ImageData(w, h)
+        const row = w * 4
+        for (let y = 0; y < h; y++) out.data.set(px.subarray((h - 1 - y) * row, (h - y) * row), y * row)
+        resolve(out)
+      }
+      poll()
+    })
   }
 
   /** Dimensions of the reduced-resolution pass the ASCII panel reads. */

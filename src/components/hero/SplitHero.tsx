@@ -141,7 +141,8 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
     const root = rootRef.current
     if (!pre || !host || !root) return
 
-    const source = new HeroSource({ videoSrc, grade: grade() })
+    // (on a software renderer the still frame is read back asynchronously, which needs WebGL2)
+    const source = new HeroSource({ videoSrc, grade: grade(), webgl2: softwareGpu() })
     if (!source.supported) {
       setUnsupported(true)
       source.dispose()
@@ -229,12 +230,37 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
       if (right.width > 0) source.resize(right.width, right.height)
       if (left && left.width > 0) ascii.layout(left.width, left.height)
       place()
-      if (still) {
-        const { width: aw, height: ah } = source.asciiPass
-        source.render(0, 0, 0, 0, aw, ah, 'lit', 'brief')
-        ascii.draw(source.canvas, 0, source.canvas.height - ah, aw, ah)
-        source.render(0, 0, 0, 0)
-      }
+      return still ? drawStill() : undefined
+    }
+
+    // The still frame: the ASCII pass, read for the text, then the full pass
+    // over it. Read straight off the canvas, the page stood still until the
+    // frame was drawn -- over half a second where a software renderer draws
+    // it; read back asynchronously (where it can be: WebGL2) the page carries
+    // on meanwhile. The same pixels either way. Resolves once the text is set.
+    let stillShot = 0
+    const drawStill = (): Promise<void> => {
+      const { width: aw, height: ah } = source.asciiPass
+      source.render(0, 0, 0, 0, aw, ah, 'lit', 'brief')
+      const pending = source.ready ? source.readAsync(aw, ah) : null
+      const shot = ++stillShot
+      let done: Promise<void> = Promise.resolve()
+      if (pending) {
+        done = pending.then(
+          (img) => {
+            // (a later frame -- a resize -- supersedes this one)
+            if (shot !== stillShot) return
+            const c = document.createElement('canvas')
+            c.width = img.width
+            c.height = img.height
+            c.getContext('2d')?.putImageData(img, 0, 0)
+            ascii.draw(c, 0, 0, img.width, img.height)
+          },
+          () => {},
+        )
+      } else ascii.draw(source.canvas, 0, source.canvas.height - ah, aw, ah)
+      source.render(0, 0, 0, 0)
+      return done
     }
 
     // Adaptive resolution. Frame times are averaged over ~45 frames; when they
@@ -375,8 +401,8 @@ export default function SplitHero({ videoSrc }: SplitHeroProps) {
           requestAnimationFrame(once)
           return
         }
-        measure()
-        markBoot('scene')
+        // the loading screen waits for the text, as it did when it was set at once
+        void Promise.resolve(measure()).then(() => markBoot('scene'))
       }
       once()
     }
