@@ -1,7 +1,6 @@
 import { Suspense, lazy, useLayoutEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
-import Home from './pages/Home'
-import { loadBrief, loadStory } from './routes'
+import { home, loadBrief, loadStory } from './routes'
 import MusicPlayer from './components/MusicPlayer'
 import ClickSpark from './components/ClickSpark'
 import RouteTransition from './motion/RouteTransition.tsx'
@@ -35,7 +34,7 @@ export default function App() {
       {/* while a route's chunk arrives: only its ground, so a transition's overlay hands off over the same colour */}
       <Suspense fallback={<div className="route-wait" />}>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<home.Component />} />
           <Route path="/brief" element={<BriefRead />} />
           <Route path="/story" element={<Story />} />
         </Routes>

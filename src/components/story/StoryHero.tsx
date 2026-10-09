@@ -158,28 +158,70 @@ export default function StoryHero({ videoSrc, posterSrc = POSTER.src }: StoryHer
     // blurred wide behind the glass, so its colours spill onto the black around
     // it as a TV's do in a dark room. Resampled a few times a second.
     const glowEl = glow.current
-    const glowCtx = glowEl?.getContext('2d', { alpha: false }) ?? null
-    if (glowEl) {
-      glowEl.width = 32
-      glowEl.height = 18
+    const coarse = window.matchMedia('(pointer: coarse)').matches
+    // On a desktop the blur is done once per new picture, inside the canvas,
+    // not by the CSS blur over its large box -- the GPU redid that blur every
+    // frame the glass was drawn, about half its work while the header turned
+    // into the name. The canvas is padded by twice the blur's radius so the
+    // soft edge fits inside it, and drawn at a quarter of its size: the same
+    // picture, to within 2 levels in 255.
+    const baked = !!glowEl && !coarse && 'filter' in CanvasRenderingContext2D.prototype
+    const glowCtx = glowEl?.getContext('2d', { alpha: baked }) ?? null
+    // the footage at 32 x 18, as the glow has always sampled it
+    const small = baked ? document.createElement('canvas') : glowEl
+    const smallCtx = baked ? (small?.getContext('2d', { alpha: false }) ?? null) : glowCtx
+    if (small) {
+      small.width = 32
+      small.height = 18
     }
     let glowFrame = 0
     let glowOpacity = ''
+    /** the baked glow's blur radius (CSS px: the 40-90px the CSS blur had) and its padded box */
+    const bake = { r: 0, w: 0, h: 0 }
+    const BAKE_SCALE = 0.25
+    const sizeGlow = () => {
+      if (!baked || !glowEl) return
+      const r = Math.min(90, Math.max(40, window.innerWidth * 0.06))
+      if (r !== bake.r) {
+        bake.r = r
+        glowEl.style.width = `calc(var(--crt-w) * 1.3 + ${4 * r}px)`
+        glowEl.style.height = `calc(var(--crt-h) * 1.4 + ${4 * r}px)`
+        glowEl.style.filter = 'none'
+      }
+      bake.w = glowEl.clientWidth
+      bake.h = glowEl.clientHeight
+      const cw = Math.max(1, Math.round(bake.w * BAKE_SCALE))
+      const ch = Math.max(1, Math.round(bake.h * BAKE_SCALE))
+      if (glowEl.width !== cw || glowEl.height !== ch) {
+        glowEl.width = cw
+        glowEl.height = ch
+        glowFrame = 0
+      }
+    }
+    sizeGlow()
     // On a touchscreen the glow is blurred inside its 32x18 canvas (3px there is
     // the CSS 40-90px once scaled up), not by a CSS blur over its large on-screen
     // box -- which the GPU redid at 15 fps while the header was on screen.
-    if (glowEl && glowCtx && window.matchMedia('(pointer: coarse)').matches && 'filter' in glowCtx) {
+    if (!baked && glowEl && glowCtx && coarse && 'filter' in glowCtx) {
       glowCtx.filter = 'blur(3px) saturate(1.35)'
       glowEl.style.filter = 'none'
     }
     const paintGlow = () => {
-      if (!glowEl || !glowCtx) return
+      if (!glowEl || !glowCtx || !small || !smallCtx) return
       // (written only when it changes: a style write every frame restyled the page every frame)
       const o = String(0.17 * Math.max(0, Math.min(1, screen.power)))
       if (o !== glowOpacity) glowEl.style.opacity = glowOpacity = o
       const src = screen.source
       if (!src || glowFrame++ % 4) return
-      glowCtx.drawImage(src, 0, 0, glowEl.width, glowEl.height)
+      smallCtx.drawImage(src, 0, 0, small.width, small.height)
+      if (!baked) return
+      const k = glowEl.width / Math.max(1, bake.w)
+      const pad = 2 * bake.r
+      glowCtx.clearRect(0, 0, glowEl.width, glowEl.height)
+      glowCtx.filter = `blur(${bake.r * k}px) saturate(1.35)`
+      glowCtx.imageSmoothingQuality = 'low'
+      glowCtx.drawImage(small, pad * k, pad * k, (bake.w - 2 * pad) * k, (bake.h - 2 * pad) * k)
+      glowCtx.filter = 'none'
     }
     tubeLine.current = CrtScreen.lineWidth
 
@@ -194,6 +236,7 @@ export default function StoryHero({ videoSrc, posterSrc = POSTER.src }: StoryHer
       // a resize while scrolled) had the turned shape -- the picture came out
       // stretched and zoomed until the next resize
       screen.resize(host.clientWidth, host.clientHeight)
+      sizeGlow()
       if (reduced) {
         screen.render(0)
         // under reduced motion the glow is painted once the footage has a frame

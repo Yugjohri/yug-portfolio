@@ -1,10 +1,25 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { Flip } from 'gsap/Flip'
+import type { Flip as FlipPlugin } from 'gsap/Flip'
 import { useGSAP } from '@gsap/react'
+import { whenIdle } from '../../lib/idle'
 import { addNote, deleteMyNote, isShared, listNotes, moveMyNote, myNoteId, type Note, type NoteColor } from '../../lib/notesStore'
 
-gsap.registerPlugin(useGSAP, Flip)
+gsap.registerPlugin(useGSAP)
+
+/** GSAP's Flip, for opening and closing the board, in a chunk of its own: fetched once the page is idle, or when a pointer first nears the board. */
+let Flip: typeof FlipPlugin | null = null
+let flipLoad: Promise<void> | null = null
+const loadFlip = () =>
+  (flipLoad ??= import('gsap/Flip').then(
+    (m) => {
+      gsap.registerPlugin(m.Flip)
+      Flip = m.Flip
+    },
+    () => {
+      flipLoad = null
+    },
+  ))
 
 /**
  * The notes board, in Contact: a rounded cork board anyone can pin one note
@@ -59,9 +74,11 @@ const clamp = gsap.utils.clamp
 export default function NotesBoard() {
   const slot = useRef<HTMLDivElement>(null)
   const board = useRef<HTMLDivElement>(null)
+  // Flip, before anyone opens the board
+  useEffect(() => whenIdle(() => void loadFlip()), [])
   const world = useRef<HTMLDivElement>(null)
   const draft = useRef<HTMLLIElement>(null)
-  const flipState = useRef<Flip.FlipState | null>(null)
+  const flipState = useRef<ReturnType<typeof FlipPlugin.getState> | null>(null)
   /** the board's view: pan (px) and scale */
   const view = useRef({ x: 0, y: 0, s: 1 })
   const [open, setOpen] = useState(false)
@@ -177,6 +194,11 @@ export default function NotesBoard() {
   const toggle = () => {
     const b = board.current
     if (!b) return
+    // (opened before Flip has arrived: once it has)
+    if (!Flip) {
+      void loadFlip().then(() => Flip && toggle())
+      return
+    }
     flipState.current = Flip.getState(b)
     setOpen((o) => !o)
   }
@@ -194,7 +216,7 @@ export default function NotesBoard() {
       apply(target)
       return
     }
-    Flip.from(state, { duration: 0.75, ease: 'power3.inOut', absolute: true, zIndex: 90 })
+    Flip?.from(state, { duration: 0.75, ease: 'power3.inOut', absolute: true, zIndex: 90 })
     const from = { ...view.current }
     gsap.to(from, {
       ...target,
@@ -528,7 +550,7 @@ export default function NotesBoard() {
   const placed = (n: Note, i: number) => (n.x == null || n.y == null ? fallback(i) : { x: n.x, y: n.y })
 
   return (
-    <div className="nboard-slot" ref={slot}>
+    <div className="nboard-slot" ref={slot} onPointerEnter={() => void loadFlip()}>
       {open ? <div className="nboard-dim" onClick={toggle} aria-hidden="true" /> : null}
       <div
         ref={board}

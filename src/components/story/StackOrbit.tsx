@@ -191,14 +191,17 @@ export default function StackOrbit({ mode, pin }: Props) {
         // little shorter, at the column's width. Wider, the stage is scaled so the
         // loop itself (0.72 of its width) fills the column, centred in it; the
         // stream's open ends run past the column and are clipped there.
+        // Everything is read first and written after: reading the layout
+        // between writes made the browser lay the page out again each time
+        // (most of this column's start-up cost).
         const narrow = window.matchMedia('(max-width: 899px)').matches
         const colW = Math.max(1, rootEl.clientWidth)
         const bleed = parseFloat(getComputedStyle(rootEl).paddingTop) || 0
-        stageEl.style.top = `${bleed}px`
         if (narrow) {
           const W = Math.max(1, window.innerWidth)
           const H = Math.max(1, window.innerHeight * 0.58)
           const k = Math.max(0.05, colW / W)
+          stageEl.style.top = `${bleed}px`
           stageEl.style.width = `${W}px`
           stageEl.style.height = `${H}px`
           stageEl.style.left = `${((colW - W * k) / 2).toFixed(1)}px`
@@ -220,15 +223,11 @@ export default function StackOrbit({ mode, pin }: Props) {
         const side = rootEl.parentElement
         const tall = gsap.utils.clamp(360, 820, body?.offsetHeight || 560)
         const H = tall / k
-        stageEl.style.width = `${W}px`
-        stageEl.style.height = `${H.toFixed(1)}px`
-        stageEl.style.left = `${((colW - W * k) / 2).toFixed(1)}px`
-        stageEl.style.transform = `scale(${k})`
-        rootEl.style.height = `${tall.toFixed(1)}px`
         // About's heading is set at the statement's size as drawn (its size in the stage, times the scale)
         const statement = stageEl.querySelector<HTMLElement>('.stack__statement')
         const heading = sheet?.querySelector<HTMLElement>('.apanel__heading')
-        if (sheet && statement) sheet.style.setProperty('--ap-type', `${(parseFloat(getComputedStyle(statement).fontSize) * k).toFixed(2)}px`)
+        const apType = statement ? parseFloat(getComputedStyle(statement).fontSize) * k : 0
+        let marginTop: number | null = null
         if (sheet && body && side) {
           const offTop = (el: HTMLElement) => {
             let y = 0
@@ -238,15 +237,26 @@ export default function StackOrbit({ mode, pin }: Props) {
           // (where the first paragraph would be without the text block's own drop, so the stack stays put)
           const halfL = sheet.querySelector<HTMLElement>('.apanel__half--l')
           const drop = halfL ? parseFloat(getComputedStyle(halfL).paddingTop) || 0 : 0
-          // and the heading's growth past its old width-based size, so a bigger heading does not push the stack down
+          // and the heading's growth past its old width-based size, so a bigger heading does not push the stack down.
+          // (Read at the heading's size now, before the new one is written: its height goes with its size, so
+          // the paragraph's place less that growth comes out the same either side of the write.)
           let grown = 0
           if (heading) {
             const now = parseFloat(getComputedStyle(heading).fontSize) || 1
             const was = Math.min(body.offsetWidth / 13.8, 50) + 2
             grown = heading.offsetHeight * (1 - was / now)
           }
-          rootEl.style.marginTop = `${(offTop(body) - drop - grown - 15 - offTop(side) - bleed).toFixed(1)}px`
+          marginTop = offTop(body) - drop - grown - 15 - offTop(side) - bleed
         }
+        // ...then everything written, once
+        stageEl.style.top = `${bleed}px`
+        stageEl.style.width = `${W}px`
+        stageEl.style.height = `${H.toFixed(1)}px`
+        stageEl.style.left = `${((colW - W * k) / 2).toFixed(1)}px`
+        stageEl.style.transform = `scale(${k})`
+        rootEl.style.height = `${tall.toFixed(1)}px`
+        if (sheet && statement) sheet.style.setProperty('--ap-type', `${apType.toFixed(2)}px`)
+        if (marginTop !== null) rootEl.style.marginTop = `${marginTop.toFixed(1)}px`
       }
       // The walls' copies show the stack's first frame, which is empty (the
       // stream enters from out of sight): no cards to place there. Setting

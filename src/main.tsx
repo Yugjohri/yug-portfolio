@@ -2,7 +2,8 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
-import ErrorBoundary from './components/ErrorScreen'
+import ErrorBoundary, { errorDesk } from './components/ErrorScreen'
+import { home } from './routes'
 import './styles/index.css'
 import { startBoot } from './boot/boot'
 import { whenIdle } from './lib/idle'
@@ -11,6 +12,13 @@ import { injectSpeedInsights } from '@vercel/speed-insights'
 
 // the loading screen (static, in index.html) starts reporting before the app renders
 startBoot()
+
+// the landing's code: at once on the landing (index.html has already asked for
+// it), otherwise once the page is idle, so going back to it never waits
+if (window.location.pathname === '/') void home.preload()
+else whenIdle(() => void home.preload())
+// and the error screen's desk, in case it is ever wanted
+whenIdle(() => void errorDesk.preload(), 6000)
 
 // Vercel Web Analytics (cookieless page views) and Speed Insights (how fast
 // the site really loads for visitors), nothing on screen. Their scripts are

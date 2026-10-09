@@ -1,5 +1,8 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
-import ContactDesk from './story/ContactDesk'
+import { Component, Suspense, type ErrorInfo, type ReactNode } from 'react'
+import { preloadable } from '../lib/preloadable'
+
+/** The desk, in a chunk of its own: every page carried it (a 13KB drawing) for a screen almost never seen. Fetched when idle (main.tsx). */
+export const errorDesk = preloadable(() => import('./story/ContactDesk'))
 
 /**
  * What the site shows when something on it breaks: the desk from the contact
@@ -35,7 +38,9 @@ export function ErrorScreen() {
   return (
     <div className="errscreen" role="alert">
       <div className="errscreen__inner">
-        <ContactDesk playNow />
+        <Suspense fallback={null}>
+          <errorDesk.Component playNow />
+        </Suspense>
         <p className="errscreen__msg">{MESSAGE}</p>
         <button className="errscreen__retry mono" type="button" onClick={() => window.location.reload()}>
           Reload the page ↻

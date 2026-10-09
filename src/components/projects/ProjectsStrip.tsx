@@ -1,14 +1,19 @@
-import { useCallback, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { SLEEVES, type Sleeve } from '../../data/portfolio'
 import { RibbonScene } from './ribbonScene'
-import ProjectDetail, { type DetailOrigin } from './ProjectDetail'
+import type { DetailOrigin } from './ProjectDetail'
+import { preloadable } from '../../lib/preloadable'
+import { whenIdle } from '../../lib/idle'
 import StTitle from '../story/StTitle'
 import { VideoSources } from '../../lib/videoSources'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
+
+/** A project's popup and its glass, in a chunk of their own: fetched once the page is idle (and at the first press on the strip), long before one is opened. */
+const projectDetail = preloadable(() => import('./ProjectDetail'))
 
 /**
  * The layout switches between the pinned ribbon and a plain stacked column.
@@ -113,6 +118,7 @@ export default function ProjectsStrip() {
   // is open, so this is how the ribbon knows what is under the hand on return
   const lastPointer = useRef<{ x: number; y: number } | null>(null)
   const [detail, setDetail] = useState<{ project: Sleeve; origin: DetailOrigin } | null>(null)
+  useEffect(() => whenIdle(() => void projectDetail.preload()), [])
 
   const openProject = useCallback((index: number, fallback: HTMLElement | null) => {
     if (busy.current) return
@@ -585,7 +591,13 @@ export default function ProjectsStrip() {
   const total = pad2(PROJECTS.length)
 
   return (
-    <section className="work" id="projects" ref={root} aria-labelledby="work-heading">
+    <section
+      className="work"
+      id="projects"
+      ref={root}
+      aria-labelledby="work-heading"
+      onPointerDownCapture={() => void projectDetail.preload()}
+    >
       <h2 className="sr-only" id="work-heading">
         Projects
       </h2>
@@ -671,13 +683,15 @@ export default function ProjectsStrip() {
       </div>
 
       {detail ? (
-        <ProjectDetail
-          key={detail.project.code}
-          project={detail.project}
-          origin={detail.origin}
-          onCloseStart={onCloseStart}
-          onClosed={onClosed}
-        />
+        <Suspense fallback={null}>
+          <projectDetail.Component
+            key={detail.project.code}
+            project={detail.project}
+            origin={detail.origin}
+            onCloseStart={onCloseStart}
+            onClosed={onClosed}
+          />
+        </Suspense>
       ) : null}
     </section>
   )

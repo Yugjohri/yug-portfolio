@@ -150,17 +150,28 @@
         gap: 0.5rem;
       }
       .boot__log li {
+        position: relative;
         display: flex;
         align-items: baseline;
         gap: 0.75rem;
         color: rgba(233, 229, 222, 0.38);
-        clip-path: inset(0 100% 0 0);
+      }
+      /* each line types itself out: a bar of the ground's own colour over it
+         shrinks away to the right in 16 steps (a transform, so the GPU does it
+         alone; the clip-path it replaces was repainted at every step) */
+      .boot__log li::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        background: rgb(6, 6, 15);
+        transform-origin: 100% 50%;
         animation: boot-type 0.32s steps(16) forwards;
       }
-      .boot__log li:nth-child(2) { animation-delay: 0.08s; }
-      .boot__log li:nth-child(3) { animation-delay: 0.16s; }
-      .boot__log li:nth-child(4) { animation-delay: 0.24s; }
-      .boot__log li:nth-child(5) { animation-delay: 0.32s; }
+      .boot__log li:nth-child(2)::after { animation-delay: 0.08s; }
+      .boot__log li:nth-child(3)::after { animation-delay: 0.16s; }
+      .boot__log li:nth-child(4)::after { animation-delay: 0.24s; }
+      .boot__log li:nth-child(5)::after { animation-delay: 0.32s; }
       .boot__dots {
         flex: 1;
         border-bottom: 1px dotted rgba(233, 229, 222, 0.18);
@@ -189,11 +200,11 @@
       .boot__edge b { font-weight: 500; color: var(--boot-ink); }
       @keyframes boot-turn { to { transform: rotate(360deg); } }
       @keyframes boot-breathe { to { transform: translate(-50%, -50%) scale(1.06); opacity: 0.85; } }
-      @keyframes boot-type { to { clip-path: inset(0 0 0 0); } }
+      @keyframes boot-type { to { transform: scaleX(0); } }
       @keyframes boot-blink { 50% { opacity: 0; } }
       @media (prefers-reduced-motion: reduce) {
         #boot *, #boot *::after { animation: none !important; }
-        .boot__log li { clip-path: none; }
+        .boot__log li::after { display: none; }
       }
     </style>
   </head>

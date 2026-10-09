@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -38,7 +38,12 @@ if (typeof window !== 'undefined') window.addEventListener('resize', () => (scre
 export const layeredHoldPx = () => (SECTION_TRANSITIONS.layered && !reducedMq?.matches ? screenH : 0)
 
 export function useSectionTransitions() {
-  useEffect(() => {
+  // A layout effect: it runs once every section has made its triggers (theirs
+  // are layout effects too) and before the first frame, so its refresh is the
+  // page's one -- the full refresh ScrollTrigger queues for that frame when
+  // pins are made is then dropped. (As an ordinary effect it ran after that
+  // frame: two whole-page refreshes on load.)
+  useLayoutEffect(() => {
     const story = document.querySelector<HTMLElement>('main.story')
     if (!story) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches

@@ -26,30 +26,45 @@ const vercelInsightsStub = (): Plugin => ({
   },
 })
 
-/** The Story's own copy of index.html, served for /story (vercel.json): the
- *  same page, plus a head that asks at once for what the Story's first screen
- *  needs, instead of waiting for the code to ask -- the header's still (its
- *  largest picture) and the type its headline is set in. (Preloading the
- *  page's code and styles as well was tried: they competed with the first
- *  paint, which came later.) Keep the poster pair in step with POSTER in
- *  StoryHero.tsx. */
-const storyHtml = (): Plugin => ({
-  name: 'story-html',
+/** Each route's own copy of index.html (vercel.json sends each its own):
+ *  - the landing's (index.html itself) asks at once for the landing's code,
+ *    a chunk of its own so the other pages do not carry it (routes.ts);
+ *  - the Story's (story.html) asks at once for what its first screen needs,
+ *    instead of waiting for the code to ask: the header's still (its largest
+ *    picture) and the type its headline is set in. (Preloading the page's
+ *    code and styles as well was tried: they competed with the first paint,
+ *    which came later.) Keep the poster pair in step with POSTER in
+ *    StoryHero.tsx;
+ *  - the Brief's (brief.html) is the plain page. */
+const routeHtml = (): Plugin => ({
+  name: 'route-html',
   apply: 'build',
-  writeBundle(options) {
+  writeBundle(options, bundle) {
     const dir = options.dir ?? path.resolve(__dirname, 'dist')
-    const head = [
-      '<link rel="preload" as="image" href="/story-header-poster.webp" imagesrcset="/story-header-poster-760.webp 760w, /story-header-poster.webp 1280w" imagesizes="(max-width: 899px) 90vw, 60vw" fetchpriority="high" />',
-      ...['instrument-serif-italic-latin-v5', 'instrument-serif-latin-v5', 'anton-latin-v27'].map(
-        (f) => `<link rel="preload" href="/fonts/${f}.woff2" as="font" type="font/woff2" crossorigin />`,
-      ),
-    ]
-    for (const f of ['instrument-serif-italic-latin-v5', 'instrument-serif-latin-v5', 'anton-latin-v27']) {
-      if (!fs.existsSync(path.resolve(__dirname, 'public/fonts', `${f}.woff2`))) throw new Error(`story-html: no font ${f}`)
-    }
     const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8')
-    if (!html.includes('</head>')) throw new Error('story-html: index.html has no </head>')
-    fs.writeFileSync(path.join(dir, 'story.html'), html.replace('</head>', `    ${head.join('\n    ')}\n  </head>`))
+    if (!html.includes('</head>')) throw new Error('route-html: index.html has no </head>')
+    const withHead = (lines: string[]) => html.replace('</head>', `    ${lines.join('\n    ')}\n  </head>`)
+
+    const fonts = ['instrument-serif-italic-latin-v5', 'instrument-serif-latin-v5', 'anton-latin-v27']
+    for (const f of fonts) {
+      if (!fs.existsSync(path.resolve(__dirname, 'public/fonts', `${f}.woff2`))) throw new Error(`route-html: no font ${f}`)
+    }
+    fs.writeFileSync(
+      path.join(dir, 'story.html'),
+      withHead([
+        '<link rel="preload" as="image" href="/story-header-poster.webp" imagesrcset="/story-header-poster-760.webp 760w, /story-header-poster.webp 1280w" imagesizes="(max-width: 899px) 90vw, 60vw" fetchpriority="high" />',
+        ...fonts.map((f) => `<link rel="preload" href="/fonts/${f}.woff2" as="font" type="font/woff2" crossorigin />`),
+      ]),
+    )
+    fs.writeFileSync(path.join(dir, 'brief.html'), html)
+
+    const entry = Object.values(bundle).find((c) => c.type === 'chunk' && c.isEntry)
+    const home = Object.values(bundle).find(
+      (c) => c.type === 'chunk' && !!c.facadeModuleId && /[\\/]pages[\\/]Home\.tsx$/.test(c.facadeModuleId),
+    )
+    if (!home || home.type !== 'chunk') throw new Error('route-html: no Home chunk in the build')
+    const js = [home.fileName, ...home.imports.filter((f) => f !== entry?.fileName)]
+    fs.writeFileSync(path.join(dir, 'index.html'), withHead(js.map((f) => `<link rel="modulepreload" crossorigin href="/${f}" />`)))
   },
 })
 
@@ -69,7 +84,7 @@ export default defineConfig(({ command, mode }) => {
     }
   }
   return {
-    plugins: [react(), vercelInsightsStub(), storyHtml()],
+    plugins: [react(), vercelInsightsStub(), routeHtml()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
