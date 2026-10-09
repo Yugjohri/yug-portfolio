@@ -51,8 +51,8 @@ const LEAN_DEG = 3
 /** Desktop: the stage's own width (it is scaled to the column), so the stream keeps the old section's proportions. */
 const STAGE_W = 1440
 
-const STATEMENT = 'i pick boring on purpose.'
-const STATEMENT_ACCENT = 'boring on purpose.'
+const STATEMENT = 'each tech stack is a chance to push my limits'
+const STATEMENT_ACCENT = 'push my limits'
 
 const TAU = Math.PI * 2
 const DEG = 180 / Math.PI

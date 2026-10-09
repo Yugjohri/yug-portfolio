@@ -13,13 +13,14 @@ import { NOTES, ROLES, BRIEF_PROJECTS, type Sleeve } from '../data/portfolio'
 import { VideoSources } from '../lib/videoSources'
 import { whenIdle } from '../lib/idle'
 import {
-  ABOUT_CLOSER,
   ABOUT_HEADING,
   ABOUT_PARAS,
   BRIEF,
   HIGHLIGHTS,
   LINKS,
   PILLARS,
+  PROJECTS_LEDE,
+  BRIEF_ROLE_BULLETS,
   SKILLS,
 } from '../data/brief'
 
@@ -452,7 +453,6 @@ export default function BriefRead() {
               {ABOUT_PARAS.map((p) => (
                 <p key={p.slice(0, 20)}>{p}</p>
               ))}
-              <p className="bf-closer">{ABOUT_CLOSER}</p>
             </div>
 
             <aside className="bf-card bf-highlights">
@@ -472,11 +472,7 @@ export default function BriefRead() {
         {/* ---------------------------------------------------- projects */}
         <section className="bf-section" data-reveal>
           <SectionLabel id="projects">Projects</SectionLabel>
-          <p className="bf-lede">
-            things that had to work: an inventory system for a defence lab with no
-            internet, a search that shows where every answer came from, and a small model
-            trained on one graphics card that beat the big paid ones.
-          </p>
+          <p className="bf-lede">{PROJECTS_LEDE}</p>
 
           <TileGrid items={featured} onScroll />
           {showAll ? <TileGrid items={more} onScroll={false} /> : null}
@@ -521,7 +517,7 @@ export default function BriefRead() {
                 </div>
                 <p className="bf-role__where mono">{r.title.split(' · ')[1]}</p>
                 <ul className="bf-role__bullets">
-                  {r.bullets.map((b) => (
+                  {(BRIEF_ROLE_BULLETS[r.org] ?? r.bullets).map((b) => (
                     <li key={b}>{b}</li>
                   ))}
                 </ul>
@@ -585,8 +581,7 @@ export default function BriefRead() {
                 together<em>.</em>
               </h2>
               <p className="bf-lede">
-                just finished at CFEES, DRDO, and open to AI engineering roles from October
-                2026. bring me something that has to hold up.
+                open to AI engineering roles from October 2026.
               </p>
               <dl className="bf-facts mono">
                 <div>

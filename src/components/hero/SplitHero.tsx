@@ -38,13 +38,13 @@ const PANELS: { key: PanelKey; name: string; descriptor: string; href: string }[
   {
     key: 'brief',
     name: 'Brief Read',
-    descriptor: 'the short version. one page, no warm-up.',
+    descriptor: 'A quick scan for recruiters & HR.',
     href: '/brief',
   },
   {
     key: 'story',
     name: 'My Story',
-    descriptor: 'the long version. how i actually think.',
+    descriptor: 'The full story, with the parts a resume leaves out.',
     href: '/story',
   },
 ]

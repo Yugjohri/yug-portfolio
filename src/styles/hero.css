@@ -271,6 +271,12 @@
     padding: 3rem;
   }
 
+  /* each half's words in its bottom-left corner, as harshdayal.dev sets them:
+     48px in, the title at about 85% of the screen's height, then the line
+     under it and Enter, close together */
+  .hero__descriptor { margin-top: 0.6rem; }
+  .hero__enter { margin-top: 0.9rem; }
+
   .hero__divider {
     inset-block: 0;
     inset-inline: auto;

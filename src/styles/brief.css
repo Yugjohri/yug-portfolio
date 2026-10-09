@@ -173,6 +173,12 @@
 .bf-fold {
   min-height: calc(100dvh - 34px - 58px - clamp(72px, 12vh, 112px));
 }
+/* About follows the jump links closely (the fold's full height left a wide
+   empty band between them on a tall screen) */
+@media (min-width: 900px) {
+  .bf-fold { min-height: 0; }
+  .bf-fold + .bf-section { padding-top: clamp(48px, 7vh, 72px); }
+}
 
 /* the top row: the page's sections in mono, the other route on the right */
 .bf-top {

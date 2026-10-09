@@ -15,11 +15,22 @@ gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText)
 // TODO(yug): final headline copy
 /** The headline, a line each. On a phone the type is sized so a line of up
  *  to 15em (about 30 characters) fits the width; keep each line under that. */
-const HEADLINE_1 = 'AI Engineering, Retrieval & Code.'
-const HEADLINE_2 = 'Built to hold up.'
-/** The word in the first line set in the red serif italic: the headline's one accent. */
-const HEADLINE_ACCENT = 'Code.'
-const ACCENT_AT = HEADLINE_1.lastIndexOf(HEADLINE_ACCENT)
+const HEADLINE_1 = 'Start with a question.'
+const HEADLINE_2 = 'End with a thing.'
+/** The word set in the red serif italic, in whichever line has it: the headline's one accent. */
+const HEADLINE_ACCENT = 'thing.'
+/** a line, with the accent in the serif italic if it is in that line */
+const accented = (line: string) => {
+  const at = line.lastIndexOf(HEADLINE_ACCENT)
+  if (at < 0) return line
+  return (
+    <>
+      {line.slice(0, at)}
+      <em>{HEADLINE_ACCENT}</em>
+      {line.slice(at + HEADLINE_ACCENT.length)}
+    </>
+  )
+}
 
 /**
  * The Story's header, and the one gesture that carries it into the ribbon.
@@ -563,17 +574,9 @@ export default function StoryHero({ videoSrc, posterSrc = '/story-header-poster.
         <div className="shero__screen" ref={media} aria-hidden="true" />
         <div className="shero__tint" ref={tint} aria-hidden="true" />
         <h1 className="shero__title" ref={title}>
-          {ACCENT_AT < 0 ? (
-            HEADLINE_1
-          ) : (
-            <>
-              {HEADLINE_1.slice(0, ACCENT_AT)}
-              <em>{HEADLINE_ACCENT}</em>
-              {HEADLINE_1.slice(ACCENT_AT + HEADLINE_ACCENT.length)}
-            </>
-          )}
+          {accented(HEADLINE_1)}
           <br />
-          {HEADLINE_2}
+          {accented(HEADLINE_2)}
         </h1>
       </div>
 
