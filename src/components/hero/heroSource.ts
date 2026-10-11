@@ -141,14 +141,41 @@ float hash3(vec3 p) {
   return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
 }
 
-/* the sky behind it, by direction: faint nebula and three layers of stars,
-   hashed in 3D so no seam runs anywhere a bent ray might look */
+/* the sky behind it, by direction: faint nebula, three layers of stars, a
+   fine dust of dim ones, and now and then a bright one with a soft glow --
+   hashed in 3D so no seam runs anywhere a bent ray might look. All of it
+   kept well below the disk, so the hole stays the thing you look at. */
 vec3 sky(vec3 d, float time) {
   vec3 c = BG;
   float n = fbm(d.xy * 2.4 + vec2(d.z * 1.7, -d.z));
   float n2 = fbm(d.yz * 3.1 - vec2(1.3, d.x));
-  c += vec3(0.09, 0.03, 0.12) * smoothstep(0.42, 0.95, n) * 0.55;
-  c += vec3(0.02, 0.04, 0.09) * smoothstep(0.35, 0.9, n2) * 0.55;
+  c += vec3(0.09, 0.03, 0.12) * smoothstep(0.42, 0.95, n) * 0.85;
+  c += vec3(0.02, 0.04, 0.09) * smoothstep(0.35, 0.9, n2) * 0.85;
+  /* the dust: many small, dim stars, too faint to read as glyphs in the ASCII half */
+  {
+    vec3 q = d * 150.0 + 51.3;
+    vec3 cell = floor(q);
+    float h = hash3(cell);
+    if (h > 0.86) {
+      vec3 off = vec3(hash3(cell + 3.1), hash3(cell + 5.9), hash3(cell + 8.3)) - 0.5;
+      float dd = length(fract(q) - 0.5 - off * 0.6);
+      float tw = 0.75 + 0.25 * sin(time * 2.3 + h * 60.0);
+      c += vec3(0.85, 0.86, 0.98) * smoothstep(0.12, 0.0, dd) * (0.35 + 0.45 * fract(h * 41.0)) * tw;
+    }
+  }
+  /* now and then a brighter star, with a little light round it */
+  {
+    vec3 q = d * 40.0 + 7.9;
+    vec3 cell = floor(q);
+    float h = hash3(cell);
+    if (h > 0.94) {
+      vec3 off = vec3(hash3(cell + 1.7), hash3(cell + 3.3), hash3(cell + 6.1)) - 0.5;
+      float dd = length(fract(q) - 0.5 - off * 0.5);
+      vec3 tint = mix(vec3(1.0, 0.82, 0.62), vec3(0.75, 0.85, 1.0), fract(h * 53.0));
+      float tw = 0.8 + 0.2 * sin(time * 1.3 + h * 70.0);
+      c += tint * (smoothstep(0.045, 0.0, dd) * 2.6 + exp(-dd * 14.0) * 0.22) * tw;
+    }
+  }
   for (int i = 0; i < 3; i++) {
     float fi = float(i);
     float k = 70.0 + fi * 65.0;
@@ -299,7 +326,7 @@ void main() {
   /* vignette back down to the page colour */
   /* vignette back down to the page colour, measured in the pulled-back units:
      the same place on screen it always began, so the band's far ends survive */
-  col = mix(BG, col, 1.0 - smoothstep(1.6, 3.2, r) * 0.70);
+  col = mix(BG, col, 1.0 - smoothstep(1.6, 3.2, r) * 0.55);
 
   /* filmic tonemap keeps the ring white-hot instead of clipping it flat */
   col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14);
