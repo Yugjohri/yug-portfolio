@@ -68,7 +68,7 @@ function Panel({ live, pin }: { live: boolean; pin?: React.RefObject<HTMLElement
         </div>
         <div className="apanel__half apanel__half--r">
           {/* the stack's label: the left's eyebrow, at its height, over the stack */}
-          <p className="apanel__eyebrow apanel__eyebrow--stack">Tech stack</p>
+          <p className="apanel__eyebrow apanel__eyebrow--stack">My tech stack</p>
           <div className="apanel__side">
             <StackOrbit mode={live ? 'pin' : 'still'} pin={pin} />
           </div>

@@ -51,6 +51,13 @@ const NOW = { body: 'now: just finished at CFEES, DRDO. open to AI engineering r
 const DOCK_VIEW = 1350
 /** room kept clear round Yug's note and Dexter, world px */
 const GUARD_AIR = 14
+/**
+ * The board's title ("Leave a note :)" and its underline) kept clear too, world
+ * px: the box its letters stand in (measured: 1023-1777 x 867-1111, tilt and
+ * all), drawn in 22px all round -- a note may just catch the edge of a letter,
+ * never cover a word. (The server holds to the same: ..._notes_title_guard.sql.)
+ */
+const TITLE_GUARD = { x1: 1045, y1: 889, x2: 1755, y2: 1089 }
 const REASON: Record<string, string> = {
   already_posted: 'one note each, and yours is already up. thank you!',
   not_allowed: "that one can't go up (no links or rude words, please).",
@@ -115,11 +122,16 @@ export default function NotesBoard() {
       listNotes()
         .then((n) => alive && setNotes(n))
         .catch(() => {})
+    // fetched once the page has settled, long before anyone scrolls down to
+    // the board, so its notes are already pinned there when it comes into
+    // view (fetched only as it neared the screen, they popped in in front of
+    // the reader)...
+    const cancelFirst = whenIdle(() => void load())
+    // ...and kept fresh while it is on screen
     const io = new IntersectionObserver(
       ([e]) => {
         window.clearInterval(timer)
         if (!e.isIntersecting) return
-        void load()
         timer = window.setInterval(load, 30000)
       },
       { rootMargin: '50% 0px' },
@@ -127,6 +139,7 @@ export default function NotesBoard() {
     io.observe(el)
     return () => {
       alive = false
+      cancelFirst()
       io.disconnect()
       window.clearInterval(timer)
     }
@@ -243,11 +256,13 @@ export default function NotesBoard() {
    * note of size w x h that covers neither: pushed out past the side it is
    * least far into, and kept on the board. (The server holds to the same.)
    */
-  const guarded = () =>
-    (['now', 'dexter'] as const)
+  const guarded = () => [
+    ...(['now', 'dexter'] as const)
       .map((k) => world.current?.querySelector<HTMLElement>(`[data-note="${k}"]`))
       .filter((el): el is HTMLElement => !!el)
-      .map((el) => ({ x1: el.offsetLeft - GUARD_AIR, y1: el.offsetTop - GUARD_AIR, x2: el.offsetLeft + el.offsetWidth + GUARD_AIR, y2: el.offsetTop + el.offsetHeight + GUARD_AIR }))
+      .map((el) => ({ x1: el.offsetLeft - GUARD_AIR, y1: el.offsetTop - GUARD_AIR, x2: el.offsetLeft + el.offsetWidth + GUARD_AIR, y2: el.offsetTop + el.offsetHeight + GUARD_AIR })),
+    TITLE_GUARD,
+  ]
   const clearSpot = (x: number, y: number, w: number, h: number) => {
     const boxes = guarded()
     const hits = (px: number, py: number) => boxes.find((r) => px < r.x2 && px + w > r.x1 && py < r.y2 && py + h > r.y1)
