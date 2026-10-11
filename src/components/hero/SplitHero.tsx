@@ -43,7 +43,7 @@ const PANELS: { key: PanelKey; name: string; descriptor: string; href: string }[
   },
   {
     key: 'story',
-    name: 'My Story',
+    name: 'Deep Dive',
     descriptor: 'The full story, with the parts a resume leaves out.',
     href: '/story',
   },

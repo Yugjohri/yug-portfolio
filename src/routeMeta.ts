@@ -12,7 +12,7 @@ const META: Record<string, { title: string; description: string }> = {
     description: "Yug Johri — AI engineer. Retrieval, agents and fine-tuned models that hold up where the internet doesn't reach.",
   },
   '/story': {
-    title: 'My Story | Yug Johri, AI Engineer',
+    title: 'Deep Dive | Yug Johri, AI Engineer',
     description:
       'The long version: how Yug Johri thinks and builds. Projects in retrieval, agents and fine-tuned models, the work at CFEES, DRDO, and a board to leave a note on.',
   },

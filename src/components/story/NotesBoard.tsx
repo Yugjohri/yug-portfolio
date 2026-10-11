@@ -3,7 +3,7 @@ import gsap from 'gsap'
 import type { Flip as FlipPlugin } from 'gsap/Flip'
 import { useGSAP } from '@gsap/react'
 import { whenIdle } from '../../lib/idle'
-import { addNote, deleteMyNote, isShared, listNotes, moveMyNote, myNoteId, type Note, type NoteColor } from '../../lib/notesStore'
+import { addNote, checkOwner, deleteMyNote, isShared, listNotes, moveMyNote, myNoteId, ownerMoveNote, type Note, type NoteColor } from '../../lib/notesStore'
 
 gsap.registerPlugin(useGSAP)
 
@@ -52,12 +52,12 @@ const DOCK_VIEW = 1350
 /** room kept clear round Yug's note and Dexter, world px */
 const GUARD_AIR = 14
 /**
- * The board's title ("Leave a note :)" and its underline) kept clear too, world
- * px: the box its letters stand in (measured: 1023-1777 x 867-1111, tilt and
- * all), drawn in 22px all round -- a note may just catch the edge of a letter,
- * never cover a word. (The server holds to the same: ..._notes_title_guard.sql.)
+ * The board's title ("Leave a note :)" and its underline) kept clear too, with
+ * a little air round it, world px: the box its letters stand in (measured:
+ * 1023-1777 x 867-1111, tilt and all) and 20px more all round. (The server
+ * holds to the same: ..._notes_owner.sql.)
  */
-const TITLE_GUARD = { x1: 1045, y1: 889, x2: 1755, y2: 1089 }
+const TITLE_GUARD = { x1: 1003, y1: 847, x2: 1797, y2: 1131 }
 const REASON: Record<string, string> = {
   already_posted: 'one note each, and yours is already up. thank you!',
   not_allowed: "that one can't go up (no links or rude words, please).",
@@ -100,6 +100,15 @@ export default function NotesBoard() {
   }, [])
   const [notes, setNotes] = useState<Note[]>([])
   const [mine, setMine] = useState<string | null>(null)
+  /** the board's owner (lib/notesStore.ts): may move anyone's note, on the open board */
+  const [owner, setOwner] = useState(false)
+  useEffect(() => {
+    let alive = true
+    void checkOwner().then((yes) => alive && setOwner(yes))
+    return () => {
+      alive = false
+    }
+  }, [])
   const [text, setText] = useState('')
   // the signature in the note's corner (a name, a nickname, initials -- or nothing)
   const [sign, setSign] = useState('')
@@ -284,8 +293,8 @@ export default function NotesBoard() {
     const t = e.target as HTMLElement
     if (t.closest('button, input, a, [data-note-docked]')) return
     // your own note, once pinned, can be moved -- on the open board and the small one alike:
-    // dragged like the blank one, saved where it is let go
-    const mineEl = t.closest<HTMLElement>('[data-note-mine]')
+    // dragged like the blank one, saved where it is let go. (The owner's, any note on the open board.)
+    const mineEl = t.closest<HTMLElement>('[data-note-movable]')
     if (!open && !mineEl) return
     const onDraft = !!t.closest('[data-note-draft]')
     const inText = !!t.closest('textarea')
@@ -323,8 +332,9 @@ export default function NotesBoard() {
         }
         const x = at.left / WORLD.w
         const y = at.top / WORLD.h
-        setNotes((list) => list.map((n) => (n.id === mine ? { ...n, x, y } : n)))
-        void moveMyNote(x, y).then((ok) => {
+        const id = mineEl.dataset.note ?? ''
+        setNotes((list) => list.map((n) => (n.id === id ? { ...n, x, y } : n)))
+        void (id === mine ? moveMyNote(x, y) : ownerMoveNote(id, x, y)).then((ok) => {
           if (!ok) setMsg(REASON.offline)
         })
       }
@@ -601,9 +611,10 @@ export default function NotesBoard() {
               return (
                 <li
                   key={n.id}
-                  className={`note note--${n.color}${n.id === mine ? ' note--mine' : ''}`}
+                  className={`note note--${n.color}${n.id === mine ? ' note--mine' : owner && open ? ' note--movable' : ''}`}
                   data-note={n.id}
                   data-note-mine={n.id === mine ? '' : undefined}
+                  data-note-movable={n.id === mine || (owner && open) ? '' : undefined}
                   style={{ left: at.x * WORLD.w, top: at.y * WORLD.h, '--tilt': `${n.tilt}deg` } as React.CSSProperties}
                 >
                   <span className="note__pin" aria-hidden="true" />

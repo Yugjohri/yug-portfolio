@@ -1998,6 +1998,8 @@ em.about__pword {
 }
 /* your own note, on the open board: it moves under the hand, and comes down from its corner */
 .nboard--open .note--mine { cursor: move; touch-action: none; }
+/* the board's owner may move anyone's note (NotesBoard.tsx) */
+.nboard--open .note--movable { cursor: move; touch-action: none; }
 /* ...and on the small board too: yours takes the hand, the others stay out of its way */
 .nboard:not(.nboard--open) .note--mine { pointer-events: auto; cursor: move; touch-action: none; }
 .note__del { display: none; }

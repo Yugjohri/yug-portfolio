@@ -164,6 +164,73 @@ export async function deleteMyNote(): Promise<boolean> {
   return true
 }
 
+// ---------------------------------------------------------------- the owner
+// The board's owner may move anyone's note. Their key is opened once as
+// yugjohri.me/story#owner=<key> -- a fragment, which never leaves the browser
+// -- and kept in this browser; the server holds only its SHA-256 and checks
+// it on every move (supabase/migrations/..._notes_owner.sql).
+
+const OWNER = 'notes.owner'
+const ownerKey = (): string | null => {
+  try {
+    return localStorage.getItem(OWNER)
+  } catch {
+    return null
+  }
+}
+
+/** Takes the key from the address (#owner=...) into this browser, and out of the address. */
+function claimOwnerKey() {
+  const m = window.location.hash.match(/^#owner=([A-Za-z0-9_-]{32,128})$/)
+  if (!m) return
+  try {
+    localStorage.setItem(OWNER, m[1])
+  } catch {
+    /* private mode: owner for this visit only */
+  }
+  history.replaceState(history.state, '', window.location.pathname + window.location.search)
+}
+
+/** Is this browser the board's owner? (A key the server does not know is forgotten.) */
+export async function checkOwner(): Promise<boolean> {
+  claimOwnerKey()
+  const key = ownerKey()
+  if (!key) return false
+  if (!isShared) return true
+  try {
+    const res = await fetch(`${URL_}/rest/v1/rpc/owner_check`, { method: 'POST', headers: headers(), body: JSON.stringify({ p_key: key }) })
+    if (!res.ok) return false
+    const yes = (await res.json()) === true
+    if (!yes) {
+      try {
+        localStorage.removeItem(OWNER)
+      } catch {
+        /* nothing kept */
+      }
+    }
+    return yes
+  } catch {
+    return false
+  }
+}
+
+/** The owner moves a note (anyone's) to a new place (shares of the board's width and height). */
+export async function ownerMoveNote(id: string, x: number, y: number): Promise<boolean> {
+  const key = ownerKey()
+  if (!key) return false
+  if (!isShared) return moveLocal(id, x, y)
+  try {
+    const res = await fetch(`${URL_}/rest/v1/rpc/owner_move_note`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ p_key: key, p_id: id, p_x: x, p_y: y }),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
 // ---------------------------------------------------------------- local preview
 
 function moveLocal(id: string, x: number, y: number) {

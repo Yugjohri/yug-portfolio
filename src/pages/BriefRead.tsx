@@ -359,7 +359,7 @@ export default function BriefRead() {
               Resume <span aria-hidden="true">↗</span>
             </a>
             <Link className="bf-top__story" to="/story">
-              My Story <span aria-hidden="true">→</span>
+              Deep Dive <span aria-hidden="true">→</span>
             </Link>
           </div>
         </nav>
@@ -491,7 +491,7 @@ export default function BriefRead() {
               </button>
             ) : null}
             <Link className="bf-link mono" to="/story">
-              The long version, in My Story <span aria-hidden="true">→</span>
+              The long version, in the Deep Dive <span aria-hidden="true">→</span>
             </Link>
             <a className="bf-link mono" href={LINKS.github} target="_blank" rel="noreferrer">
               GitHub <span aria-hidden="true">↗</span>
@@ -628,7 +628,7 @@ export default function BriefRead() {
                 </span>
               </a>
               <Link className="bf-channel" to="/story">
-                <span className="mono">My Story</span>
+                <span className="mono">Deep Dive</span>
                 <span>
                   The long version <i aria-hidden="true">→</i>
                 </span>

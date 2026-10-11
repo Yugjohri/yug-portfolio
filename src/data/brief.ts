@@ -42,7 +42,7 @@ export const ABOUT_PARAS: string[] = [
 
 /** the Brief's projects, in a line */
 export const PROJECTS_LEDE =
-  "what i've built, from fine-tuned models to tools that check their own answers. the long version of each is in My Story."
+  "what i've built, from fine-tuned models to tools that check their own answers. the long version of each is in the Deep Dive."
 
 /** the Brief's own, shorter bullets for a role (its full ones are in My Story) */
 export const BRIEF_ROLE_BULLETS: Record<string, string[]> = {
