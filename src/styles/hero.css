@@ -80,14 +80,19 @@
     'Liberation Mono', 'Courier New', monospace;
   white-space: pre;
   user-select: none;
-  transform: scale(1.02);
-  /* grown about the hole's point (the bottom-middle when the panels are
-     stacked, the right edge's when they sit side by side), so the ASCII half
-     meets the lit half exactly at the divider */
-  transform-origin: 50% 100%;
+  /* The grid, stretched from its top-left to fill the panel exactly (by
+     --ascii-fx/fy, which asciiRenderer measures in the font as set), then
+     grown a little about the hole's point (the bottom-middle when the panels
+     are stacked, the right edge's when they sit side by side), so the ASCII
+     half meets the lit half exactly at the divider. (Read right to left.) */
+  overflow: visible;
+  transform-origin: 0 0;
+  transform: translate(50%, 100%) scale(1.02) translate(-50%, -100%) scale(var(--ascii-fx, 1), var(--ascii-fy, 1));
 }
 @media (min-width: 768px) {
-  .hero__ascii { transform-origin: 100% 47%; }
+  .hero__ascii {
+    transform: translate(100%, 47%) scale(1.02) translate(-100%, -47%) scale(var(--ascii-fx, 1), var(--ascii-fy, 1));
+  }
 }
 
 .hero__color,

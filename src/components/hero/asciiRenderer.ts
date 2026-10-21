@@ -61,6 +61,42 @@ export class AsciiRenderer {
 
     this.pre.style.fontSize = `${fontSize}px`
     this.pre.style.lineHeight = `${LINE_HEIGHT}`
+    this.fit(width, height)
+  }
+
+  /**
+   * Stretch the grid so it fills the panel exactly. The glyphs are sized from
+   * a canvas measurement, but the page sets them in whatever monospace the
+   * device has (SF Mono or Menlo on a Mac, Consolas on Windows), at a small
+   * size where each face rounds its advance its own way; and the rows are
+   * rounded up so the last one is never short. So the grid came out a little
+   * wider or taller than the picture it samples -- the two halves of the hole
+   * missed each other at the divider by a few pixels, more on some devices.
+   * The grid as actually set is measured here, in the same font, and the
+   * difference taken up by the transform (hero.css: --ascii-fx, --ascii-fy).
+   */
+  private fit(width: number, height: number) {
+    const host = this.pre.parentElement
+    if (!host) return
+    const cs = getComputedStyle(this.pre)
+    const probe = document.createElement('span')
+    probe.setAttribute('aria-hidden', 'true')
+    probe.style.cssText = `position:absolute;left:0;top:0;visibility:hidden;pointer-events:none;white-space:pre;margin:0;padding:0;font-family:${cs.fontFamily};font-size:${cs.fontSize};font-weight:${cs.fontWeight};line-height:${cs.lineHeight};letter-spacing:${cs.letterSpacing}`
+    probe.textContent = Array(this.rows).fill('M'.repeat(this.cols)).join('\n')
+    host.appendChild(probe)
+    // (offset sizes are the layout's own: no ancestor's transform -- the panels' entrance -- in them)
+    const range = document.createRange()
+    range.selectNodeContents(probe)
+    const box = range.getBoundingClientRect()
+    const shown = probe.getBoundingClientRect()
+    // the probe's box on screen against its layout width gives any ancestor scale, taken back out
+    const k = probe.offsetWidth > 0 ? shown.width / probe.offsetWidth : 1
+    const gw = box.width / (k || 1)
+    const gh = box.height / (k || 1)
+    probe.remove()
+    if (!(gw > 0 && gh > 0)) return
+    this.pre.style.setProperty('--ascii-fx', String(width / gw))
+    this.pre.style.setProperty('--ascii-fy', String(height / gh))
   }
 
   /** Measure the real advance ratio of the resolved monospace font. */

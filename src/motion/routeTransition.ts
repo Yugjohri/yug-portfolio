@@ -35,8 +35,9 @@ export type BandShape = {
   top: number
   width: number
   height: number
-  /** the pass's scale, about `origin` (px, in the box) */
+  /** the pass's scale, about `origin` (px, in the box); `scaleY` where it differs vertically */
   scale: number
+  scaleY?: number
   originX: number
   originY: number
   /** what the panel clips off either side, px in the box */
@@ -248,7 +249,7 @@ class RouteTransitionController {
       lineHeight: b.lineHeight,
       color: b.color,
       transformOrigin: `${b.originX}px ${b.originY}px`,
-      transform: `scale(${b.scale})`,
+      transform: `scale(${b.scale}, ${b.scaleY ?? b.scale})`,
       clipPath: `inset(0px ${b.clipRight}px 0px ${b.clipLeft}px)`,
     })
     shown(el, true)
@@ -367,14 +368,15 @@ class RouteTransitionController {
     const toInk = gsap.utils.interpolate(band.color, ink)
     // where the band is on screen as the pass drew it: its centre line, and its ends
     const mid = (band.first + band.rows / 2) * band.rowHeight
-    const cy = band.top + band.originY + (mid - band.originY) * band.scale
+    const sY = band.scaleY ?? band.scale
+    const cy = band.top + band.originY + (mid - band.originY) * sY
     const x0 = band.left + band.originX + (band.clipLeft - band.originX) * band.scale
     const x1 = band.left + band.originX + (band.width - band.clipRight - band.originX) * band.scale
-    const rowH = band.rowHeight * band.scale
+    const rowH = band.rowHeight * sY
     // The rows flatten about their own middle rather than about the pass's
     // centre: the same placement, re-expressed about a different origin.
     const oy = mid
-    const ty0 = (band.originY - oy) * (1 - band.scale)
+    const ty0 = (band.originY - oy) * (1 - sY)
 
     const state = { sweep: 0, flat: 0, widen: 0 }
     let opened = false
@@ -395,7 +397,7 @@ class RouteTransitionController {
         const r = (w - x1) * (1 - state.widen)
         el.style.clipPath = `inset(0px ${r.toFixed(2)}px 0px ${l.toFixed(2)}px)`
       } else {
-        const sy = band.scale * (1 - state.flat * (1 - 1 / band.rows))
+        const sy = sY * (1 - state.flat * (1 - 1 / band.rows))
         el.style.transformOrigin = `${band.originX}px ${oy}px`
         el.style.transform = `translateY(${(lower - cy + ty0).toFixed(2)}px) scale(${band.scale}, ${sy.toFixed(4)})`
         el.style.color = toInk(state.flat)

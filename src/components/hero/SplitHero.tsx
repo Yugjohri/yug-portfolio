@@ -80,6 +80,8 @@ function bandOf(pre: HTMLPreElement): BandShape | null {
   const w = pre.offsetWidth
   const h = pre.offsetHeight
   const scale = box.width / (w || 1)
+  // (the grid is stretched to fit its panel, a hair differently across and down: asciiRenderer)
+  const scaleY = box.height / (h || 1)
   const cx = box.left + box.width / 2
   const cy = box.top + box.height / 2
   // a viewport x, in the pre's own (unscaled) px
@@ -90,6 +92,7 @@ function bandOf(pre: HTMLPreElement): BandShape | null {
     width: w,
     height: h,
     scale,
+    scaleY,
     originX: w / 2,
     originY: h / 2,
     clipLeft: Math.max(0, local(clip.left)),
